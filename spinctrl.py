@@ -17,22 +17,11 @@ ID_SPIN_1=wx.NewId()
 ID_SPIN_2=wx.NewId()
 ID_LED_1=wx.NewId()
 ID_LED_2=wx.NewId()
+ID_LED_SQUELCH=wx.NewId()
 ID_TEXT_1=wx.NewId()
 ID_TEXT_2=wx.NewId()
 ID_BUTTON_7=wx.NewId()
 ID_BUTTON_MUTE=wx.NewId()
-
-def mute():
-    os.system("jack_disconnect cobbler:from_slave_2 system:playback_1")
-    os.system("jack_disconnect cobbler:from_slave_2 system:playback_2")
-
-    return
-
-def unmute():
-    os.system("jack_connect cobbler:from_slave_2 system:playback_1")
-    os.system("jack_connect cobbler:from_slave_2 system:playback_2")
-
-    return
 
 class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
@@ -56,6 +45,26 @@ class StatusLEDtimer(wx.Timer):
             self.target.m_led2.SetState(2)
         else:
             self.target.m_led2.SetState(0)
+
+        sopen=self.target.m_rig.squelch_open()
+ 
+        lastopen=True
+        lastclosed=True
+        lastopen  = self.target.m_sopen_last_time[0] and self.target.m_sopen_last_time[1]
+        lastclosed  = (not self.target.m_sopen_last_time[0]) and (not self.target.m_sopen_last_time[1])
+            
+        if sopen and lastopen:
+            self.target.m_squelch_led.SetState(2)
+            self.target.unmute()
+
+        if (not sopen) and lastclosed:
+            self.target.m_squelch_led.SetState(0)
+            self.target.mute()
+
+        self.target.m_sopen_last_time[1] = self.target.m_sopen_last_time[0]
+
+        self.target.m_sopen_last_time[0] = sopen
+
 
         wx.WakeUpIdle()
 
@@ -89,6 +98,8 @@ class MyFrame(wx.Frame):
 
         self.m_led2=ledthing.LED(self,ID_LED_2)
 
+        self.m_squelch_led=ledthing.LED(self,ID_LED_SQUELCH)
+
         steps=["Auto", "3.2 KHz","4","5","6.25","8","10","12.5"]
 
         self.m_step_selected = "6.25"
@@ -117,7 +128,7 @@ class MyFrame(wx.Frame):
 
         self.m_mute_button = wx.ToggleButton(self, ID_BUTTON_MUTE, "Mute")
 
-        self.status_led_timer=StatusLEDtimer(self,500)
+        self.status_led_timer=StatusLEDtimer(self,400)
 
         #self.__set_properties()
 
@@ -129,7 +140,15 @@ class MyFrame(wx.Frame):
 
         self.__do_layout()
 
+        self.m_mute=True
+
         self.onButtonMute(None)
+
+        self.m_sopen_last_time = {}
+
+        self.m_sopen_last_time[0] = False
+
+        self.m_sopen_last_time[1] = False
 
         return
 
@@ -143,9 +162,9 @@ class MyFrame(wx.Frame):
 
     def onButtonMute(self,event):
         if self.m_mute_button.GetValue():
-            mute()
+            self.mute()
         else:
-            unmute()
+            self.unmute()
 
         return
 
@@ -228,6 +247,23 @@ class MyFrame(wx.Frame):
 
         return
 
+    def mute(self):
+        if not self.m_mute:
+            os.system("jack_disconnect cobbler:from_slave_2 system:playback_1")
+            os.system("jack_disconnect cobbler:from_slave_2 system:playback_2")
+            self.m_mute = True
+
+        return
+
+    def unmute(self):
+        if self.m_mute:
+            os.system("jack_connect cobbler:from_slave_2 system:playback_1")
+            os.system("jack_connect cobbler:from_slave_2 system:playback_2")
+            self.m_mute = False
+        
+        return
+
+
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -245,6 +281,8 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_COMBOBOX, self.OnStepSelected, self.m_step_combo) 
 
         sizer_1.Add(self.m_step_combo, 0, wx.ADJUST_MINSIZE, 0)
+
+        sizer_1.Add(self.m_squelch_led, 0, wx.ADJUST_MINSIZE, 0)
 
         self.SetAutoLayout(True)
         self.SetSizer(sizer_1)

@@ -9,7 +9,7 @@ class SerialStreamWriter:
         self.m_stb = STB
         self.m_hwif = hwif
 
-        dirval=(DATA|CLK|STB|0x40)
+        dirval=(DATA|CLK|STB)
 
         self.m_hwif.bb.direction |= dirval
 

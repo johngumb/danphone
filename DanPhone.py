@@ -87,8 +87,6 @@ class DanPhone:
         self.m_hwif.setport(newval)
         #self.m_hwif.bb.port &= ~self.m_hwif.D7
 
-        self.disable_tx_drive()
-
         return
         
     def enable_tx(self):
@@ -103,32 +101,6 @@ class DanPhone:
         self.m_hwif.setport(newval)
 
         self.init_tx()
-
-        self.enable_tx_drive()
-
-        return
-
-    def disable_tx_drive(self):
-
-        self.m_tx_drive_enabled = False
-
-        curval = self.m_hwif.getport()
-
-        newval = curval & ~self.m_hwif.D6
-
-        self.m_hwif.setport(newval)
-
-        return
-        
-    def enable_tx_drive(self):
-
-        self.m_tx_drive_enabled = True
-
-        curval = self.m_hwif.getport()
-
-        newval = curval | self.m_hwif.D6
-
-        self.m_hwif.setport(newval)
 
         return
 
@@ -173,3 +145,10 @@ class DanPhone:
 
     def get_hwif(self):
         return self.m_hwif
+
+    def squelch_open(self):
+        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+
+        result = ((self.m_hwif.bb.port & self.m_hwif.D6) == self.m_hwif.D6)
+
+        return result
