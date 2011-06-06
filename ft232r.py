@@ -2,7 +2,7 @@ from pylibftdi import BitBangDevice
 
 class ft232r:
     def __init__(self):
-        self.bb = BitBangDevice("USB-UIRT")
+        self.bb = BitBangDevice()
         self.bb.direction = 0x80
         #self.bb.baudrate = 115200
         #self.bb.baudrate = 920000

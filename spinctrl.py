@@ -21,7 +21,7 @@ ID_LED_SQUELCH=wx.NewId()
 ID_TEXT_1=wx.NewId()
 ID_TEXT_2=wx.NewId()
 ID_BUTTON_7=wx.NewId()
-ID_BUTTON_MUTE=wx.NewId()
+ID_BUTTON_MONITOR=wx.NewId()
 
 class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
@@ -50,16 +50,20 @@ class StatusLEDtimer(wx.Timer):
  
         lastopen=True
         lastclosed=True
-        lastopen  = self.target.m_sopen_last_time[0] and self.target.m_sopen_last_time[1]
-        lastclosed  = (not self.target.m_sopen_last_time[0]) and (not self.target.m_sopen_last_time[1])
+#        lastopen  = self.target.m_sopen_last_time[0] and self.target.m_sopen_last_time[1]
+#        lastclosed  = (not self.target.m_sopen_last_time[0]) and (not self.target.m_sopen_last_time[1])
+        lastopen  = self.target.m_sopen_last_time[0]
+        lastclosed  = (not self.target.m_sopen_last_time[0])
             
         if sopen and lastopen:
             self.target.m_squelch_led.SetState(2)
-            self.target.unmute()
+            if not self.target.m_monitor_button.GetValue():
+                self.target.unmute()
 
         if (not sopen) and lastclosed:
             self.target.m_squelch_led.SetState(0)
-            self.target.mute()
+            if not self.target.m_monitor_button.GetValue():
+                self.target.mute()
 
         self.target.m_sopen_last_time[1] = self.target.m_sopen_last_time[0]
 
@@ -126,7 +130,7 @@ class MyFrame(wx.Frame):
 
         self.button_7 = wx.ToggleButton(self, ID_BUTTON_7, "Tx")
 
-        self.m_mute_button = wx.ToggleButton(self, ID_BUTTON_MUTE, "Mute")
+        self.m_monitor_button = wx.ToggleButton(self, ID_BUTTON_MONITOR, "Mon")
 
         self.status_led_timer=StatusLEDtimer(self,400)
 
@@ -134,15 +138,14 @@ class MyFrame(wx.Frame):
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_7,self.onButtonTx)
 
-        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE,self.onButtonMute)
+        self.m_mute = False
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MONITOR,self.onButtonMonitor)
 
         # watch freq step here
 
         self.__do_layout()
 
-        self.m_mute=True
-
-        self.onButtonMute(None)
+        self.onButtonMonitor(None)
 
         self.m_sopen_last_time = {}
 
@@ -160,10 +163,8 @@ class MyFrame(wx.Frame):
 
         return
 
-    def onButtonMute(self,event):
-        if self.m_mute_button.GetValue():
-            self.mute()
-        else:
+    def onButtonMonitor(self,event):
+        if self.m_monitor_button.GetValue():
             self.unmute()
 
         return
@@ -271,7 +272,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_led1, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.button_7, 0, wx.ADJUST_MINSIZE, 0)
-        sizer_1.Add(self.m_mute_button, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_monitor_button, 0, wx.ADJUST_MINSIZE, 0)
         
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_led2, 0, wx.ADJUST_MINSIZE, 0)
