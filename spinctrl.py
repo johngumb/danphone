@@ -48,11 +48,14 @@ class StatusLEDtimer(wx.Timer):
 
         sopen=self.target.m_rig.squelch_open()
  
-        lastopen=True
-        lastclosed=True
-#        lastopen  = self.target.m_sopen_last_time[0] and self.target.m_sopen_last_time[1]
+        lastopen = True
+        samples_to_check = 5
+        for i in range(samples_to_check):
+            if self.target.m_sopen_last_time.has_key(i):
+                lastopen  = lastopen and self.target.m_sopen_last_time[i]
+
 #        lastclosed  = (not self.target.m_sopen_last_time[0]) and (not self.target.m_sopen_last_time[1])
-        lastopen  = self.target.m_sopen_last_time[0]
+#        lastopen  = self.target.m_sopen_last_time[0]
         lastclosed  = (not self.target.m_sopen_last_time[0])
             
         if sopen and lastopen:
@@ -65,10 +68,18 @@ class StatusLEDtimer(wx.Timer):
             if not self.target.m_monitor_button.GetValue():
                 self.target.mute()
 
-        self.target.m_sopen_last_time[1] = self.target.m_sopen_last_time[0]
+#        self.target.m_sopen_last_time[3] = self.target.m_sopen_last_time[2]
 
+#        self.target.m_sopen_last_time[2] = self.target.m_sopen_last_time[1]
+
+#        self.target.m_sopen_last_time[1] = self.target.m_sopen_last_time[0]
+
+#        self.target.m_sopen_last_time[0] = sopen
+
+        for i in range(samples_to_check-1, 0, -1):
+            if self.target.m_sopen_last_time.has_key(i-1):
+                self.target.m_sopen_last_time[i] = self.target.m_sopen_last_time[i-1]
         self.target.m_sopen_last_time[0] = sopen
-
 
         wx.WakeUpIdle()
 
