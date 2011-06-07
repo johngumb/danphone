@@ -48,11 +48,9 @@ class StatusLEDtimer(wx.Timer):
 
         sopen=self.target.m_rig.squelch_open()
  
-        lastopen=True
-        lastclosed=True
-#        lastopen  = self.target.m_sopen_last_time[0] and self.target.m_sopen_last_time[1]
+        lastopen  = self.target.m_sopen_last_time[0] and self.target.m_sopen_last_time[1] and self.target.m_sopen_last_time[2]
 #        lastclosed  = (not self.target.m_sopen_last_time[0]) and (not self.target.m_sopen_last_time[1])
-        lastopen  = self.target.m_sopen_last_time[0]
+#        lastopen  = self.target.m_sopen_last_time[0]
         lastclosed  = (not self.target.m_sopen_last_time[0])
             
         if sopen and lastopen:
@@ -64,6 +62,8 @@ class StatusLEDtimer(wx.Timer):
             self.target.m_squelch_led.SetState(0)
             if not self.target.m_monitor_button.GetValue():
                 self.target.mute()
+
+        self.target.m_sopen_last_time[2] = self.target.m_sopen_last_time[1]
 
         self.target.m_sopen_last_time[1] = self.target.m_sopen_last_time[0]
 
