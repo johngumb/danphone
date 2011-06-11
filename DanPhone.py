@@ -7,6 +7,11 @@ class DanPhone:
     def __init__(self):
         self.m_hwif=ft232r.ft232r()
 
+        #
+        # clock to 74174 latch must be kept high
+        #
+        self.m_hwif.initialise(direction=self.m_hwif.D7, value=self.m_hwif.D7)
+
         self.m_txsynth = TC9181F.TC9181F(self.m_hwif,\
                                   DATA=self.m_hwif.D0,\
                                   CLK=self.m_hwif.D1,\
@@ -79,13 +84,15 @@ class DanPhone:
 
         self.m_tx_enabled = False
 
-        curval = self.m_hwif.getport()
+        #
+        # ask rx TC9181F to set GPIO pins low
+        #
+        self.m_rxsynth.enable_outputs([0,0])
 
-        newval = curval & ~self.m_hwif.D7
-        #self.m_hwif.bb.port |= self.m_hwif.D7
-
-        self.m_hwif.setport(newval)
-        #self.m_hwif.bb.port &= ~self.m_hwif.D7
+        # 
+        # latch data onto output pins of 74174
+        #
+        self.m_hwif.pulsebitlow(self.m_hwif.D7)
 
         return
         
@@ -93,15 +100,50 @@ class DanPhone:
 
         self.m_tx_enabled = True
 
-        curval = self.m_hwif.getport()
+        #
+        # ask rx TC9181F to set GPIO pins high
+        #
+        self.m_rxsynth.enable_outputs([1,1])
 
-        newval = curval | self.m_hwif.D7
-        #self.m_hwif.bb.port |= self.m_hwif.D7
-
-        self.m_hwif.setport(newval)
+        # 
+        # latch data onto output pins of 74174
+        #
+        self.m_hwif.pulsebitlow(self.m_hwif.D7)
 
         self.init_tx()
 
+        return
+
+    def disable_tx_drive(self):
+
+        self.m_tx_drive_enabled = False
+
+        curval = self.m_hwif.getport()
+
+        newval = curval & ~self.m_hwif.D1
+
+        self.m_hwif.setport(newval)
+
+        # latch
+        self.m_hwif.pulsebitlow(self.m_hwif.D7)
+
+        # leave D0 with junk for now
+        return
+        
+    def enable_tx_drive(self):
+
+        self.m_tx_drive_enabled = True
+
+        curval = self.m_hwif.getport()
+
+        newval = curval | self.m_hwif.D1
+
+        self.m_hwif.setport(newval)
+
+        # latch
+        self.m_hwif.pulsebitlow(self.m_hwif.D7)
+
+        # leave D0 with junk for now
         return
 
     def tx_enabled(self):

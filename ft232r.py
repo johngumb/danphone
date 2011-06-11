@@ -3,7 +3,11 @@ from pylibftdi import BitBangDevice
 class ft232r:
     def __init__(self):
         self.bb = BitBangDevice()
-        self.bb.direction = 0x80
+
+        #
+        # default to Hi-Z inputs
+        #
+        self.bb.direction = 0x00
         #self.bb.baudrate = 115200
         #self.bb.baudrate = 920000
         self.bb.baudrate = 2000000
@@ -17,7 +21,13 @@ class ft232r:
         self.D6=64
         self.D7=128
 
-        self.m_portval = 0
+        return
+
+    def initialise(self, direction = 0, value = 0):
+
+        self.bb.direction = direction
+
+        self.setport(value)
 
         return
 
@@ -41,10 +51,29 @@ class ft232r:
 
         return
 
-    def pulsebit(self,bit):
+    def setbits(self,bits):
+        self.m_portval |= bits
+        self.bb.port = self.m_portval
+
+        return
+
+    def clearbits(self,bits):
+        self.m_portval &= ~bits
+        self.bb.port = self.m_portval
+
+        return
+
+    def pulsebithigh(self,bit):
         self.bb.port &= ~bit
         self.bb.port |= bit
         self.bb.port &= ~bit
+
+        return
+
+    def pulsebitlow(self,bit):
+        self.bb.port |= bit
+        self.bb.port &= ~bit
+        self.bb.port |= bit
 
         return
 

@@ -21,6 +21,7 @@ ID_LED_SQUELCH=wx.NewId()
 ID_TEXT_1=wx.NewId()
 ID_TEXT_2=wx.NewId()
 ID_BUTTON_7=wx.NewId()
+ID_BUTTON_TX_DRIVE=wx.NewId()
 ID_BUTTON_MONITOR=wx.NewId()
 
 class StatusLEDtimer(wx.Timer):
@@ -141,6 +142,8 @@ class MyFrame(wx.Frame):
 
         self.button_7 = wx.ToggleButton(self, ID_BUTTON_7, "Tx")
 
+        self.m_button_tx_drive = wx.ToggleButton(self, ID_BUTTON_TX_DRIVE, "TxDrive")
+
         self.m_monitor_button = wx.ToggleButton(self, ID_BUTTON_MONITOR, "Mon")
 
         self.status_led_timer=StatusLEDtimer(self,400)
@@ -148,6 +151,8 @@ class MyFrame(wx.Frame):
         #self.__set_properties()
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_7,self.onButtonTx)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_DRIVE,self.onButtonTxDrive)
 
         self.m_mute = False
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MONITOR,self.onButtonMonitor)
@@ -171,6 +176,14 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_tx()
         else:
             self.m_rig.disable_tx()
+
+        return
+
+    def onButtonTxDrive(self,event):
+        if self.m_button_tx_drive.GetValue():
+            self.m_rig.enable_tx_drive()
+        else:
+            self.m_rig.disable_tx_drive()
 
         return
 
@@ -283,6 +296,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_led1, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.button_7, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_button_tx_drive, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_monitor_button, 0, wx.ADJUST_MINSIZE, 0)
         
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)

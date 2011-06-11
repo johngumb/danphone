@@ -70,16 +70,7 @@ class SerialStreamWriter:
 
         # generate strobe pulse
         print self.m_stb
-        if self.m_stb>=0x100:
-            val=self.m_stb>>8
-        else:
-            self.m_hwif.pulsebit(self.m_stb)
-
-#        self.m_hwif.setboolbit(self.m_stb,False)
-
-#        self.m_hwif.setboolbit(self.m_stb,True)
-
-#        self.m_hwif.setboolbit(self.m_stb,False)
+        self.m_hwif.pulsebithigh(self.m_stb)
 
         return
   

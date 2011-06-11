@@ -121,9 +121,11 @@ class TC9181F:
 
         return
 
-    def enable_outputs(self):
+    def enable_outputs(self,val):
 
-        d=[1,0,1,1]
+#        d=[1,0,1,1]
+
+        d = val + [1, 1]
 
         self.m_stream_writer.output_bitlist_lsb_first(d)
 
