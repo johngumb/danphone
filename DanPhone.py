@@ -1,11 +1,19 @@
 import ft232r
 import TC9181F
+import D74174
 import time
+
 
 class DanPhone:
 
     def __init__(self):
         self.m_hwif=ft232r.ft232r()
+
+        #
+        # peripheral interface
+        #
+        self.m_74174 = D74174.D74174(self.m_hwif, self.m_hwif.D7, \
+                                         self.m_hwif.D0|self.m_hwif.D1)
 
         #
         # clock to 74174 latch must be kept high
@@ -33,7 +41,9 @@ class DanPhone:
 
         self.m_tx_freq = None
 
-        self.m_tx_enabled = False
+        self.disable_tx()
+
+        self.disable_tx_drive()
 
         self.m_step = None
 
@@ -89,10 +99,7 @@ class DanPhone:
         #
         self.m_rxsynth.enable_outputs([0,0])
 
-        # 
-        # latch data onto output pins of 74174
-        #
-        self.m_hwif.pulsebitlow(self.m_hwif.D7)
+        self.m_74174.latch()
 
         return
         
@@ -105,10 +112,7 @@ class DanPhone:
         #
         self.m_rxsynth.enable_outputs([1,1])
 
-        # 
-        # latch data onto output pins of 74174
-        #
-        self.m_hwif.pulsebitlow(self.m_hwif.D7)
+        self.m_74174.latch()
 
         self.init_tx()
 
@@ -118,14 +122,9 @@ class DanPhone:
 
         self.m_tx_drive_enabled = False
 
-        curval = self.m_hwif.getport()
+        self.m_74174.clearbit(self.m_hwif.D1)
 
-        newval = curval & ~self.m_hwif.D1
-
-        self.m_hwif.setport(newval)
-
-        # latch
-        self.m_hwif.pulsebitlow(self.m_hwif.D7)
+        self.m_74174.latch()
 
         # leave D0 with junk for now
         return
@@ -134,14 +133,9 @@ class DanPhone:
 
         self.m_tx_drive_enabled = True
 
-        curval = self.m_hwif.getport()
+        self.m_74174.setbit(self.m_hwif.D1)
 
-        newval = curval | self.m_hwif.D1
-
-        self.m_hwif.setport(newval)
-
-        # latch
-        self.m_hwif.pulsebitlow(self.m_hwif.D7)
+        self.m_74174.latch()
 
         # leave D0 with junk for now
         return
