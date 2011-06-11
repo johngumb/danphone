@@ -35,8 +35,7 @@ class StatusLEDtimer(wx.Timer):
     def Notify(self):
         """Called every timer interval"""
 
-#        if self.target.m_rig.tx_enabled():
-        if True:
+        if self.target.m_rig.tx_enabled():
             if self.target.m_rig.tx_locked():
                 self.target.m_led1.SetState(2)
             else:
