@@ -41,9 +41,12 @@ class DanPhone:
 
         self.m_tx_freq = None
 
+        # initial states
         self.disable_tx()
 
         self.disable_tx_drive()
+
+        self.disable_pa()
 
         self.m_step = None
 
@@ -134,6 +137,28 @@ class DanPhone:
         self.m_tx_drive_enabled = True
 
         self.m_74174.setbit(self.m_hwif.D1)
+
+        self.m_74174.latch()
+
+        # leave D0 with junk for now
+        return
+
+    def disable_pa(self):
+
+        self.m_pa_enabled = False
+
+        self.m_74174.clearbit(self.m_hwif.D0)
+
+        self.m_74174.latch()
+
+        # leave D0 with junk for now
+        return
+        
+    def enable_pa(self):
+
+        self.m_pa_enabled = True
+
+        self.m_74174.setbit(self.m_hwif.D0)
 
         self.m_74174.latch()
 
