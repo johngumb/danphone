@@ -37,8 +37,6 @@ class DanPhone:
 
         self.m_rxsynth.enable_phase_comparator()
 
-#        self.m_rxsynth.enable_outputs()
-
         self.m_tx_freq = None
 
         # initial states
@@ -69,8 +67,6 @@ class DanPhone:
         self.m_txsynth.enable_phase_comparator()
 
         self.m_txsynth.set_ref_divider(self.m_divratio)
-
-#        self.m_txsynth.enable_outputs()
 
         if self.m_tx_freq:
             self.m_txsynth.set_freq(self.m_tx_freq)
