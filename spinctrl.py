@@ -25,6 +25,24 @@ ID_BUTTON_TX_DRIVE=wx.NewId()
 ID_BUTTON_PA=wx.NewId()
 ID_BUTTON_MONITOR=wx.NewId()
 
+MUTED = False
+
+def mute():
+    global MUTED
+    if not MUTED:
+        os.system("jack_disconnect cobbler:from_slave_2 system:playback_1")
+        os.system("jack_disconnect cobbler:from_slave_2 system:playback_2")
+        MUTED = True
+    return
+
+def unmute():
+    global MUTED
+    if MUTED:
+        os.system("jack_connect cobbler:from_slave_2 system:playback_1")
+        os.system("jack_connect cobbler:from_slave_2 system:playback_2")
+        MUTED = False
+    return
+
 class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
         wx.Timer.__init__(self)
@@ -63,12 +81,12 @@ class StatusLEDtimer(wx.Timer):
         if sopen and lastopen:
             self.target.m_squelch_led.SetState(2)
             if not self.target.m_monitor_button.GetValue():
-                self.target.unmute()
+                unmute()
 
         if (not sopen) and lastclosed:
             self.target.m_squelch_led.SetState(0)
             if not self.target.m_monitor_button.GetValue():
-                self.target.mute()
+                mute()
 
 #        self.target.m_sopen_last_time[3] = self.target.m_sopen_last_time[2]
 
@@ -159,7 +177,6 @@ class MyFrame(wx.Frame):
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_PA,self.onButtonPA)
 
-        self.m_mute = False
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MONITOR,self.onButtonMonitor)
 
         # watch freq step here
@@ -202,7 +219,7 @@ class MyFrame(wx.Frame):
 
     def onButtonMonitor(self,event):
         if self.m_monitor_button.GetValue():
-            self.unmute()
+            unmute()
 
         return
 
@@ -284,23 +301,6 @@ class MyFrame(wx.Frame):
         self.m_rig.set_tx_freq(self.m_freq)
 
         return
-
-    def mute(self):
-        if not self.m_mute:
-            os.system("jack_disconnect cobbler:from_slave_2 system:playback_1")
-            os.system("jack_disconnect cobbler:from_slave_2 system:playback_2")
-            self.m_mute = True
-
-        return
-
-    def unmute(self):
-        if self.m_mute:
-            os.system("jack_connect cobbler:from_slave_2 system:playback_1")
-            os.system("jack_connect cobbler:from_slave_2 system:playback_2")
-            self.m_mute = False
-        
-        return
-
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
