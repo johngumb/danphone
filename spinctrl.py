@@ -24,6 +24,7 @@ ID_BUTTON_7=wx.NewId()
 ID_BUTTON_TX_DRIVE=wx.NewId()
 ID_BUTTON_PA=wx.NewId()
 ID_BUTTON_MONITOR=wx.NewId()
+ID_BUTTON_RX_ATT=wx.NewId()
 
 MUTED = False
 
@@ -167,6 +168,8 @@ class MyFrame(wx.Frame):
 
         self.m_monitor_button = wx.ToggleButton(self, ID_BUTTON_MONITOR, "Mon")
 
+        self.m_rx_att_button = wx.ToggleButton(self, ID_BUTTON_RX_ATT, "RxAtt")
+
         self.status_led_timer=StatusLEDtimer(self,400)
 
         #self.__set_properties()
@@ -178,6 +181,8 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_PA,self.onButtonPA)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MONITOR,self.onButtonMonitor)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_RX_ATT,self.onButtonRxAtt)
 
         # watch freq step here
 
@@ -220,6 +225,14 @@ class MyFrame(wx.Frame):
     def onButtonMonitor(self,event):
         if self.m_monitor_button.GetValue():
             unmute()
+
+        return
+
+    def onButtonRxAtt(self,event):
+        if self.m_rx_att_button.GetValue():
+            self.m_rig.disable_rx()
+        else:
+            self.m_rig.enable_rx()
 
         return
 
@@ -312,6 +325,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_button_tx_drive, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_pa, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_monitor_button, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_rx_att_button, 0, wx.ADJUST_MINSIZE, 0)
         
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_led2, 0, wx.ADJUST_MINSIZE, 0)

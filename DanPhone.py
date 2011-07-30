@@ -92,11 +92,12 @@ class DanPhone:
     def disable_tx(self):
 
         self.m_tx_enabled = False
+        self.m_rx_attenuate = False
 
         #
-        # ask rx TC9181F to set GPIO pins low
+        # ask rx TC9181F to set GPIO pins
         #
-        self.m_rxsynth.enable_outputs([0,0])
+        self.m_rxsynth.enable_outputs([self.m_tx_enabled,not self.m_rx_attenuate])
 
         self.m_74174.latch()
 
@@ -105,11 +106,12 @@ class DanPhone:
     def enable_tx(self):
 
         self.m_tx_enabled = True
+        self.m_rx_attenuate = True
 
         #
-        # ask rx TC9181F to set GPIO pins high
+        # ask rx TC9181F to set GPIO pins
         #
-        self.m_rxsynth.enable_outputs([1,1])
+        self.m_rxsynth.enable_outputs([self.m_tx_enabled,not self.m_rx_attenuate])
 
         self.m_74174.latch()
 
@@ -209,3 +211,32 @@ class DanPhone:
         result = ((self.m_hwif.bb.port & self.m_hwif.D6) == self.m_hwif.D6)
 
         return result
+
+    def disable_rx(self):
+
+        self.m_rx_attenuate = True
+
+        #
+        # ask rx TC9181F to set GPIO pins
+        #
+        self.m_rxsynth.enable_outputs([self.m_tx_enabled,not self.m_rx_attenuate])
+
+        self.m_74174.latch()
+
+        self.init_tx()
+
+        return
+
+    def enable_rx(self):
+        self.m_rx_attenuate = False
+
+        #
+        # ask rx TC9181F to set GPIO pins
+        #
+        self.m_rxsynth.enable_outputs([self.m_tx_enabled,not self.m_rx_attenuate])
+
+        self.m_74174.latch()
+
+        self.init_tx()
+
+        return
