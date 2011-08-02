@@ -127,7 +127,7 @@ class DanPhone:
 
         self.m_74174.latch()
 
-        # leave D0 with junk for now
+        # leave D1 with junk for now
         return
         
     def enable_tx_drive(self):
@@ -138,7 +138,7 @@ class DanPhone:
 
         self.m_74174.latch()
 
-        # leave D0 with junk for now
+        # leave D1 with junk for now
         return
 
     def disable_pa(self):
