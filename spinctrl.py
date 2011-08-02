@@ -25,6 +25,7 @@ ID_BUTTON_TX_DRIVE=wx.NewId()
 ID_BUTTON_PA=wx.NewId()
 ID_BUTTON_MONITOR=wx.NewId()
 ID_BUTTON_RX_ATT=wx.NewId()
+ID_BUTTON_TX=wx.NewId()
 
 MUTED = False
 
@@ -160,7 +161,7 @@ class MyFrame(wx.Frame):
         self.m_rig.set_rx_freq(self.m_spin_ctrl_2.GetDefaultValue()*1E6)
         self.m_rig.set_tx_freq(self.m_spin_ctrl_2.GetDefaultValue()*1E6)
 
-        self.button_7 = wx.ToggleButton(self, ID_BUTTON_7, "Tx")
+        self.button_7 = wx.ToggleButton(self, ID_BUTTON_7, "TxE")
 
         self.m_button_tx_drive = wx.ToggleButton(self, ID_BUTTON_TX_DRIVE, "TxDrive")
 
@@ -169,6 +170,8 @@ class MyFrame(wx.Frame):
         self.m_monitor_button = wx.ToggleButton(self, ID_BUTTON_MONITOR, "Mon")
 
         self.m_rx_att_button = wx.ToggleButton(self, ID_BUTTON_RX_ATT, "RxAtt")
+
+        self.m_tx_button = wx.ToggleButton(self, ID_BUTTON_TX, "Tx")
 
         self.status_led_timer=StatusLEDtimer(self,400)
 
@@ -183,6 +186,8 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MONITOR,self.onButtonMonitor)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_RX_ATT,self.onButtonRxAtt)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX,self.onButtonTransmit)
 
         # watch freq step here
 
@@ -233,6 +238,25 @@ class MyFrame(wx.Frame):
             self.m_rig.disable_rx()
         else:
             self.m_rig.enable_rx()
+
+        return
+
+    def onButtonTransmit(self,event):
+        if self.m_tx_button.GetValue():
+            self.button_7.SetValue(True)
+            self.m_rx_att_button.SetValue(True)
+            self.m_button_tx_drive.SetValue(True)
+#            self.m_button_pa.SetValue(True):
+        else:
+            self.button_7.SetValue(False)
+            self.m_rx_att_button.SetValue(False)
+            self.m_button_tx_drive.SetValue(False)
+            self.m_button_pa.SetValue(False)
+
+        self.onButtonTx(event)
+        self.onButtonRxAtt(event)
+        self.onButtonTxDrive(event)
+        self.onButtonPA(event)
 
         return
 
@@ -326,6 +350,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_button_pa, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_monitor_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_rx_att_button, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_tx_button, 0, wx.ADJUST_MINSIZE, 0)
         
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_led2, 0, wx.ADJUST_MINSIZE, 0)
