@@ -40,6 +40,8 @@ class DanPhone:
         self.m_tx_freq = None
 
         # initial states
+        self.m_rx_attenuate = False
+
         self.disable_tx()
 
         self.disable_tx_drive()
@@ -92,7 +94,6 @@ class DanPhone:
     def disable_tx(self):
 
         self.m_tx_enabled = False
-        self.m_rx_attenuate = False
 
         #
         # ask rx TC9181F to set GPIO pins
@@ -106,7 +107,6 @@ class DanPhone:
     def enable_tx(self):
 
         self.m_tx_enabled = True
-        self.m_rx_attenuate = True
 
         #
         # ask rx TC9181F to set GPIO pins
