@@ -40,6 +40,7 @@ class D74174:
         # 
         # latch data onto output pins of 74174
         #
-        self.m_hwif.pulsebitlow(self.m_hwif.D7)
+        self.m_hwif.bb.direction |= self.m_latchbit
+        self.m_hwif.pulsebitlow(self.m_latchbit)
 
         
