@@ -109,9 +109,9 @@ class TC9181F:
 
         return
 
-    def enable_phase_comparator(self):
+    def enable_phase_comparator(self,lock_detect_enable):
         # phase comparator
-        d = [0,0]
+        d = [0,not lock_detect_enable]
 
         c = [0,0]
 

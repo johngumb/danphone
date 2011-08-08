@@ -35,7 +35,7 @@ class DanPhone:
 
         self.m_rxsynth.set_refclk(self.m_refclk)
 
-        self.m_rxsynth.enable_phase_comparator()
+        self.m_rxsynth.enable_phase_comparator(True)
 
         self.m_tx_freq = None
 
@@ -66,7 +66,7 @@ class DanPhone:
 
         self.m_txsynth.set_refclk(self.m_refclk)
 
-        self.m_txsynth.enable_phase_comparator()
+        self.m_txsynth.enable_phase_comparator(True)
 
         self.m_txsynth.set_ref_divider(self.m_divratio)
 
@@ -79,7 +79,7 @@ class DanPhone:
 
         self.m_rxsynth.set_refclk(self.m_refclk)
 
-        self.m_rxsynth.enable_phase_comparator()
+        self.m_rxsynth.enable_phase_comparator(True)
 
         self.m_rxsynth.set_ref_divider(self.m_divratio)
 
@@ -200,6 +200,33 @@ class DanPhone:
 
         result = ((self.m_hwif.bb.port & self.m_hwif.D4) == 0)
 
+        return result
+
+    def powered_on(self):
+
+        # D7 as output (probably)
+        tmpdir = self.m_hwif.bb.direction
+
+        # D7 now an input
+        self.m_hwif.bb.direction &= ~self.m_hwif.D7
+
+        # HACK throw away result
+        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+
+        # HACK throw away result
+        self.m_hwif.bb.port
+
+        # HACK following result is good
+        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+
+        # HACK this result is good
+        result = ((self.m_hwif.bb.port & self.m_hwif.D7) == self.m_hwif.D7)
+
+        # back to D7 as output
+        self.m_hwif.bb.direction = tmpdir
+
+        # BEWARE anything read as input may be dodgy until
+        # ftdi_usb_purge_rx_buffer() is called
         return result
 
     def get_hwif(self):

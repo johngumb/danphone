@@ -103,6 +103,8 @@ class StatusLEDtimer(wx.Timer):
                 self.target.m_sopen_last_time[i] = self.target.m_sopen_last_time[i-1]
         self.target.m_sopen_last_time[0] = sopen
 
+        #print self.target.m_rig.powered_on()
+
         wx.WakeUpIdle()
 
         return
