@@ -45,6 +45,29 @@ def unmute():
         MUTED = False
     return
 
+class OnOffTimer(wx.Timer):
+    def __init__(self,target,dur=500):
+        wx.Timer.__init__(self)
+        self.target = target
+        self.Start(dur)
+        return
+    
+    def Notify(self):
+
+        self.target.m_powered_on = self.target.m_rig.powered_on()
+
+        if self.target.m_powered_on and not self.target.m_last_powered_on:
+            print "rig just powered on"
+
+        if not self.target.m_powered_on and self.target.m_last_powered_on:
+            print "rig just powered off"
+
+        self.target.m_last_powered_on = self.target.m_powered_on
+
+        wx.WakeUpIdle()
+
+        return
+
 class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
         wx.Timer.__init__(self)
@@ -54,6 +77,11 @@ class StatusLEDtimer(wx.Timer):
 
     def Notify(self):
         """Called every timer interval"""
+        if not self.target.m_powered_on:
+            self.target.m_led1.SetState(3)
+            self.target.m_led2.SetState(3)
+            self.target.m_squelch_led.SetState(3)
+            return
 
         if self.target.m_rig.tx_enabled():
             if self.target.m_rig.tx_locked():
@@ -146,7 +174,7 @@ class MyFrame(wx.Frame):
         self.m_step_combo = wx.ComboBox(self, -1, self.m_step_selected, choices=steps)
 
         self.m_digits = 5
-        print dir(self.m_spin_ctrl_2 )
+#        print dir(self.m_spin_ctrl_2 )
         for f in [self.m_spin_ctrl_1, self.m_spin_ctrl_2]:
             f.SetFormat("%F")
             f.SetDigits(self.m_digits)
@@ -177,6 +205,8 @@ class MyFrame(wx.Frame):
 
         self.status_led_timer=StatusLEDtimer(self,400)
 
+        self.on_off_timer=OnOffTimer(self,5000)
+
         #self.__set_properties()
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_7,self.onButtonTx)
@@ -202,6 +232,10 @@ class MyFrame(wx.Frame):
         self.m_sopen_last_time[0] = False
 
         self.m_sopen_last_time[1] = False
+
+        self.m_powered_on = self.m_rig.powered_on()
+
+        self.m_last_powered_on = self.m_powered_on
 
         return
 

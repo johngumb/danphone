@@ -170,7 +170,7 @@ class DanPhone:
     def set_rx_freq(self,freq):
 
         self.m_rxsynth.set_freq(freq+21.4E6)
-                
+
         return
 
     def set_tx_freq(self,freq):
@@ -184,6 +184,8 @@ class DanPhone:
 
     def tx_locked(self):
 
+        # TODO merge rx/tx locked functions to cut down on usb traffic
+        # i.e. the purge
         self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
 
         if not self.m_tx_enabled:
@@ -196,6 +198,8 @@ class DanPhone:
 
     def rx_locked(self):
 
+        # TODO merge rx/tx locked functions to cut down on usb traffic
+        # i.e. the purge
         self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
 
         result = ((self.m_hwif.bb.port & self.m_hwif.D4) == 0)
@@ -203,6 +207,18 @@ class DanPhone:
         return result
 
     def powered_on(self):
+
+        #
+        # HACK
+        # the following (i.e. setting D7 as an input)
+        # upsets the D74174 latch a bit
+        # so make sure any data which may get latched through is correct.
+        # Just need to do TX drive so far. May need to do PA state.
+        #
+        if self.m_tx_drive_enabled:
+            self.enable_tx_drive()
+        else:
+            self.disable_tx_drive()
 
         # D7 as output (probably)
         tmpdir = self.m_hwif.bb.direction
@@ -227,6 +243,7 @@ class DanPhone:
 
         # BEWARE anything read as input may be dodgy until
         # ftdi_usb_purge_rx_buffer() is called
+
         return result
 
     def get_hwif(self):
