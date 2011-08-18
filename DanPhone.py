@@ -186,6 +186,9 @@ class DanPhone:
 
         # TODO merge rx/tx locked functions to cut down on usb traffic
         # i.e. the purge
+        # consider local purge function which executes a purge based
+        # on when last one was called
+        #
         self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
 
         if not self.m_tx_enabled:
@@ -207,18 +210,14 @@ class DanPhone:
         return result
 
     def powered_on(self):
-
         #
         # HACK
         # the following (i.e. setting D7 as an input)
         # upsets the D74174 latch a bit
         # so make sure any data which may get latched through is correct.
-        # Just need to do TX drive so far. May need to do PA state.
+        # Just calling the 74174 latch function does this.
         #
-        if self.m_tx_drive_enabled:
-            self.enable_tx_drive()
-        else:
-            self.disable_tx_drive()
+        self.m_74174.latch()
 
         # D7 as output (probably)
         tmpdir = self.m_hwif.bb.direction
