@@ -29,6 +29,8 @@ ID_BUTTON_TX=wx.NewId()
 
 MUTED = False
 
+# TODO fix initial mute state
+# TODO radio might start with signal present.
 def mute():
     global MUTED
     if not MUTED:
@@ -63,6 +65,22 @@ class OnOffTimer(wx.Timer):
             print "rig just powered off"
 
         self.target.m_last_powered_on = self.target.m_powered_on
+
+        wx.WakeUpIdle()
+
+        return
+
+class TxTimer(wx.Timer):
+    def __init__(self,target):
+        wx.Timer.__init__(self)
+        self.target = target
+        return
+    
+    def Notify(self):
+        if self.target.m_tx_button.GetValue():
+            print "tx timeout"
+            self.target.m_tx_button.SetValue(False)
+            self.target.onButtonTransmit(None)
 
         wx.WakeUpIdle()
 
@@ -111,7 +129,8 @@ class StatusLEDtimer(wx.Timer):
         if sopen and lastopen:
             self.target.m_squelch_led.SetState(2)
             if not self.target.m_monitor_button.GetValue():
-                unmute()
+                if not self.target.m_stay_muted:
+                    unmute()
 
         if (not sopen) and lastclosed:
             self.target.m_squelch_led.SetState(0)
@@ -237,6 +256,10 @@ class MyFrame(wx.Frame):
 
         self.m_last_powered_on = self.m_powered_on
 
+        self.m_stay_muted = False
+
+        self.m_tx_timer=TxTimer(self)
+
         return
 
     def onButtonTx(self,event):
@@ -282,8 +305,15 @@ class MyFrame(wx.Frame):
             self.button_7.SetValue(True)
             self.m_rx_att_button.SetValue(True)
             self.m_button_tx_drive.SetValue(True)
-#            self.m_button_pa.SetValue(True):
+            if len(sys.argv) > 1:
+                self.m_button_pa.SetValue(True)
+            mute()
+            self.m_stay_muted=True
+            self.m_tx_timer.Start(1000*60*4)
         else:
+            self.m_tx_timer.Stop()
+            unmute()
+            self.m_stay_muted=False
             self.button_7.SetValue(False)
             self.m_rx_att_button.SetValue(False)
             self.m_button_tx_drive.SetValue(False)
