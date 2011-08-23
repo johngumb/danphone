@@ -306,6 +306,8 @@ class MyFrame(wx.Frame):
             self.m_rx_att_button.SetValue(True)
             self.m_button_tx_drive.SetValue(True)
             if len(sys.argv) > 1:
+                # check frequency before enabling PA
+                # maybe do not allow tx on 70.3875 or 70.4125
                 self.m_button_pa.SetValue(True)
             mute()
             self.m_stay_muted=True
