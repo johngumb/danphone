@@ -127,6 +127,11 @@ class DanPhone:
 
         self.m_74174.latch()
 
+        # rh pin (pin 3) is ele 0
+        # lh pin (pin 14) is ele 1
+        self.m_txsynth.enable_outputs([0,0])
+        self.m_74174.latch()
+
         # leave D1 with junk for now
         return
         
@@ -135,6 +140,8 @@ class DanPhone:
         self.m_tx_drive_enabled = True
 
         self.m_74174.setbit(self.m_hwif.D1)
+
+        self.m_txsynth.enable_outputs([1,1])
 
         self.m_74174.latch()
 
@@ -154,13 +161,15 @@ class DanPhone:
         
     def enable_pa(self):
 
-        self.m_pa_enabled = True
+        # TODO make a proper lockout list
+        if not self.m_tx_freq in [70387500.0,70412500.0]:
+            self.m_pa_enabled = True
 
-        self.m_74174.setbit(self.m_hwif.D0)
+            self.m_74174.setbit(self.m_hwif.D0)
 
-        self.m_74174.latch()
+            self.m_74174.latch()
 
-        # leave D0 with junk for now
+            # leave D0 with junk for now
         return
 
     def tx_enabled(self):
