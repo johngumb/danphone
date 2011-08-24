@@ -123,29 +123,22 @@ class DanPhone:
 
         self.m_tx_drive_enabled = False
 
-        self.m_74174.clearbit(self.m_hwif.D1)
-
-        self.m_74174.latch()
-
         # rh pin (pin 3) is ele 0
         # lh pin (pin 14) is ele 1
-        self.m_txsynth.enable_outputs([0,0])
+        self.m_txsynth.enable_outputs([0,self.m_tx_drive_enabled])
+
         self.m_74174.latch()
 
-        # leave D1 with junk for now
         return
         
     def enable_tx_drive(self):
 
         self.m_tx_drive_enabled = True
 
-        self.m_74174.setbit(self.m_hwif.D1)
-
-        self.m_txsynth.enable_outputs([1,1])
+        self.m_txsynth.enable_outputs([0,self.m_tx_drive_enabled])
 
         self.m_74174.latch()
 
-        # leave D1 with junk for now
         return
 
     def disable_pa(self):
