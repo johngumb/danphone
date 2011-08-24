@@ -197,7 +197,7 @@ class MyFrame(wx.Frame):
         for f in [self.m_spin_ctrl_1, self.m_spin_ctrl_2]:
             f.SetFormat("%F")
             f.SetDigits(self.m_digits)
-            self.m_freq=70.3875E6
+            self.m_freq=70.45E6
             f.SetDefaultValue( self.m_freq /1E6)
             f.SetValue( self.m_freq / 1E6)
             f.SetToDefaultValue()
