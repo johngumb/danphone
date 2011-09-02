@@ -26,6 +26,7 @@ ID_BUTTON_PA=wx.NewId()
 ID_BUTTON_MONITOR=wx.NewId()
 ID_BUTTON_RX_ATT=wx.NewId()
 ID_BUTTON_TX=wx.NewId()
+ID_SPIN_SQUELCH_LEVEL=wx.NewId()
 
 MUTED = False
 
@@ -190,6 +191,8 @@ class MyFrame(wx.Frame):
 
         self.m_step_selected = "6.25"
 
+        self.m_spin_ctrl_squelch_level = FS.FloatSpin(self, ID_SPIN_2)
+
         self.m_step_combo = wx.ComboBox(self, -1, self.m_step_selected, choices=steps)
 
         self.m_digits = 5
@@ -207,6 +210,14 @@ class MyFrame(wx.Frame):
             f._increment=self.m_step/1E6
             f.SetRange(self.m_min_freq/1E6,self.m_max_freq/1E6)
 
+        self.m_squelch_level_value = 500
+        self.m_spin_ctrl_squelch_level.SetFormat("%F")
+        self.m_spin_ctrl_squelch_level.SetDigits(0)
+        self.m_spin_ctrl_squelch_level.SetDefaultValue(5)
+        self.m_spin_ctrl_squelch_level.SetToDefaultValue()
+        self.m_spin_ctrl_squelch_level.SetRange(1,1000)
+        self.m_spin_ctrl_squelch_level.SetValue(self.m_squelch_level_value)
+        self.m_spin_ctrl_squelch_level.Bind(FS.EVT_FLOATSPIN, self.OnSquelchFloatSpin)
         self.m_rig.set_rx_freq(self.m_spin_ctrl_2.GetDefaultValue()*1E6)
         self.m_rig.set_tx_freq(self.m_spin_ctrl_2.GetDefaultValue()*1E6)
 
@@ -328,6 +339,23 @@ class MyFrame(wx.Frame):
 
         return
 
+    def OnSquelchFloatSpin(self,event):
+        floatspin = event.GetEventObject()
+
+        newval = floatspin.GetValue()
+
+        print newval
+        print  self.m_squelch_level_value
+
+        if newval > self.m_squelch_level_value:
+            print "up"
+        else:
+            print "down"
+        
+        self.m_squelch_level_value = newval
+
+        return
+
     def OnFloatSpin(self,event):
         floatspin = event.GetEventObject()
 
@@ -421,6 +449,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_tx_button, 0, wx.ADJUST_MINSIZE, 0)
         
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
+
         sizer_1.Add(self.m_led2, 0, wx.ADJUST_MINSIZE, 0)
 
         self.m_step_combo.SetStringSelection("6.25")
@@ -429,7 +458,10 @@ class MyFrame(wx.Frame):
 
         sizer_1.Add(self.m_step_combo, 0, wx.ADJUST_MINSIZE, 0)
 
+        sizer_1.Add(self.m_spin_ctrl_squelch_level, 0, wx.ADJUST_MINSIZE, 0)
+
         sizer_1.Add(self.m_squelch_led, 0, wx.ADJUST_MINSIZE, 0)
+
 
         self.SetAutoLayout(True)
         self.SetSizer(sizer_1)
