@@ -124,7 +124,7 @@ class StatusLEDtimer(wx.Timer):
         sopen=self.target.m_rig.squelch_open()
  
         lastopen = True
-        samples_to_check = 4
+        samples_to_check = 3
         for i in range(samples_to_check):
             if self.target.m_sopen_last_time.has_key(i):
                 lastopen  = lastopen and self.target.m_sopen_last_time[i]
@@ -275,7 +275,7 @@ class MyFrame(wx.Frame):
 
         self.m_stay_muted = False
 
-        self.m_squelch_refresh = 50
+        self.m_squelch_refresh = 500
 
         self.m_cur_squelch_refresh = self.m_squelch_refresh
 
