@@ -1,4 +1,5 @@
 from pylibftdi import BitBangDevice
+import time
 
 class ft232r:
     def __init__(self):
@@ -70,8 +71,10 @@ class ft232r:
 
         return
 
-    def pulsebitlow(self,bit):
+    def pulsebitlow(self,bit,downtime=0):
         self.bb.port |= bit
+        if downtime!=0:
+            time.sleep(downtime)
         self.bb.port &= ~bit
         self.bb.port |= bit
 
