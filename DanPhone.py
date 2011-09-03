@@ -50,6 +50,11 @@ class DanPhone:
 
         self.m_step = None
 
+        #
+        # set squelch threshold
+        #
+        self.init_squelch()
+
         return
 
     def set_step(self,step):
@@ -299,3 +304,9 @@ class DanPhone:
 
         self.m_74174.setbit(self.m_hwif.D1)
         self.m_74174.latch()
+
+    def init_squelch(self):
+        self.move_squelch("down",delay=3)
+
+        for i in range(50):
+            self.move_squelch("up")

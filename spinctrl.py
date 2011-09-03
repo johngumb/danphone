@@ -124,7 +124,7 @@ class StatusLEDtimer(wx.Timer):
         sopen=self.target.m_rig.squelch_open()
  
         lastopen = True
-        samples_to_check = 2
+        samples_to_check = 4
         for i in range(samples_to_check):
             if self.target.m_sopen_last_time.has_key(i):
                 lastopen  = lastopen and self.target.m_sopen_last_time[i]
@@ -275,7 +275,7 @@ class MyFrame(wx.Frame):
 
         self.m_stay_muted = False
 
-        self.m_squelch_refresh = 6
+        self.m_squelch_refresh = 50
 
         self.m_cur_squelch_refresh = self.m_squelch_refresh
 
@@ -354,8 +354,8 @@ class MyFrame(wx.Frame):
 
         newval = floatspin.GetValue()
 
-        print newval
-        print  self.m_squelch_level_value
+#        print newval
+#        print  self.m_squelch_level_value
 
         if newval > self.m_squelch_level_value:
             self.m_rig.move_squelch("up")
