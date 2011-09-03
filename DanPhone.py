@@ -286,7 +286,7 @@ class DanPhone:
 
         return
 
-    def move_squelch(self,dirn):
+    def move_squelch(self,dirn,delay=0.01):
 
         print self.m_hwif.bb.direction
 
@@ -301,7 +301,7 @@ class DanPhone:
         self.m_74174.clearbit(self.m_hwif.D1)
 
         self.m_74174.latch()
-        time.sleep(0.01)
+        time.sleep(delay)
 
         self.m_74174.setbit(self.m_hwif.D1)
         self.m_74174.latch()

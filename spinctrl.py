@@ -67,6 +67,12 @@ class OnOffTimer(wx.Timer):
 
         self.target.m_last_powered_on = self.target.m_powered_on
 
+        self.target.m_cur_squelch_refresh-=1;
+
+        if self.target.m_cur_squelch_refresh==0:
+            self.target.m_rig.move_squelch("up")
+            self.target.m_cur_squelch_refresh=self.target.m_squelch_refresh
+
         wx.WakeUpIdle()
 
         return
@@ -118,7 +124,7 @@ class StatusLEDtimer(wx.Timer):
         sopen=self.target.m_rig.squelch_open()
  
         lastopen = True
-        samples_to_check = 5
+        samples_to_check = 2
         for i in range(samples_to_check):
             if self.target.m_sopen_last_time.has_key(i):
                 lastopen  = lastopen and self.target.m_sopen_last_time[i]
@@ -268,6 +274,10 @@ class MyFrame(wx.Frame):
         self.m_last_powered_on = self.m_powered_on
 
         self.m_stay_muted = False
+
+        self.m_squelch_refresh = 6
+
+        self.m_cur_squelch_refresh = self.m_squelch_refresh
 
         self.m_tx_timer=TxTimer(self)
 
