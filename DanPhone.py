@@ -286,14 +286,10 @@ class DanPhone:
 
     def move_squelch(self,dirn,delay=0.01):
 
-        print self.m_hwif.bb.direction
-
         if dirn=="up":
             self.m_74174.setbit(self.m_hwif.D0)
-            print "up"
         else:
             self.m_74174.clearbit(self.m_hwif.D0)
-            print "down"
 
         # use D1 supplied to 74174 as OE to 74ACT573
         self.m_74174.clearbit(self.m_hwif.D1)
