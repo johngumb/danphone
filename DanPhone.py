@@ -145,11 +145,10 @@ class DanPhone:
 
         self.m_pa_enabled = False
 
-        self.m_74174.clearbit(self.m_hwif.D0)
+        self.m_txsynth.enable_outputs([self.m_pa_enabled,self.m_tx_drive_enabled])
 
         self.m_74174.latch()
 
-        # leave D0 with junk for now
         return
         
     def enable_pa(self):
@@ -158,11 +157,10 @@ class DanPhone:
         if not self.m_tx_freq in [70387500.0,70412500.0]:
             self.m_pa_enabled = True
 
-            self.m_74174.setbit(self.m_hwif.D0)
+            self.m_txsynth.enable_outputs([self.m_pa_enabled,self.m_tx_drive_enabled])
 
             self.m_74174.latch()
 
-            # leave D0 with junk for now
         return
 
     def tx_enabled(self):
