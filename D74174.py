@@ -24,7 +24,7 @@ class D74174:
 
         return
 
-    def latch(self):
+    def latch(self,downtime=0):
 
         curval = self.m_hwif.getport()
 
@@ -41,6 +41,6 @@ class D74174:
         # latch data onto output pins of 74174
         #
         self.m_hwif.bb.direction |= self.m_latchbit
-        self.m_hwif.pulsebitlow(self.m_latchbit)
+        self.m_hwif.pulsebitlow(self.m_latchbit,downtime)
 
         
