@@ -221,7 +221,7 @@ class MyFrame(wx.Frame):
         self.m_spin_ctrl_squelch_level.SetDigits(0)
         self.m_spin_ctrl_squelch_level.SetDefaultValue(5)
         self.m_spin_ctrl_squelch_level.SetToDefaultValue()
-        self.m_spin_ctrl_squelch_level.SetRange(1,1000)
+        self.m_spin_ctrl_squelch_level.SetRange(1,2000)
         self.m_spin_ctrl_squelch_level.SetValue(self.m_squelch_level_value)
         self.m_spin_ctrl_squelch_level.Bind(FS.EVT_FLOATSPIN, self.OnSquelchFloatSpin)
         self.m_rig.set_rx_freq(self.m_spin_ctrl_2.GetDefaultValue()*1E6)
