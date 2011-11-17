@@ -358,9 +358,16 @@ class MyFrame(wx.Frame):
 #        print  self.m_squelch_level_value
 
         if newval > self.m_squelch_level_value:
-            self.m_rig.move_squelch("up")
+            diff = newval - self.m_squelch_level_value
+
+            for i in range(int(diff)):
+                self.m_rig.move_squelch("up")
         else:
-            self.m_rig.move_squelch("down")
+
+            diff = self.m_squelch_level_value - newval
+
+            for i in range(int(diff)):
+                self.m_rig.move_squelch("down")
         
         self.m_squelch_level_value = newval
 
