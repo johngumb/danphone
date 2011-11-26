@@ -159,7 +159,9 @@ class DanPhone:
     def enable_pa(self):
 
         # TODO make a proper lockout list
-        if (not self.m_tx_freq in [70387500.0,70412500.0]) and self.m_rx_attenuate:
+#        banned_freq = self.m_tx_freq in [70387500.0,70412500.0]
+        banned_freq = self.m_tx_freq in [70412500.0]
+        if (not banned_freq) and self.m_rx_attenuate:
             self.m_pa_enabled = True
 
             self.m_txsynth.enable_outputs([self.m_pa_enabled,self.m_tx_drive_enabled])

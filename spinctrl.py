@@ -3,6 +3,7 @@
 # spinctrl.py
 
 import os
+import time
 
 import wx
 import ledthing
@@ -332,8 +333,9 @@ class MyFrame(wx.Frame):
                 self.m_button_pa.SetValue(True)
             mute()
             self.m_stay_muted=True
-            self.m_tx_timer.Start(1000*60*4)
+            self.m_tx_timer.Start(1000*60*5)
         else:
+            time.sleep(0.3)
             self.m_tx_timer.Stop()
             unmute()
             self.m_stay_muted=False
