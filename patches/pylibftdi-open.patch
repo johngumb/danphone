@@ -1,0 +1,11 @@
+--- pylibftdi-0.7/pylibftdi/driver.py	2011-03-31 01:10:50.000000000 +0100
++++ pylibftdi-0.7/pylibftdi/driver.py	2011-04-17 22:47:19.000000000 +0100
+@@ -220,7 +220,7 @@
+         if self.device_id is None:
+             res = self.fdll.ftdi_usb_open(*tuple(open_args))
+         else:
+-            open_args.extend([0, c_char_p(self.device_id.encode('latin1'))])
++            open_args.extend([c_char_p(self.device_id.encode('latin1')),0])
+             res = self.fdll.ftdi_usb_open_desc(*tuple(open_args))
+ 
+         if res != 0:
