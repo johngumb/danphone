@@ -118,7 +118,7 @@ class DanPhone:
         #
         self.m_rxsynth.enable_outputs([self.m_tx_enabled,not self.m_rx_attenuate])
 
-        self.m_74174.latch(downtime=0.1)
+        self.m_74174.latch(downtime=0.05)
 
         self.init_tx()
 
