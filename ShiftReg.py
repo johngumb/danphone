@@ -9,7 +9,7 @@ class ShiftReg:
 
         self.m_serial_writer = SerialStreamWriter.SerialStreamWriter(hwif, DATA=data, CLK=clock, STB=latch)
 
-        self.m_bits = 0
+        self.m_bits = nbits
 
         self.m_nbits = nbits
 
@@ -28,6 +28,8 @@ class ShiftReg:
     def latch(self,downtime=0):
 
         self.m_serial_writer.output(self.m_bits, self.m_nbits)
+
+        self.m_serial_writer.latch()
 
         return
         
