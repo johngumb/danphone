@@ -9,7 +9,7 @@ class ShiftReg:
 
         self.m_serial_writer = SerialStreamWriter.SerialStreamWriter(hwif, DATA=data, CLK=clock, STB=latch)
 
-        self.m_bits = nbits
+        self.m_bits = 0
 
         self.m_nbits = nbits
 
