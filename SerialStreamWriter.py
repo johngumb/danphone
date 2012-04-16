@@ -11,15 +11,17 @@ class SerialStreamWriter:
 
         dirval=(DATA|CLK|STB)
 
-        self.m_hwif.bb.direction |= dirval
+        # FIXME
+        if self.m_hwif:
+            self.m_hwif.bb.direction |= dirval
 
         self.m_debug = False
 
         return
 
     def clockpulse(self):
-        # generate clock pulse on clock pin
 
+        # generate clock pulse on clock pin
         self.m_hwif.risingedge(self.m_clk)
 
         return
@@ -66,10 +68,28 @@ class SerialStreamWriter:
 
         return
 
+    def output_msb_first(self, val, nbits):
+        mask = 1 << (nbits - 1)
+
+        while mask != 0:
+
+            self.m_hwif.setboolbit(self.m_data, val & mask)
+
+            if self.m_debug:
+                if val & mask:
+                    print 1
+                else:
+                    print 0
+
+            mask = mask >> 1
+
+            self.clockpulse()
+
+        return
+
     def latch(self):
 
         # generate strobe pulse
-        print self.m_stb
         self.m_hwif.pulsebithigh(self.m_stb)
 
         return

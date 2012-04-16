@@ -9,6 +9,7 @@ class TC9181F:
 
         self.m_stream_writer=SerialStreamWriter.SerialStreamWriter(port,DATA,CLK,STB)
 
+        # FIXME
         self.m_port.bb.direction &= ~LOCK
 
         self.m_refclk = None
