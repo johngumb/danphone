@@ -15,6 +15,8 @@ class McMicro:
 
         self.m_shiftreg.latch()
 
+        return
+
     def initialise(self):
         self.m_hwif=ft232r.ft232r()
         
