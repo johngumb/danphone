@@ -5,7 +5,7 @@ import MC145158
 class McMicro:
     def __init__(self):
         self.SR_POWER=0x40
-        self.SR_TX_RX=0x20
+        self.SR_TX_RX=0x20 # pin 6
 
         self.m_synth_refclk = 14.4E6
 
