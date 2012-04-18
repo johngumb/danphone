@@ -5,6 +5,7 @@ import MC145158
 class McMicro:
     def __init__(self):
         self.SR_POWER=0x40
+        self.SR_TX_RX=0x20
 
         self.m_synth_refclk = 14.4E6
 
@@ -17,6 +18,22 @@ class McMicro:
             self.m_shiftreg.clearbit(self.SR_POWER)
 
         self.m_shiftreg.latch()
+
+        return
+
+    def enable_tx(self):
+        self.m_shiftreg.setbit(self.SR_TX_RX)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def disable_tx(self):
+        self.m_shiftreg.clearbit(self.SR_TX_RX)
+
+        self.m_shiftreg.latch()
+
+        return
 
     def initialise(self):
         self.m_hwif=ft232r.ft232r()
@@ -51,7 +68,8 @@ class McMicro:
         #
         self.m_synth.set_ref_divider(self.m_synth_refclk/6.25E3)
 
-        self.m_synth.set_freq(103.88726E6)
+        # 104.88726E rx == 74.1 MHz TX approx
+        self.m_synth.set_freq(104.88726E6)
 
         return
 
@@ -63,6 +81,8 @@ def test():
     mc.power(True)
 
     mc.tune()
+
+    mc.enable_tx()
 
 if __name__ == "__main__":
     
