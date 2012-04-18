@@ -35,8 +35,8 @@ class McMicro:
         # synth
         # prescaler is MC14094 (divide by 40)
         #
-        self.m_synth = MC145158.MC145158(self.m_hwif, 40, self.m_hwif.D0, \
-                                         self.m_hwif.D1, self.m_hwif.D2)
+        self.m_synth = MC145158.MC145158(self.m_hwif, 40, self.m_hwif.D1, \
+                                         self.m_hwif.D0, self.m_hwif.D2)
 
         return
 
