@@ -7,7 +7,7 @@ import time
 class DanPhone:
 
     def __init__(self):
-        self.m_hwif=ft232r.ft232r()
+        self.m_hwif=ft232r.ft232r(device_id="DPVECB1O")
 
         #
         # peripheral interface

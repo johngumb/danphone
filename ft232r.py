@@ -2,8 +2,8 @@ from pylibftdi import BitBangDevice
 import time
 
 class ft232r:
-    def __init__(self):
-        self.bb = BitBangDevice()
+    def __init__(self, device_id=None):
+        self.bb = BitBangDevice(device_id=device_id)
 
         #
         # default to Hi-Z inputs

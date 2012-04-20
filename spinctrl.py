@@ -10,7 +10,6 @@ import ledthing
 #from agw import floatspin
 import wx.lib.agw.floatspin as FS
 
-import ft232r
 import DanPhone
 import sys
 
