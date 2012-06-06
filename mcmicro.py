@@ -4,8 +4,18 @@ import MC145158
 
 class McMicro:
     def __init__(self):
-        self.SR_POWER=0x40
+        self.SR_POWER=0x40 # pin 5
         self.SR_TX_RX=0x20 # pin 6
+
+        #0x80 pin 4
+        #0x10 pin 7
+
+        #0x01 pin 11
+        #0x02 pin 12
+        #0x04 pin 13
+        #0x08 pin 14
+        
+        self.SR_PA=0x08
 
         self.m_synth_refclk = 14.4E6
 
@@ -23,6 +33,14 @@ class McMicro:
 
     def enable_tx(self):
         self.m_shiftreg.setbit(self.SR_TX_RX)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def enable_pa(self):
+        self.m_shiftreg.setbit(self.SR_PA)
+#        self.m_shiftreg.clearbit(self.SR_PA)
 
         self.m_shiftreg.latch()
 
@@ -69,7 +87,14 @@ class McMicro:
         self.m_synth.set_ref_divider(self.m_synth_refclk/6.25E3)
 
         # 104.88726E rx == 74.1 MHz TX approx
-        self.m_synth.set_freq(104.88726E6)
+        #self.m_synth.set_freq(104.88726E6)
+        #self.m_synth.set_freq(70.38750E6+21.4E6)
+        self.m_synth.set_freq(70.3875E6+21.4E6)
+        #self.m_synth.set_freq(70.050E6+21.4E6)
+        #self.m_synth.set_freq(65.38750E6+21.4E6)
+        #self.m_synth.set_freq(81.9630E6+21.4E6)
+        #self.m_synth.set_freq(70.01650E6+21.4E6)
+        #self.m_synth.set_freq(70.38750E6)
 
         return
 
@@ -79,10 +104,15 @@ def test():
     mc.initialise()
 
     mc.power(True)
+    #mc.power(False)
+
 
     mc.tune()
 
-    mc.enable_tx()
+#    mc.disable_tx()
+    #mc.enable_tx()
+
+    #mc.enable_pa()
 
 if __name__ == "__main__":
     
