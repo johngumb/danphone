@@ -27,6 +27,7 @@ ID_BUTTON_MONITOR=wx.NewId()
 ID_BUTTON_RX_ATT=wx.NewId()
 ID_BUTTON_TX=wx.NewId()
 ID_SPIN_SQUELCH_LEVEL=wx.NewId()
+ID_BUTTON_MUTE=wx.NewId()
 
 MUTED = False
 
@@ -239,6 +240,8 @@ class MyFrame(wx.Frame):
 
         self.m_tx_button = wx.ToggleButton(self, ID_BUTTON_TX, "Tx")
 
+        self.m_mute_button = wx.ToggleButton(self, ID_BUTTON_MUTE, "Mute")
+
         self.status_led_timer=StatusLEDtimer(self,400)
 
         self.on_off_timer=OnOffTimer(self,5000)
@@ -256,6 +259,8 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_RX_ATT,self.onButtonRxAtt)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX,self.onButtonTransmit)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE,self.onButtonMute)
 
         # watch freq step here
 
@@ -347,6 +352,16 @@ class MyFrame(wx.Frame):
         self.onButtonRxAtt(event)
         self.onButtonTxDrive(event)
         self.onButtonPA(event)
+
+        return
+
+    def onButtonMute(self,event):
+        if self.m_mute_button.GetValue():
+            mute()
+            self.m_stay_muted=True
+        else:
+            unmute()
+            self.m_stay_muted=False
 
         return
 
@@ -465,13 +480,14 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_monitor_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_rx_att_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_tx_button, 0, wx.ADJUST_MINSIZE, 0)
-        
+        sizer_1.Add(self.m_mute_button, 0, wx.ADJUST_MINSIZE, 0)
+
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_led2, 0, wx.ADJUST_MINSIZE, 0)
 
         self.m_step_combo.SetStringSelection("6.25")
-                                                                                
+
         self.Bind(wx.EVT_COMBOBOX, self.OnStepSelected, self.m_step_combo) 
 
         sizer_1.Add(self.m_step_combo, 0, wx.ADJUST_MINSIZE, 0)
