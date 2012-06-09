@@ -474,13 +474,13 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_spin_ctrl_1 , 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_led1, 0, wx.ADJUST_MINSIZE, 0)
 
+        sizer_1.Add(self.m_mute_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.button_7, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_tx_drive, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_pa, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_monitor_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_rx_att_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_tx_button, 0, wx.ADJUST_MINSIZE, 0)
-        sizer_1.Add(self.m_mute_button, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
 
