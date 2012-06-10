@@ -28,6 +28,7 @@ ID_BUTTON_RX_ATT=wx.NewId()
 ID_BUTTON_TX=wx.NewId()
 ID_SPIN_SQUELCH_LEVEL=wx.NewId()
 ID_BUTTON_MUTE=wx.NewId()
+ID_BUTTON_MUTE_SKYPE=wx.NewId()
 
 MUTED = False
 
@@ -242,6 +243,8 @@ class MyFrame(wx.Frame):
 
         self.m_mute_button = wx.ToggleButton(self, ID_BUTTON_MUTE, "Mute")
 
+        self.m_mute_button_skype = wx.ToggleButton(self, ID_BUTTON_MUTE_SKYPE, "MuteSkype")
+
         self.status_led_timer=StatusLEDtimer(self,400)
 
         self.on_off_timer=OnOffTimer(self,5000)
@@ -261,6 +264,8 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX,self.onButtonTransmit)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE,self.onButtonMute)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE_SKYPE,self.onButtonMuteSkype)
 
         # watch freq step here
 
@@ -362,6 +367,21 @@ class MyFrame(wx.Frame):
         else:
             unmute()
             self.m_stay_muted=False
+
+        return
+
+    def onButtonMuteSkype(self,event):
+        skype_playback_jack_port="skype_playback_mixer"
+        skype_left="MAIN L"
+        skype_right="MAIN R"
+        skype_left_connection='%s:"%s" system:playback_1'%(skype_playback_jack_port,skype_left)
+        skype_right_connection='%s:"%s" system:playback_2'%(skype_playback_jack_port,skype_right)
+        if self.m_mute_button_skype.GetValue():
+            os.system("jack_disconnect %s" % skype_left_connection)
+            os.system("jack_disconnect %s" % skype_right_connection)
+        else:
+            os.system("jack_connect %s" % skype_left_connection)
+            os.system("jack_connect %s" % skype_right_connection)
 
         return
 
@@ -475,6 +495,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_led1, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_mute_button, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_mute_button_skype, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.button_7, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_tx_drive, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_pa, 0, wx.ADJUST_MINSIZE, 0)
