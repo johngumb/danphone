@@ -495,7 +495,15 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_led1, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_mute_button, 0, wx.ADJUST_MINSIZE, 0)
-        sizer_1.Add(self.m_mute_button_skype, 0, wx.ADJUST_MINSIZE, 0)
+
+        add_skype_mute=False
+        for olen in (2,3):
+            if len(sys.argv)==olen:
+                if sys.argv[olen-1]=="-s":
+                    add_skype_mute = True
+        if add_skype_mute:
+            sizer_1.Add(self.m_mute_button_skype, 0, wx.ADJUST_MINSIZE, 0)
+        
         sizer_1.Add(self.button_7, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_tx_drive, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_pa, 0, wx.ADJUST_MINSIZE, 0)
