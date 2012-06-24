@@ -8,14 +8,14 @@ class McMicro:
         self.SR_TX_RX=0x20 # pin 6
 
         #0x80 pin 4
-        #0x10 pin 7
+        #0x10 pin 7 hi/lo power ??
 
         #0x01 pin 11
         #0x02 pin 12
         #0x04 pin 13
         #0x08 pin 14
         
-        self.SR_PA=0x08
+        self.SR_PA=0x80
 
         self.m_synth_refclk = 14.4E6
 
@@ -88,13 +88,14 @@ class McMicro:
 
         # 104.88726E rx == 74.1 MHz TX approx
         #self.m_synth.set_freq(104.88726E6)
-        #self.m_synth.set_freq(70.38750E6+21.4E6)
-        self.m_synth.set_freq(70.3875E6+21.4E6)
+        self.m_synth.set_freq(70.38750E6+21.4E6)
+        #self.m_synth.set_freq(70.3875E6+21.4E6)
         #self.m_synth.set_freq(70.050E6+21.4E6)
         #self.m_synth.set_freq(65.38750E6+21.4E6)
         #self.m_synth.set_freq(81.9630E6+21.4E6)
         #self.m_synth.set_freq(70.01650E6+21.4E6)
         #self.m_synth.set_freq(70.38750E6)
+        #self.m_synth.set_freq(10.38750E6)
 
         return
 
@@ -110,9 +111,9 @@ def test():
     mc.tune()
 
 #    mc.disable_tx()
-    #mc.enable_tx()
+#    mc.enable_tx()
 
-    #mc.enable_pa()
+    mc.enable_pa()
 
 if __name__ == "__main__":
     
