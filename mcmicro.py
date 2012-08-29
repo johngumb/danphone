@@ -10,9 +10,9 @@ class McMicro:
         self.SR_TX_RX=0x20 # pin 6, ensure PA stays off initially
         self.SR_TX_POWER_HI_LO=0x10
         self.SR_TX_PA=0x08
-        self.SR_UNUSED=0x04
-        self.SR_TX_MUTE=0x02
-        self.SR_AUDIO_ENABLE=0x01
+        self.SR_PA=0x04
+        self.SR_TX_AUDIO_ENABLE=0x02
+        self.SR_RX_AUDIO_ENABLE=0x01
 
         #0x80 pin 4
         #0x10 pin 7 hi/lo power ??
@@ -22,8 +22,6 @@ class McMicro:
         #0x04 pin 13
         #0x08 pin 14
         
-        self.SR_PA=0x80
-
         self.m_synth_refclk = 14.4E6
 
         return
@@ -39,14 +37,13 @@ class McMicro:
         return
 
     def enable_tx(self):
-        self.m_shiftreg.setbit(self.SR_TX_RX)
+        self.m_shiftreg.setbit(self.SR_TX_RX|self.SR_TX_AUDIO_ENABLE)
 
         self.m_shiftreg.latch()
 
         return
 
     def enable_pa(self):
-#        self.SR_PA=0x02 # enable tx audio
         self.SR_PA=0x04
 #        self.SR_PA=0x00
 #        self.SR_PA=0x01
@@ -85,10 +82,12 @@ class McMicro:
         self.m_synth = MC145158.MC145158(self.m_hwif, 40, self.m_hwif.D1, \
                                          self.m_hwif.D0, self.m_hwif.D2)
 
+        self.m_shiftreg.clearbit(self.SR_TX_AUDIO_ENABLE)
+
         return
 
     def enable_audio(self):
-        self.m_shiftreg.setbit(self.SR_AUDIO_ENABLE)
+        self.m_shiftreg.setbit(self.SR_RX_AUDIO_ENABLE)
 
         self.m_shiftreg.latch()
 
@@ -107,15 +106,15 @@ class McMicro:
 
         # 104.88726E rx == 74.1 MHz TX approx
         #self.m_synth.set_freq(104.88726E6)
-        self.m_synth.set_freq(70.38750E6+21.4E6)
+        #self.m_synth.set_freq(70.4625E6+21.4E6)
         #self.m_synth.set_freq(70.18E6+21.4E6)
         #self.m_synth.set_freq(70.4875E6+21.4E6)
-        #self.m_synth.set_freq(70.3875E6+21.4E6)
+        self.m_synth.set_freq(70.3875E6+21.4E6)
         #self.m_synth.set_freq(70.050E6+21.4E6)
         #self.m_synth.set_freq(65.38750E6+21.4E6)
         #self.m_synth.set_freq(81.9630E6+21.4E6)
         #self.m_synth.set_freq(70.01650E6+21.4E6)
-        #self.m_synth.set_freq(70.38750E6)
+        #self.m_synth.set_freq(70.4625E6)
         #self.m_synth.set_freq(10.38750E6)
 
         return
@@ -136,7 +135,7 @@ def test():
 #    mc.disable_tx()
 #    mc.enable_tx()
 
-    mc.enable_pa()
+#    mc.enable_pa()
 
 if __name__ == "__main__":
     
