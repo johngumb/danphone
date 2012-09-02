@@ -26,9 +26,15 @@ class McMicro:
 
         self.m_powered_on = False
 
+        self.m_rx_freq = None
+
+        self.m_tx_freq = None
+
+        self.m_powered_on = None
+
         return
 
-    def power(self, val):
+    def setpower(self, val):
         if val:
             self.m_shiftreg.setbit(self.SR_POWER)
         else:
@@ -57,7 +63,8 @@ class McMicro:
 
         self.m_shiftreg.latch()
 
-        self.tune(self.m_rx_freq)
+        if self.m_rx_freq:
+            self.tune(self.m_rx_freq)
 
         return
 
@@ -81,7 +88,6 @@ class McMicro:
 
         #
         # rig control
-        #
         self.m_shiftreg = ShiftReg.ShiftReg(self.m_hwif, self.m_hwif.D0, \
                                          self.m_hwif.D1, self.m_hwif.D3, 8)
 
@@ -92,8 +98,9 @@ class McMicro:
         self.m_synth = MC145158.MC145158(self.m_hwif, 40, self.m_hwif.D1, \
                                          self.m_hwif.D0, self.m_hwif.D2)
 
-        self.m_shiftreg.clearbit(self.SR_TX_AUDIO_ENABLE)
+        self.disable_tx()
 
+        self.m_shiftreg.clearbit(self.SR_TX_AUDIO_ENABLE)
 
         self.enable_audio()
 
@@ -101,6 +108,13 @@ class McMicro:
 
     def enable_audio(self):
         self.m_shiftreg.setbit(self.SR_RX_AUDIO_ENABLE)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def disable_audio(self):
+        self.m_shiftreg.clearbit(self.SR_RX_AUDIO_ENABLE)
 
         self.m_shiftreg.latch()
 

@@ -20,13 +20,13 @@ ID_LED_SQUELCH=wx.NewId()
 ID_TEXT_1=wx.NewId()
 ID_TEXT_2=wx.NewId()
 ID_BUTTON_TX_RX=wx.NewId()
-ID_BUTTON_TX_DRIVE=wx.NewId()
 ID_BUTTON_PA=wx.NewId()
 ID_BUTTON_MONITOR=wx.NewId()
 ID_BUTTON_TX=wx.NewId()
 ID_SPIN_SQUELCH_LEVEL=wx.NewId()
 ID_BUTTON_MUTE=wx.NewId()
 ID_BUTTON_MUTE_SKYPE=wx.NewId()
+ID_BUTTON_ON_OFF=wx.NewId()
 
 MUTED = False
 
@@ -200,8 +200,6 @@ class MyFrame(wx.Frame):
 
         self.m_tx_rx = wx.ToggleButton(self, ID_BUTTON_TX_RX, "Tx/Rx")
 
-        self.m_button_tx_drive = wx.ToggleButton(self, ID_BUTTON_TX_DRIVE, "TxDrive")
-
         self.m_button_pa = wx.ToggleButton(self, ID_BUTTON_PA, "PA")
 
         self.m_monitor_button = wx.ToggleButton(self, ID_BUTTON_MONITOR, "Mon")
@@ -212,13 +210,13 @@ class MyFrame(wx.Frame):
 
         self.m_mute_button_skype = wx.ToggleButton(self, ID_BUTTON_MUTE_SKYPE, "MuteSkype")
 
+        self.m_on_off_button = wx.ToggleButton(self, ID_BUTTON_ON_OFF, "On/Off")
+
         self.status_led_timer=StatusLEDtimer(self,400)
 
         #self.__set_properties()
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_RX,self.onButtonTx)
-
-        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_DRIVE,self.onButtonTxDrive)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_PA,self.onButtonPA)
 
@@ -229,6 +227,8 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE,self.onButtonMute)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE_SKYPE,self.onButtonMuteSkype)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_ON_OFF,self.onButtonOnOff)
 
         # watch freq step here
 
@@ -242,13 +242,15 @@ class MyFrame(wx.Frame):
 
         self.m_sopen_last_time[1] = False
 
-        self.m_rig.power(True)
+        init_power_state=True
+        self.m_rig.setpower(init_power_state)
+        self.m_on_off_button.SetValue(init_power_state)
 
         self.m_powered_on = self.m_rig.powered_on()
 
-        self.m_rig.set_rx_freq(self.m_spin_ctrl_2.GetDefaultValue()*1E6)
-
-        self.m_last_powered_on = self.m_powered_on
+        if self.m_powered_on:
+            self.m_freq=self.m_spin_ctrl_2.GetDefaultValue()*1E6
+            self.init_rig()
 
         self.m_stay_muted = False
 
@@ -263,16 +265,14 @@ class MyFrame(wx.Frame):
     def onButtonTx(self,event):
         if self.m_tx_rx.GetValue():
             self.m_rig.enable_tx()
+
+            # maybe get rid of this
+            self.m_rig.disable_audio()
         else:
             self.m_rig.disable_tx()
 
-        return
-
-    def onButtonTxDrive(self,event):
-        if self.m_button_tx_drive.GetValue():
-            self.m_rig.enable_tx_drive()
-        else:
-            self.m_rig.disable_tx_drive()
+            # maybe get rid of this
+            self.m_rig.enable_audio()
 
         return
 
@@ -281,6 +281,24 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_pa()
         else:
             self.m_rig.disable_pa()
+
+        return
+
+    def init_rig(self):
+        self.m_rig.set_step(self.m_step)
+        self.m_rig.set_rx_freq(self.m_freq)
+        self.m_rig.set_tx_freq(self.m_freq)
+
+        return
+
+    def onButtonOnOff(self,event):
+        if self.m_on_off_button.GetValue():
+            self.m_rig.setpower(True)
+
+        else:
+            self.m_rig.setpower(False)
+
+        self.m_powered_on = self.m_rig.powered_on()
 
         return
 
@@ -293,7 +311,6 @@ class MyFrame(wx.Frame):
     def onButtonTransmit(self,event):
         if self.m_tx_button.GetValue():
             self.m_tx_rx.SetValue(True)
-            self.m_button_tx_drive.SetValue(True)
             if len(sys.argv) > 1:
                 # check frequency before enabling PA
                 # maybe do not allow tx on 70.3875 or 70.4125
@@ -307,11 +324,9 @@ class MyFrame(wx.Frame):
             unmute()
             self.m_stay_muted=False
             self.m_tx_rx.SetValue(False)
-            self.m_button_tx_drive.SetValue(False)
             self.m_button_pa.SetValue(False)
 
         self.onButtonTx(event)
-        self.onButtonTxDrive(event)
         self.onButtonPA(event)
 
         return
@@ -452,10 +467,10 @@ class MyFrame(wx.Frame):
             sizer_1.Add(self.m_mute_button_skype, 0, wx.ADJUST_MINSIZE, 0)
         
         sizer_1.Add(self.m_tx_rx, 0, wx.ADJUST_MINSIZE, 0)
-        sizer_1.Add(self.m_button_tx_drive, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_pa, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_monitor_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_tx_button, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_on_off_button, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
 
