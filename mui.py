@@ -27,6 +27,7 @@ ID_SPIN_SQUELCH_LEVEL=wx.NewId()
 ID_BUTTON_MUTE=wx.NewId()
 ID_BUTTON_MUTE_SKYPE=wx.NewId()
 ID_BUTTON_ON_OFF=wx.NewId()
+ID_BUTTON_AUDIO_PA=wx.NewId()
 
 MUTED = False
 
@@ -212,6 +213,8 @@ class MyFrame(wx.Frame):
 
         self.m_on_off_button = wx.ToggleButton(self, ID_BUTTON_ON_OFF, "On/Off")
 
+        self.m_audio_pa_button = wx.ToggleButton(self, ID_BUTTON_AUDIO_PA, "SPKR")
+
         self.status_led_timer=StatusLEDtimer(self,400)
 
         #self.__set_properties()
@@ -229,6 +232,8 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE_SKYPE,self.onButtonMuteSkype)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_ON_OFF,self.onButtonOnOff)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_AUDIO_PA,self.onButtonAudioPA)
 
         # watch freq step here
 
@@ -299,6 +304,14 @@ class MyFrame(wx.Frame):
             self.m_rig.setpower(False)
 
         self.m_powered_on = self.m_rig.powered_on()
+
+        return
+
+    def onButtonAudioPA(self,event):
+        if self.m_audio_pa_button.GetValue():
+            pass
+        else:
+            pass
 
         return
 
@@ -471,6 +484,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_monitor_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_tx_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_on_off_button, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_audio_pa_button, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
 
