@@ -2,8 +2,6 @@
 
 int main(int argc, char *argv[])
 {
-    int a;
-    int s;
     int i=0;
 
     while (1)
@@ -18,7 +16,7 @@ int main(int argc, char *argv[])
         if (nb>0)
         {
             if ((i%10000)==0)
-                printf("%X \n",val);
+                printf("%d \n",val+32768);
         }
         else
             printf("%d nb\n",nb);
