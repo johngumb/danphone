@@ -9,8 +9,8 @@ class McMicro:
         self.SR_POWER=0x40 # pin 5
         self.SR_TX_RX=0x20 # pin 6, ensure PA stays off initially
         self.SR_TX_POWER_HI_LO=0x10
-        self.SR_TX_PA=0x08
-        self.SR_PA=0x04
+        self.SR_EXT_ALARM=0x08
+        self.SR_TX_PA=0x04
         self.SR_TX_AUDIO_ENABLE=0x02
         self.SR_RX_AUDIO_ENABLE=0x01
 
@@ -69,11 +69,16 @@ class McMicro:
         return
 
     def enable_pa(self):
-        self.SR_PA=0x04
-#        self.SR_PA=0x00
-#        self.SR_PA=0x01
-#        self.m_shiftreg.setbit(self.SR_PA)
-        self.m_shiftreg.setbit(self.SR_PA)
+
+        self.m_shiftreg.setbit(self.SR_TX_PA)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def disable_pa(self):
+
+        self.m_shiftreg.clearbit(self.SR_TX_PA)
 
         self.m_shiftreg.latch()
 
