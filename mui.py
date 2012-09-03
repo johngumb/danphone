@@ -21,6 +21,7 @@ ID_TEXT_1=wx.NewId()
 ID_TEXT_2=wx.NewId()
 ID_BUTTON_TX_RX=wx.NewId()
 ID_BUTTON_PA=wx.NewId()
+ID_BUTTON_TX_POWER_LEVEL=wx.NewId()
 ID_BUTTON_MONITOR=wx.NewId()
 ID_BUTTON_TX=wx.NewId()
 ID_SPIN_SQUELCH_LEVEL=wx.NewId()
@@ -203,6 +204,8 @@ class MyFrame(wx.Frame):
 
         self.m_button_pa = wx.ToggleButton(self, ID_BUTTON_PA, "PA")
 
+        self.m_button_tx_power_level = wx.ToggleButton(self, ID_BUTTON_TX_POWER_LEVEL, "QRO")
+
         self.m_monitor_button = wx.ToggleButton(self, ID_BUTTON_MONITOR, "Mon")
 
         self.m_tx_button = wx.ToggleButton(self, ID_BUTTON_TX, "Tx")
@@ -222,6 +225,8 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_RX,self.onButtonTx)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_PA,self.onButtonPA)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_POWER_LEVEL,self.onButtonTxPowerLevel)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MONITOR,self.onButtonMonitor)
 
@@ -289,10 +294,22 @@ class MyFrame(wx.Frame):
 
         return
 
+    def onButtonTxPowerLevel(self,event):
+        if self.m_button_tx_power_level.GetValue():
+            self.m_rig.set_tx_power_high()
+        else:
+            self.m_rig.set_tx_power_low()
+
+        return
+
     def init_rig(self):
         self.m_rig.set_step(self.m_step)
         self.m_rig.set_rx_freq(self.m_freq)
         self.m_rig.set_tx_freq(self.m_freq)
+
+        # start off in low power mode
+        self.m_button_tx_power_level.SetValue(False)
+        self.onButtonTxPowerLevel(None)
 
         return
 
@@ -481,6 +498,7 @@ class MyFrame(wx.Frame):
         
         sizer_1.Add(self.m_tx_rx, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_pa, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_button_tx_power_level, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_monitor_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_tx_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_on_off_button, 0, wx.ADJUST_MINSIZE, 0)

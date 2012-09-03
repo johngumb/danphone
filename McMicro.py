@@ -84,6 +84,22 @@ class McMicro:
 
         return
 
+    def set_tx_power_high(self):
+
+        self.m_shiftreg.clearbit(self.SR_TX_POWER_HI_LO)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def set_tx_power_low(self):
+
+        self.m_shiftreg.setbit(self.SR_TX_POWER_HI_LO)
+
+        self.m_shiftreg.latch()
+
+        return
+
     def enable_audio_pa(self):
         self.m_shiftreg.setbit(self.SR_AUDIO_PA)
 
