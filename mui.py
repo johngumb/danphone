@@ -309,9 +309,9 @@ class MyFrame(wx.Frame):
 
     def onButtonAudioPA(self,event):
         if self.m_audio_pa_button.GetValue():
-            pass
+            self.m_rig.enable_audio_pa()
         else:
-            pass
+            self.m_rig.disable_audio_pa()
 
         return
 

@@ -79,6 +79,20 @@ class McMicro:
 
         return
 
+    def enable_audio_pa(self):
+        self.m_shiftreg.setbit(self.SR_AUDIO_PA)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def disable_audio_pa(self):
+        self.m_shiftreg.clearbit(self.SR_AUDIO_PA)
+
+        self.m_shiftreg.latch()
+
+        return
+
     def initialise(self):
         self.m_hwif=ft232r.ft232r(device_id="MCVEC40K")
         
