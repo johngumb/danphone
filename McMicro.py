@@ -131,8 +131,9 @@ class McMicro:
 
         return
 
-    def initialise(self):
-        self.m_hwif=ft232r.ft232r(device_id="MCVEC40K")
+    def initialise(self, ftdi_device_id):
+
+        self.m_hwif=ft232r.ft232r(device_id = ftdi_device_id)
         
         outputs=self.m_hwif.D0|self.m_hwif.D1|self.m_hwif.D2|self.m_hwif.D3
 

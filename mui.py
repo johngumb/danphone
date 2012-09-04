@@ -157,7 +157,7 @@ class MyFrame(wx.Frame):
 
         self.m_rig.set_step(self.m_step)
 
-        self.m_rig.initialise()
+        self.m_rig.initialise(ftdi_device_id="MCVEC40K")
 
         self.m_spin_ctrl_1 = FS.FloatSpin(self, ID_SPIN_1)
         
