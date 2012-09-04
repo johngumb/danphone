@@ -151,6 +151,8 @@ class McMicro:
         self.m_synth = MC145158.MC145158(self.m_hwif, 40, self.m_hwif.D1, \
                                          self.m_hwif.D0, self.m_hwif.D2)
 
+        self.m_synth.set_refclk(self.m_synth_refclk)
+
         self.disable_tx()
 
         self.m_shiftreg.clearbit(self.SR_TX_AUDIO_ENABLE)
@@ -191,9 +193,13 @@ class McMicro:
     def set_step(self, step):
         self.set_ref_divider(self.m_synth_refclk/step)
 
+        return
+
     def set_ref_divider(self,divratio):
 
         self.m_divratio = divratio
+
+        self.m_synth.set_ref_divider(self.m_divratio)
 
         return
 
@@ -228,9 +234,7 @@ class McMicro:
         #
         # consider moving this to init
         #
-        self.m_synth.set_refclk(self.m_synth_refclk)
 
-        self.m_synth.set_ref_divider(self.m_divratio)
 
         self.m_synth.set_freq( freq );
 
