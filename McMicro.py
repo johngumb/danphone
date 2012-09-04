@@ -34,6 +34,11 @@ class McMicro:
 
         return
 
+    def __del__(self):
+        self.disable_tx()
+
+        return
+
     def setpower(self, val):
         if val:
             self.m_shiftreg.setbit(self.SR_POWER)
