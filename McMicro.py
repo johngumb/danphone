@@ -49,7 +49,6 @@ class McMicro:
         return
 
     def enable_tx(self):
-
         self.m_shiftreg.setbit(self.SR_TX_RX|self.SR_TX_AUDIO_ENABLE)
 
         self.m_shiftreg.latch()
@@ -69,7 +68,6 @@ class McMicro:
         return
 
     def enable_pa(self):
-
         self.m_shiftreg.setbit(self.SR_TX_PA)
 
         self.m_shiftreg.latch()
@@ -77,7 +75,6 @@ class McMicro:
         return
 
     def disable_pa(self):
-
         self.m_shiftreg.clearbit(self.SR_TX_PA)
 
         self.m_shiftreg.latch()
@@ -93,7 +90,6 @@ class McMicro:
         return
 
     def set_tx_power_low(self):
-
         self.m_shiftreg.setbit(self.SR_TX_POWER_HI_LO)
 
         self.m_shiftreg.latch()
@@ -109,6 +105,20 @@ class McMicro:
 
     def disable_audio_pa(self):
         self.m_shiftreg.clearbit(self.SR_AUDIO_PA)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def enable_ext_alarm(self):
+        self.m_shiftreg.clearbit(self.SR_EXT_ALARM)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def disable_ext_alarm(self):
+        self.m_shiftreg.setbit(self.SR_EXT_ALARM)
 
         self.m_shiftreg.latch()
 

@@ -29,6 +29,7 @@ ID_BUTTON_MUTE=wx.NewId()
 ID_BUTTON_MUTE_SKYPE=wx.NewId()
 ID_BUTTON_ON_OFF=wx.NewId()
 ID_BUTTON_AUDIO_PA=wx.NewId()
+ID_BUTTON_EXT_ALARM=wx.NewId()
 
 MUTED = False
 
@@ -218,6 +219,8 @@ class MyFrame(wx.Frame):
 
         self.m_audio_pa_button = wx.ToggleButton(self, ID_BUTTON_AUDIO_PA, "SPKR")
 
+        self.m_ext_alarm_button = wx.ToggleButton(self, ID_BUTTON_EXT_ALARM, "AUX")
+
         self.status_led_timer=StatusLEDtimer(self,400)
 
         #self.__set_properties()
@@ -239,6 +242,8 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_ON_OFF,self.onButtonOnOff)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_AUDIO_PA,self.onButtonAudioPA)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_EXT_ALARM,self.onButtonExtAlarm)
 
         # watch freq step here
 
@@ -311,6 +316,10 @@ class MyFrame(wx.Frame):
         self.m_button_tx_power_level.SetValue(False)
         self.onButtonTxPowerLevel(None)
 
+        # start off with ext alarm disabled
+        self.m_ext_alarm_button.SetValue(False)
+        self.onButtonExtAlarm(None)
+
         return
 
     def onButtonOnOff(self,event):
@@ -329,6 +338,14 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_audio_pa()
         else:
             self.m_rig.disable_audio_pa()
+
+        return
+
+    def onButtonExtAlarm(self,event):
+        if self.m_ext_alarm_button.GetValue():
+            self.m_rig.enable_ext_alarm()
+        else:
+            self.m_rig.disable_ext_alarm()
 
         return
 
@@ -503,6 +520,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_tx_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_on_off_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_audio_pa_button, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_ext_alarm_button, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
 
