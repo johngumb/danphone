@@ -37,6 +37,8 @@ class McMicro:
     def __del__(self):
         self.disable_tx()
 
+        self.setpower(False)
+
         return
 
     def setpower(self, val):
@@ -47,9 +49,9 @@ class McMicro:
 
         self.m_shiftreg.latch()
 
-        self.m_powered_on = val
-
         self.disable_tx()
+
+        self.m_powered_on = val
 
         return
 
