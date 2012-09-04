@@ -167,7 +167,7 @@ class MyFrame(wx.Frame):
 
         self.m_squelch_led=ledthing.LED(self,ID_LED_SQUELCH)
 
-        steps=["Auto", "3.2 KHz","4","5","6.25","8","10","12.5"]
+        steps=["Auto","4","5","6.25","8","10","12.5"]
 
         self.m_step_selected = "6.25"
 
