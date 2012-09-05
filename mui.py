@@ -547,7 +547,7 @@ class MyFrame(wx.Frame):
 class MyApp(wx.App):
     def OnInit(self):
 
-        frame = MyFrame(None, -1, "testradio")
+        frame = MyFrame(None, -1, "MC micro")
         frame.Show(True)
         self.SetTopWindow(frame)
         return True

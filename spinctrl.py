@@ -535,7 +535,7 @@ class MyFrame(wx.Frame):
 class MyApp(wx.App):
     def OnInit(self):
 
-        frame = MyFrame(None, -1, "testradio")
+        frame = MyFrame(None, -1, "Danphone DCB4070")
         frame.Show(True)
         self.SetTopWindow(frame)
         return True
