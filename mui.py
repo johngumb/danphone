@@ -152,15 +152,11 @@ class MyFrame(wx.Frame):
 
         self.m_rig = McMicro.McMicro()
 
-        self.m_step = 6.25E3
-
         self.m_min_freq=65.9E6
 
         self.m_max_freq=77E6
 
         self.m_rig.initialise(ftdi_device_id="MCVEC40K")
-
-        self.m_rig.set_step(self.m_step)
 
         self.m_spin_ctrl_1 = FS.FloatSpin(self, ID_SPIN_1)
         
@@ -172,7 +168,11 @@ class MyFrame(wx.Frame):
 
         steps=["Auto","4","5","6.25","8","10","12.5"]
 
-        self.m_step_selected = "6.25"
+        self.m_step_selected = "12.5"
+
+        self.m_step = float( self.m_step_selected ) * 1000
+
+        self.m_rig.set_step(self.m_step)
 
         self.m_spin_ctrl_squelch_level = FS.FloatSpin(self, ID_SPIN_2)
 
@@ -540,7 +540,7 @@ class MyFrame(wx.Frame):
 
         sizer_1.Add(self.m_led2, 0, wx.ADJUST_MINSIZE, 0)
 
-        self.m_step_combo.SetStringSelection("6.25")
+        self.m_step_combo.SetStringSelection("12.5")
 
         self.Bind(wx.EVT_COMBOBOX, self.OnStepSelected, self.m_step_combo) 
 
