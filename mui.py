@@ -325,7 +325,7 @@ class MyFrame(wx.Frame):
     def onButtonOnOff(self,event):
         if self.m_on_off_button.GetValue():
             self.m_rig.setpower(True)
-
+            self.init_rig()
         else:
             self.m_rig.setpower(False)
 
