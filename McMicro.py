@@ -141,15 +141,15 @@ class McMicro:
 
         #
         # rig control
-        self.m_shiftreg = ShiftReg.ShiftReg(self.m_hwif, self.m_hwif.D0, \
-                                         self.m_hwif.D1, self.m_hwif.D3, 8)
+        self.m_shiftreg = ShiftReg.ShiftReg(hwif = self.m_hwif, clock = self.m_hwif.D0, \
+                                         data = self.m_hwif.D1, latch = self.m_hwif.D3, nbits = 8)
 
         #
         # synth
         # prescaler is MC14094 (divide by 40)
         #
-        self.m_synth = MC145158.MC145158(self.m_hwif, 40, self.m_hwif.D1, \
-                                         self.m_hwif.D0, self.m_hwif.D2)
+        self.m_synth = MC145158.MC145158(port = self.m_hwif, prescale_divide = 40, DATA = self.m_hwif.D1, \
+                                         CLK = self.m_hwif.D0, STB = self.m_hwif.D2, LOCK = self.m_hwif.D5)
 
         self.m_synth.set_refclk(self.m_synth_refclk)
 
@@ -221,12 +221,10 @@ class McMicro:
         # lock detect
         #
         # ld = self.m_hwif.D5
+        #
 
-        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+        return self.m_synth.locked()
 
-        result = ((self.m_hwif.bb.port & self.m_hwif.D5) == self.m_hwif.D5)
-
-        return result
 
     def tune(self, freq):
         #

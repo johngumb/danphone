@@ -18,6 +18,8 @@ class MC145158:
 
         self.m_prescale_divide = prescale_divide
 
+        self.m_lockbit = LOCK
+
         return
 
 
@@ -86,6 +88,18 @@ class MC145158:
         # self.m_stream_writer.latch()
 
         return
+
+    def locked(self):
+        #
+        # lock detect
+        #
+        # ld = self.m_port.D5
+
+        self.m_port.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+
+        result = ((self.m_port.bb.port & self.m_lockbit) == self.m_lockbit)
+
+        return result
 
  
  
