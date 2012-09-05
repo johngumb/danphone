@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+# TODO
+
+# add persistence of settings
+
 # spinctrl.py
 
 import os
@@ -134,8 +138,6 @@ class StatusLEDtimer(wx.Timer):
                 if self.target.m_sopen_last_time.has_key(i-1):
                     self.target.m_sopen_last_time[i] = self.target.m_sopen_last_time[i-1]
             self.target.m_sopen_last_time[0] = sopen
-
-        #print self.target.m_rig.powered_on()
 
         wx.WakeUpIdle()
 
