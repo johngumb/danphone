@@ -212,7 +212,7 @@ class McMicro:
 
         self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
 
-        result = ((self.m_hwif.bb.port & self.m_hwif.D4) == self.m_hwif.D4)
+        result = not ((self.m_hwif.bb.port & self.m_hwif.D6) == self.m_hwif.D6)
 
         return result
 
