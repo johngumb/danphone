@@ -135,14 +135,14 @@ class McMicro:
 
         self.m_hwif=ft232r.ft232r(device_id = ftdi_device_id)
         
-        outputs=self.m_hwif.D0|self.m_hwif.D1|self.m_hwif.D2|self.m_hwif.D3
+        outputs=self.m_hwif.D0|self.m_hwif.D1|self.m_hwif.D2|self.m_hwif.D4
 
         self.m_hwif.initialise(outputs,0)
 
         #
         # rig control
         self.m_shiftreg = ShiftReg.ShiftReg(hwif = self.m_hwif, clock = self.m_hwif.D0, \
-                                         data = self.m_hwif.D1, latch = self.m_hwif.D3, nbits = 8)
+                                         data = self.m_hwif.D1, latch = self.m_hwif.D4, nbits = 8)
 
         #
         # synth
