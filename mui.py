@@ -56,6 +56,21 @@ def unmute():
         MUTED = False
     return
 
+class OnOffTimer(wx.Timer):
+    def __init__(self,target,dur=5000):
+        wx.Timer.__init__(self)
+        self.target = target
+        self.Start(dur)
+        return
+    
+    def Notify(self):
+
+        self.target.check_for_power_event()
+
+        wx.WakeUpIdle()
+
+        return
+
 class TxTimer(wx.Timer):
     def __init__(self,target):
         wx.Timer.__init__(self)
@@ -227,6 +242,8 @@ class MyFrame(wx.Frame):
 
         self.status_led_timer=StatusLEDtimer(self,400)
 
+        self.on_off_timer=OnOffTimer(self,5000)
+
         #self.__set_properties()
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_RX,self.onButtonTx)
@@ -263,15 +280,17 @@ class MyFrame(wx.Frame):
 
         self.m_sopen_last_time[1] = False
 
+        self.m_powered_on = False
+
+        self.m_last_powered_on = False
+
         init_power_state=True
-        self.m_rig.setpower(init_power_state)
+#        self.m_rig.setpower(init_power_state)
         self.m_on_off_button.SetValue(init_power_state)
 
-        self.m_powered_on = self.m_rig.powered_on()
+        self.onButtonOnOff(None)
 
-        if self.m_powered_on:
-            self.m_freq=self.m_spin_ctrl_2.GetDefaultValue()*1E6
-            self.init_rig()
+        self.m_freq=self.m_spin_ctrl_2.GetDefaultValue()*1E6
 
         self.m_stay_muted = False
 
@@ -328,14 +347,27 @@ class MyFrame(wx.Frame):
 
         return
 
+    def check_for_power_event(self):
+        self.m_powered_on = self.m_rig.powered_on()
+
+        if self.m_powered_on and not self.m_last_powered_on:
+            print "rig just powered on"
+            self.init_rig()
+
+        if not self.m_powered_on and self.m_last_powered_on:
+            print "rig just powered off"
+
+        self.m_last_powered_on = self.m_powered_on
+
+        return
+
     def onButtonOnOff(self,event):
         if self.m_on_off_button.GetValue():
             self.m_rig.setpower(True)
-            self.init_rig()
         else:
             self.m_rig.setpower(False)
 
-        self.m_powered_on = self.m_rig.powered_on()
+        self.check_for_power_event()
 
         return
 

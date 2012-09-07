@@ -24,13 +24,9 @@ class McMicro:
         
         self.m_synth_refclk = 14.4E6
 
-        self.m_powered_on = False
-
         self.m_rx_freq = None
 
         self.m_tx_freq = None
-
-        self.m_powered_on = None
 
         return
 
@@ -50,8 +46,6 @@ class McMicro:
         self.m_shiftreg.latch()
 
         self.disable_tx()
-
-        self.m_powered_on = val
 
         return
 
@@ -207,9 +201,8 @@ class McMicro:
         #
         # squelch
         #
-        # squelch = self.m_hwif.D4
+        # squelch = self.m_hwif.D6
         #
-
         self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
 
         result = not ((self.m_hwif.bb.port & self.m_hwif.D6) == self.m_hwif.D6)
@@ -222,7 +215,6 @@ class McMicro:
         #
         # ld = self.m_hwif.D5
         #
-
         return self.m_synth.locked()
 
 
@@ -254,7 +246,18 @@ class McMicro:
         return
 
     def powered_on(self):
-        return self.m_powered_on
+
+        # HACK throw away result
+        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+
+        # HACK throw away result
+        self.m_hwif.bb.port
+
+        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+
+        result = ((self.m_hwif.bb.port & self.m_hwif.D3) == self.m_hwif.D3)
+
+        return result
 
 
 def test():
