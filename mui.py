@@ -78,9 +78,9 @@ class StatusLEDtimer(wx.Timer):
         self.target = target
         self.m_squelch_sample = False
 
-        self.m_lock_max_count = 2
+        self.m_lock_max_count = 4
 
-        self.m_power_max_count = 4
+        self.m_power_max_count = 8
 
         self.m_lock_count = self.m_lock_max_count
 
@@ -96,6 +96,8 @@ class StatusLEDtimer(wx.Timer):
 
             self.m_power_count = 0
 
+        self.m_power_count = self.m_power_count + 1
+
         if not self.target.m_powered_on:
             self.target.m_led2.SetState(3)
             self.target.m_squelch_led.SetState(3)
@@ -110,8 +112,6 @@ class StatusLEDtimer(wx.Timer):
             self.m_lock_count = 0
 
         self.m_lock_count = self.m_lock_count + 1
-
-        self.m_power_count = self.m_power_count + 1
 
         sopen=self.target.m_rig.squelch_open()
 
@@ -245,7 +245,7 @@ class MyFrame(wx.Frame):
         self.m_ext_alarm_button = wx.ToggleButton(self, ID_BUTTON_EXT_ALARM, "AUX")
         self.m_disable_audio_button = wx.ToggleButton(self, ID_BUTTON_AUDIO_DISABLE, "AUDIO")
 
-        self.status_led_timer=StatusLEDtimer(self,1000)
+        self.status_led_timer=StatusLEDtimer(self,400)
 
         #self.__set_properties()
 
