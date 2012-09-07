@@ -56,21 +56,6 @@ def unmute():
         MUTED = False
     return
 
-class OnOffTimer(wx.Timer):
-    def __init__(self,target,dur=5000):
-        wx.Timer.__init__(self)
-        self.target = target
-        self.Start(dur)
-        return
-    
-    def Notify(self):
-
-        self.target.check_for_power_event()
-
-        wx.WakeUpIdle()
-
-        return
-
 class TxTimer(wx.Timer):
     def __init__(self,target):
         wx.Timer.__init__(self)
@@ -93,6 +78,14 @@ class StatusLEDtimer(wx.Timer):
         self.target = target
         self.m_squelch_sample = False
 
+        self.m_lock_max_count = 2
+
+        self.m_power_max_count = 4
+
+        self.m_lock_count = self.m_lock_max_count
+
+        self.m_power_count = self.m_power_max_count
+
         self.Start(dur)
         return
 
@@ -103,10 +96,22 @@ class StatusLEDtimer(wx.Timer):
             self.target.m_squelch_led.SetState(3)
             return
 
-        if self.target.m_rig.locked():
-            self.target.m_led2.SetState(2)
-        else:
-            self.target.m_led2.SetState(0)
+        if self.m_power_count == self.m_power_max_count:
+            self.target.check_for_power_event()
+
+            self.m_power_count = 0
+
+        if self.m_lock_count == self.m_lock_max_count:
+            if self.target.m_rig.locked():
+                self.target.m_led2.SetState(2)
+            else:
+                self.target.m_led2.SetState(0)
+
+            self.m_lock_count = 0
+
+        self.m_lock_count = self.m_lock_count + 1
+
+        self.m_power_count = self.m_power_count + 1
 
         sopen=self.target.m_rig.squelch_open()
 
@@ -240,9 +245,7 @@ class MyFrame(wx.Frame):
         self.m_ext_alarm_button = wx.ToggleButton(self, ID_BUTTON_EXT_ALARM, "AUX")
         self.m_disable_audio_button = wx.ToggleButton(self, ID_BUTTON_AUDIO_DISABLE, "AUDIO")
 
-        self.status_led_timer=StatusLEDtimer(self,400)
-
-        self.on_off_timer=OnOffTimer(self,5000)
+        self.status_led_timer=StatusLEDtimer(self,1000)
 
         #self.__set_properties()
 
