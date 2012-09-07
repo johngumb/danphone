@@ -91,15 +91,15 @@ class StatusLEDtimer(wx.Timer):
 
     def Notify(self):
         """Called every timer interval"""
-        if not self.target.m_powered_on:
-            self.target.m_led2.SetState(3)
-            self.target.m_squelch_led.SetState(3)
-            return
-
         if self.m_power_count == self.m_power_max_count:
             self.target.check_for_power_event()
 
             self.m_power_count = 0
+
+        if not self.target.m_powered_on:
+            self.target.m_led2.SetState(3)
+            self.target.m_squelch_led.SetState(3)
+            return
 
         if self.m_lock_count == self.m_lock_max_count:
             if self.target.m_rig.locked():
