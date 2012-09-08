@@ -479,26 +479,6 @@ class MyFrame(wx.Frame):
     def OnFloatSpin(self,event):
         floatspin = event.GetEventObject()
 
-        v = floatspin.GetValue() * 1E6
-
-        print v
-
-        if v < self.m_freq:
-            v = v - 10
-        else:
-            v = v + 10
-
-        x = v / self.m_step
-
-        print x
-        print round(x)
-
-        nv = round(x) * self.m_step
-
-        print nv
-
-        floatspin.SetValue(round(nv/1E6,self.m_digits))
-
         self.m_freq=floatspin.GetValue()*1E6
 
         self.m_rig.set_rx_freq(self.m_freq)
@@ -509,13 +489,7 @@ class MyFrame(wx.Frame):
     def OnFStextEnter(self,event):
         floatspin = event.GetEventObject()
 
-
         self.OnFloatSpin(event)
-
-#        print type(floatspin.GetValue())
-
-#        self.m_rig.set_rx_freq(float(floatspin.GetValue())*1E6)
-#        self.m_rig.set_tx_freq(float(floatspin.GetValue())*1E6)
 
         return
 
@@ -544,6 +518,9 @@ class MyFrame(wx.Frame):
 
         self.m_rig.set_rx_freq(self.m_freq)
         self.m_rig.set_tx_freq(self.m_freq)
+
+        self.m_spin_ctrl_1._increment=self.m_step/1E6
+        self.m_spin_ctrl_2._increment=self.m_step/1E6
 
         return
 
