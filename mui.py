@@ -596,7 +596,7 @@ class MyFrame(wx.Frame):
 class MyApp(wx.App):
     def OnInit(self):
 
-        frame = MyFrame(None, -1, "MC micro")
+        frame = MyFrame(None, -1, "MCmicro")
         frame.Show(True)
         self.SetTopWindow(frame)
         return True
