@@ -283,7 +283,7 @@ class MyFrame(wx.Frame):
 
         self.m_sopen_last_time[1] = False
 
-        self.m_powered_on = False
+        self.m_powered_on = self.m_rig.powered_on()
 
         self.m_last_powered_on = False
 
@@ -366,9 +366,11 @@ class MyFrame(wx.Frame):
 
     def onButtonOnOff(self,event):
         if self.m_on_off_button.GetValue():
-            self.m_rig.setpower(True)
+            if not self.m_rig.powered_on():
+                self.m_rig.setpower(True)
         else:
-            self.m_rig.setpower(False)
+            if self.m_rig.powered_on():
+                self.m_rig.setpower(False)
 
         self.check_for_power_event()
 
