@@ -14,6 +14,8 @@ class McMicro:
         self.SR_TX_AUDIO_ENABLE=0x02
         self.SR_RX_AUDIO_ENABLE=0x01
 
+        # Tx/Rx brought out on pin 1 of 15 way d type
+
         #0x80 pin 4
         #0x10 pin 7 hi/lo power ??
 
