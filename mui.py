@@ -76,7 +76,7 @@ class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
         wx.Timer.__init__(self)
         self.target = target
-        self.m_squelch_sample = False
+        self.m_squelch_sample = True
 
         self.m_lock_max_count = 4
 
@@ -172,7 +172,7 @@ class MyFrame(wx.Frame):
 
         self.m_rig = McMicro.McMicro()
 
-        self.m_min_freq=65.9E6
+        self.m_min_freq=45.9E6
 
         self.m_max_freq=77E6
 
