@@ -155,7 +155,7 @@ typedef enum
 SYNTH_VAL_TYPE_REF_DIVIDER,
 SYNTH_VAL_TYPE_COUNTER} synth_val_type_t;
 
-void act_set_synth(synth_val_type_t synth_val_type)
+void act_set_synth(const synth_val_type_t synth_val_type)
 {
 	char latch_id=SYNTH_LATCH_ID;
 
@@ -186,7 +186,7 @@ void act_set_synth(synth_val_type_t synth_val_type)
 		latch(1,latch_id);
 
 		// write second val to SPI
-		datptr=&a;
+		datptr=(const unsigned char *) &a;
 		latch(0, latch_id);
 		SPI_Byte_Write(datptr[1]<<1);
 		latch(1,latch_id);
@@ -211,32 +211,6 @@ void act_set_power(const int powerstate)
 		printf("poweringoff\n");
 }
 
-#if 0
-typedef void (*funcptr_t(const int));
-
-typedef struct syntable_str
-{
-	const char *reftoken;
-	funcptr_t *actionfun;
-	const int param;
-} syntable_t;
-
-/*********************************************************************/
-/*  SYNTAX TABLE                                                     */
-/*********************************************************************/
-
-
-syntable_t syntab[]={
-{"u",act_up,0},
-{"r",act_set_r,0},
-{"n",act_set_r,1},
-{"pon",act_set_power,1},
-{"pof",act_set_power,0},
-{"txen",act_set_power,2},
-{NULL,NULL},
-};
-#endif
-
 void main (void) 
 {  
    PCA0MD &= ~0x40;                    // WDTE = 0 (clear watchdog timer 
@@ -250,38 +224,27 @@ void main (void)
 
    while (1)
    {
-	  getstr(&str);
+       getstr(&str);
 
-#if 0
-	  for (ss=syntab;(ss->reftoken);ss++)
-	  {
-	  	if (strcmp(str,ss->reftoken)==0)
-		{
-			ss->actionfun(ss->param);
-			break;
-		};
-	  }
-#else
-	  if (strcmp(str,"u")==0)
-	  	act_up(0);
+       if (strcmp(str,"u")==0)
+           act_up(0);
 
 	   else if (strcmp(str,"r")==0)
-	  	act_set_synth(SYNTH_VAL_TYPE_REF_DIVIDER);
+           act_set_synth(SYNTH_VAL_TYPE_REF_DIVIDER);
 
 	   else if (strcmp(str,"n")==0)
-	  	act_set_synth(SYNTH_VAL_TYPE_COUNTER);
+           act_set_synth(SYNTH_VAL_TYPE_COUNTER);
 
 	   else if (strcmp(str,"pon")==0)
-	   		act_set_power(0);
+           act_set_power(0);
 
 	   else if (strcmp(str,"poff")==0)
-	   		act_set_power(1);
+           act_set_power(1);
 
 	   else if (strcmp(str,"txen")==0)
-	   		act_set_power(2);
+           act_set_power(2);
 
-#endif
-	}
+   }
 }
 
 //-----------------------------------------------------------------------------
@@ -423,11 +386,7 @@ void SPI0_Init()
    SPI0CKR   = (SYSCLK/(2*SPI_CLOCK))-1;
 
    ESPI0 = 0;                          // disable SPI interrupts
-
-
 }
-
-
 
 
 void SPI_Byte_Write (const unsigned char dat)
