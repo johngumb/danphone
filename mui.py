@@ -170,7 +170,7 @@ class MyFrame(wx.Frame):
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
 
-        self.m_rig = McMicro.McMicro()
+        self.m_rig = McMicro.McMicroFTDI()
 
         self.m_min_freq=45.9E6
 
