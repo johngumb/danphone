@@ -1,38 +1,6 @@
-//-----------------------------------------------------------------------------
-// F35x_UART_STDIO.c
-//-----------------------------------------------------------------------------
-// Copyright 2006 Silicon Laboratories, Inc.
-// http://www.silabs.com
-//
-// Program Description:
-//
-// This program demonstrates how to configure the C8051F350 to use routines
-// in STDIO.h to write to and read from the UART interface.  The program
-// reads a character using the STDIO routine getkey(), outputs that character
-// to the screen, and then outputs the ASCII hex value of that character.
-//
-//
-// How To Test:
-//
-// 1) Ensure that jumpers are placed on J3 of the C8051F350 target board 
-//    that connect the P0.4 pin to the TX signal, and P0.5 to the RX signal.
-// 2) Ensure that the serial cable is connected to the RS232 connector
-//    on the target board.
-// 3) Specify the target baudrate in the constant <BAUDRATE>.
-// 4) Open Hyperterminal, or a similar program, and connect to the target
-//    board's serial port. 
-// 5) Download and execute code on an 'F350 target board.
-//   
-//
 // FID:            35X000020
 // Target:         C8051F35x
 // Tool chain:     Keil C51 7.50 / Keil EVAL C51
-// Command Line:   None
-//
-// Release 1.0
-//    -Initial Revision (PD)
-//    -17 AUG 2006
-//
 
 //-----------------------------------------------------------------------------
 // Includes
