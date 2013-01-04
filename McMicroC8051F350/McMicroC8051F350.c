@@ -45,6 +45,13 @@ void SPI0_Init (void);
 
 void SPI_Byte_Write (const unsigned char);
 
+void pulsebithigh(const char latch_id);
+
+void delay(unsigned int limit)
+{
+	int i;
+	for (i=0;i<limit;i++);
+}
 
 void latch_delay()
 {
@@ -57,6 +64,18 @@ void latch_init()
 {
 	synth_latch_bit=1;
 	shift_reg_latch_bit=1;
+}
+
+void baa()
+{
+	SPI_Byte_Write(9);
+	SPI_Byte_Write(1);
+	pulsebithigh(SYNTH_LATCH_ID);
+
+	SPI_Byte_Write(0);
+	SPI_Byte_Write(0x8e);
+	SPI_Byte_Write(0x42);
+	pulsebithigh(SYNTH_LATCH_ID);
 }
 
 void latch(const char latchval, const char latch_id)
@@ -191,6 +210,12 @@ void act_set_power(const int powerstate)
 	}
 
 	pulsebithigh(SHIFT_REG_LATCH_ID);
+
+	if (powerstate)
+	{
+		delay(1000);
+		baa();
+	}
 }
 
 
@@ -205,19 +230,9 @@ void main (void)
 
    latch_init();
 
-	SPI_Byte_Write(0x82);
+	// come up powered off
+	act_set_power(0);
 
-	pulsebithigh(SHIFT_REG_LATCH_ID);
-
-// ref 
-	SPI_Byte_Write(9);
-	SPI_Byte_Write(1);
-	pulsebithigh(SYNTH_LATCH_ID);
-
-	SPI_Byte_Write(0);
-	SPI_Byte_Write(0x8e);
-	SPI_Byte_Write(0x42);
-	pulsebithigh(SYNTH_LATCH_ID);
 
    while (1)
    {
