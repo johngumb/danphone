@@ -53,13 +53,6 @@ void delay(unsigned int limit)
 	for (i=0;i<limit;i++);
 }
 
-void latch_delay()
-{
-	int i;
-
-	for (i=0;i<10;i++);
-}
-
 void latch_init()
 {
 	synth_latch_bit=1;
@@ -94,12 +87,7 @@ void latch(const char latchval, const char latch_id)
 		}
 		break;
 
-
     }
-
-	// may not be necessary
-	if (latchval==1)
-		latch_delay();
 }
 
 void pulsebithigh(const char latch_id)
@@ -152,7 +140,7 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 {
 	char latch_id=SYNTH_LATCH_ID;
 
-	latch_id = SHIFT_REG_LATCH_ID;
+	latch_id = SYNTH_LATCH_ID;
 
 	getstr(str);
 
@@ -169,20 +157,19 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 
 		a=atoi(str);
 
-		//printf("n: %d a: %d\n",n,a);
+		printf("n: %x a: %x\n",n,a);
 
 		// write n to SPI
 		latch(0, latch_id);
 		SPI_Byte_Write(datptr[0]);
-
 		SPI_Byte_Write(datptr[1]);
-		latch(1,latch_id);
 
 		// write second val to SPI
 		datptr=(const unsigned char *) &a;
-		latch(0, latch_id);
-		SPI_Byte_Write(datptr[1]<<1);
-		latch(1,latch_id);
+		SPI_Byte_Write(datptr[0]);
+		SPI_Byte_Write(datptr[1]);
+
+		pulsebithigh(latch_id);
 
 		// write second val to SPI
 		printf("setting n\n");
