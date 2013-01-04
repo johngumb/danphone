@@ -24,10 +24,10 @@
                                        // the SPI0_Slave code example.
 
 
-sbit LED = P0^7;                          // LED='1' means ON
+//sbit LED = P0^7;                          // LED='1' means ON
 
 sbit synth_latch_bit=P0^3;
-sbit shift_reg_latch_bit=P1^0;
+sbit shift_reg_latch_bit=P0^7;
 
 #define SYNTH_LATCH_ID 1
 #define SHIFT_REG_LATCH_ID 2
@@ -83,6 +83,12 @@ void latch(const char latchval, const char latch_id)
 		latch_delay();
 }
 
+void pulsebithigh(const char latch_id)
+{
+	latch(0,latch_id);
+	latch(1,latch_id);
+	latch(0,latch_id);
+}
 
 //-----------------------------------------------------------------------------
 // MAIN Routine
@@ -131,7 +137,7 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 
 	getstr(str);
 
-	LED=~LED;
+//	LED=~LED;
 
 	if (synth_val_type==SYNTH_VAL_TYPE_COUNTER)
 	{
@@ -174,10 +180,19 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 void act_set_power(const int powerstate)
 {
 	if (powerstate)
+	{
 		printf("poweringon\n");
+		SPI_Byte_Write(0x82);
+    }
 	else
+	{
 		printf("poweringoff\n");
+		SPI_Byte_Write(0);
+	}
+
+	pulsebithigh(SHIFT_REG_LATCH_ID);
 }
+
 
 void main (void) 
 {  
@@ -189,6 +204,20 @@ void main (void)
    SPI0_Init();
 
    latch_init();
+
+	SPI_Byte_Write(0x82);
+
+	pulsebithigh(SHIFT_REG_LATCH_ID);
+
+// ref 
+	SPI_Byte_Write(9);
+	SPI_Byte_Write(1);
+	pulsebithigh(SYNTH_LATCH_ID);
+
+	SPI_Byte_Write(0);
+	SPI_Byte_Write(0x8e);
+	SPI_Byte_Write(0x42);
+	pulsebithigh(SYNTH_LATCH_ID);
 
    while (1)
    {
@@ -204,10 +233,10 @@ void main (void)
            act_set_synth(SYNTH_VAL_TYPE_COUNTER);
 
 	   else if (strcmp(str,"pon")==0)
-           act_set_power(0);
+           act_set_power(1);
 
 	   else if (strcmp(str,"poff")==0)
-           act_set_power(1);
+           act_set_power(0);
 
 	   else if (strcmp(str,"txen")==0)
            act_set_power(2);
@@ -250,7 +279,7 @@ void main (void)
 #define P17 1<<7
 
 #define SYNTH_LATCH P03
-#define SR_LATCH P10
+#define SR_LATCH P07
 //
 // P0.0 - SPI SCK    (digital output, push-pull)
 // P0.1 - SPI MISO   (digital input, open-drain)
@@ -259,17 +288,17 @@ void main (void)
 // P0.4   digital   push-pull    UART TX
 // P0.5   digital   open-drain   UART RX
 // P0.6 ?
-// P0.7 debug LED
+// P0.7 - MC Micro shiftreg latch
 // 
 void PORT_Init (void)
 {
    //P0MDOUT |= 0x15;                    // Enable UTX as push-pull output, SPI
 
-   P0MDOUT |= (P00|P02|SYNTH_LATCH|P04|P07);    // Enable UTX as push-pull out
-   P1MDOUT |= SR_LATCH;
+   P0MDOUT = (P04|P07);    // Enable UTX as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
+   P1MDOUT = 0;
 
    XBR0     = 0x03;                    // Enable UART on P0.4(TX) and P0.5(RX), SPI also
-   XBR1     = 0x40;                    // Enable crossbar and weak pull-ups
+   XBR1     = 0x40;                    // Enable crossbar and enable weak pull-ups
 }
 
 //-----------------------------------------------------------------------------
