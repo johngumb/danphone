@@ -161,6 +161,12 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 
 		printf("w1: %x w2: %x\n",w[0],w[1]);
 
+		if (w[1] & 1)
+		{
+			printf("invalid w1\n");
+			return;
+		}
+
 		// write first word to SPI, MSB shifted out first.
 		latch(0, latch_id);
 		SPI_Byte_Write(datptr[0]);
