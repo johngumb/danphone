@@ -148,31 +148,31 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 
 	if (synth_val_type==SYNTH_VAL_TYPE_COUNTER)
 	{
-		unsigned int n, a;
-		const unsigned char *datptr=&n;
+		unsigned int w[2];
+		const unsigned char *datptr=&w[0];
 
-		n=atoi(str);
+		w[0]=atoi(str);
 
 		getstr(str);
 
-		a=atoi(str);
+		w[1]=atoi(str);
 
-		printf("n: %x a: %x\n",n,a);
+		printf("w1: %x w2: %x\n",w[0],w[1]);
 
-		// write n to SPI
+		// write first word to SPI, MSB shifted out first.
 		latch(0, latch_id);
 		SPI_Byte_Write(datptr[0]);
 		SPI_Byte_Write(datptr[1]);
 
-		// write second val to SPI
-		datptr=(const unsigned char *) &a;
+		// write second word to SPI, MSB shifted out first.
+		datptr=(const unsigned char *) &w[1];
 		SPI_Byte_Write(datptr[0]);
 		SPI_Byte_Write(datptr[1]);
 
 		pulsebithigh(latch_id);
 
 		// write second val to SPI
-		printf("setting n\n");
+		printf("setting synth\n");
 
 	}
 	else
