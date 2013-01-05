@@ -28,6 +28,8 @@
 
 sbit synth_latch_bit=P0^3;
 sbit shift_reg_latch_bit=P0^7;
+sbit squelch_bit=P1^0;
+sbit locked_bit=P1^1;
 
 #define SYNTH_LATCH_ID 1
 #define SHIFT_REG_LATCH_ID 2
@@ -174,6 +176,15 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 		// write second val to SPI
 		printf("setting synth\n");
 
+		delay(50000);
+
+		if (locked_bit)
+			printf("locked\n");
+		else
+			printf("unlocked\n");
+
+		
+
 	}
 	else
 	{
@@ -205,6 +216,21 @@ void act_set_power(const int powerstate)
 	}
 }
 
+
+void act_status()
+{
+
+		if (locked_bit)
+			printf("locked\n");
+		else
+			printf("unlocked\n");
+
+
+		if (squelch_bit)
+			printf("open\n");
+		else
+			printf("closed\n");
+}
 
 void main (void) 
 {  
@@ -242,6 +268,10 @@ void main (void)
 
 	   else if (strcmp(str,"txen")==0)
            act_set_power(2);
+
+	   else if (strcmp(str,"st")==0)
+           act_status();
+
 
    }
 }
