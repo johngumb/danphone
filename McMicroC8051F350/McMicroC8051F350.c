@@ -264,6 +264,8 @@ void act_status()
 			printf("closed\n");
 }
 
+#define cmd(_cmpstr,_rtn) if (strcmp(str, _cmpstr)==0) {_rtn; break;}
+
 void main (void) 
 {  
    PCA0MD &= ~0x40;                    // WDTE = 0 (clear watchdog timer 
@@ -283,11 +285,10 @@ void main (void)
    {
        getstr(&str);
 
-       if (strcmp(str,"u")==0)
-           act_up(0);
+	   do {
 
-	   else if (strcmp(str,"r")==0)
-           act_set_synth(SYNTH_VAL_TYPE_REF_DIVIDER);
+		cmd("u", act_up(0))
+		cmd("r",act_set_synth(SYNTH_VAL_TYPE_REF_DIVIDER))
 
 	   else if (strcmp(str,"n")==0)
            act_set_synth(SYNTH_VAL_TYPE_COUNTER);
@@ -310,7 +311,7 @@ void main (void)
 	   else if (strcmp(str,"rx")==0)
            set_tx_state(0);
 
-
+	   } while(0);
    }
 }
 
