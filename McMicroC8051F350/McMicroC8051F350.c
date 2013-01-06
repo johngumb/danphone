@@ -11,6 +11,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define SR_AUDIO_PA 0x01
+#define SR_POWER 0x02
+#define SR_TX_RX 0x04
+#define SR_TX_POWER_HI_LO 0x08
+#define SR_EXT_ALARM 0x10
+#define SR_TX_PA 0x20
+#define SR_TX_AUDIO_ENABLE 0x40
+#define SR_RX_AUDIO_ENABLE 0x80
+
 //-----------------------------------------------------------------------------
 // Global CONSTANTS
 //-----------------------------------------------------------------------------
@@ -67,10 +76,12 @@ void baa()
 	SPI_Byte_Write(1);
 	pulsebithigh(SYNTH_LATCH_ID);
 
+	delay(100);
 	SPI_Byte_Write(0);
 	SPI_Byte_Write(0x8e);
 	SPI_Byte_Write(0x42);
 	pulsebithigh(SYNTH_LATCH_ID);
+
 }
 
 void latch(const char latchval, const char latch_id)
@@ -97,6 +108,16 @@ void pulsebithigh(const char latch_id)
 	latch(0,latch_id);
 	latch(1,latch_id);
 	latch(0,latch_id);
+}
+
+void set_tx_state(const int txena)
+{
+	if (txena)
+		SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER);
+	else
+		SPI_Byte_Write(SR_RX_AUDIO_ENABLE|SR_POWER);
+
+	pulsebithigh(SHIFT_REG_LATCH_ID);
 }
 
 //-----------------------------------------------------------------------------
@@ -153,6 +174,11 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 		unsigned int w[2];
 		const unsigned char *datptr=&w[0];
 
+	// HACK
+	SPI_Byte_Write(9);
+	SPI_Byte_Write(1);
+	pulsebithigh(SYNTH_LATCH_ID);
+
 		w[0]=atoi(str);
 
 		getstr(str);
@@ -161,7 +187,7 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 
 		printf("w1: %x w2: %x\n",w[0],w[1]);
 
-		if (w[1] & 1)
+		if ((w[1] & 1)||(w[1]==0))
 		{
 			printf("invalid w1\n");
 			return;
@@ -277,6 +303,12 @@ void main (void)
 
 	   else if (strcmp(str,"st")==0)
            act_status();
+
+	   else if (strcmp(str,"tx")==0)
+           set_tx_state(1);
+
+	   else if (strcmp(str,"rx")==0)
+           set_tx_state(0);
 
 
    }
