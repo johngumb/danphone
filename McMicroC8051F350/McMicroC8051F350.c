@@ -153,6 +153,39 @@ void act_up(const int p)
 	printf("acton up\n");
 }
 
+void write_synth_spi(const int *w)
+{
+	const unsigned char *datptr=&w[0];
+
+	printf("w1: %x w2: %x\n",w[0],w[1]);
+
+	// HACK
+	SPI_Byte_Write(9);
+	SPI_Byte_Write(1);
+	pulsebithigh(SYNTH_LATCH_ID);
+
+	// write first word to SPI, MSB shifted out first.
+	latch(0, SYNTH_LATCH_ID);
+	SPI_Byte_Write(datptr[0]);
+	SPI_Byte_Write(datptr[1]);
+
+	// write second word to SPI, MSB shifted out first.
+	datptr=(const unsigned char *) &w[1];
+	SPI_Byte_Write(datptr[0]);
+	SPI_Byte_Write(datptr[1]);
+
+	pulsebithigh(SYNTH_LATCH_ID);
+
+	// write second val to SPI
+	printf("setting synth\n");
+
+	delay(50000);
+
+	if (locked_bit)
+		printf("locked\n");
+	else
+		printf("unlocked\n");
+}
 
 typedef enum
 {
@@ -161,23 +194,11 @@ SYNTH_VAL_TYPE_COUNTER} synth_val_type_t;
 
 void act_set_synth(const synth_val_type_t synth_val_type)
 {
-	char latch_id=SYNTH_LATCH_ID;
-
-	latch_id = SYNTH_LATCH_ID;
-
 	getstr(str);
-
-//	LED=~LED;
 
 	if (synth_val_type==SYNTH_VAL_TYPE_COUNTER)
 	{
 		unsigned int w[2];
-		const unsigned char *datptr=&w[0];
-
-	// HACK
-	SPI_Byte_Write(9);
-	SPI_Byte_Write(1);
-	pulsebithigh(SYNTH_LATCH_ID);
 
 		w[0]=atoi(str);
 
@@ -185,38 +206,13 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 
 		w[1]=atoi(str);
 
-		printf("w1: %x w2: %x\n",w[0],w[1]);
-
 		if ((w[1] & 1)||(w[1]==0))
 		{
 			printf("invalid w1\n");
 			return;
 		}
 
-		// write first word to SPI, MSB shifted out first.
-		latch(0, latch_id);
-		SPI_Byte_Write(datptr[0]);
-		SPI_Byte_Write(datptr[1]);
-
-		// write second word to SPI, MSB shifted out first.
-		datptr=(const unsigned char *) &w[1];
-		SPI_Byte_Write(datptr[0]);
-		SPI_Byte_Write(datptr[1]);
-
-		pulsebithigh(latch_id);
-
-		// write second val to SPI
-		printf("setting synth\n");
-
-		delay(50000);
-
-		if (locked_bit)
-			printf("locked\n");
-		else
-			printf("unlocked\n");
-
-		
-
+		write_synth_spi(&w);
 	}
 	else
 	{
@@ -264,6 +260,56 @@ void act_status()
 			printf("closed\n");
 }
 
+void act_test(int tv)
+{
+	int w[2];
+	act_set_power(0);
+	act_set_power(1);
+	set_tx_state(1);
+
+	w[0]=0;
+
+	switch(tv)
+	{
+		case 50:
+		{
+			w[1]=25600;
+
+		}
+		break;
+
+		case 505:
+		{
+			w[1]=25856;
+
+		}
+		break;
+
+		case 51:
+		{
+			w[1]=26612;
+
+		}
+		break;
+
+		case 515:
+		{
+			w[1]=26368;
+
+		}
+		break;
+
+		case 52:
+		{
+			w[1]=26624;
+
+		}
+		break;
+	}
+
+	write_synth_spi(&w);
+}
+
 #define cmd(_cmpstr,_rtn) if (strcmp(str, _cmpstr)==0) {_rtn; break;}
 
 void main (void) 
@@ -288,7 +334,18 @@ void main (void)
 	   do {
 
 		cmd("u", act_up(0))
+
 		cmd("r",act_set_synth(SYNTH_VAL_TYPE_REF_DIVIDER))
+
+		cmd("50",act_test(50))
+
+		cmd("505",act_test(505))
+
+		cmd("51",act_test(51))
+
+		cmd("515",act_test(515))
+
+		cmd("52",act_test(52))
 
 	   else if (strcmp(str,"n")==0)
            act_set_synth(SYNTH_VAL_TYPE_COUNTER);
