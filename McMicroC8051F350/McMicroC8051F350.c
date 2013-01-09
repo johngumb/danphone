@@ -60,64 +60,64 @@ void pulsebithigh(const char latch_id);
 
 void delay(unsigned int limit)
 {
-	int i;
-	for (i=0;i<limit;i++);
+    int i;
+    for (i=0;i<limit;i++);
 }
 
 void latch_init()
 {
-	synth_latch_bit=1;
-	shift_reg_latch_bit=1;
+    synth_latch_bit=1;
+    shift_reg_latch_bit=1;
 }
 
 void baa()
 {
-	SPI_Byte_Write(9);
-	SPI_Byte_Write(1);
-	pulsebithigh(SYNTH_LATCH_ID);
+    SPI_Byte_Write(9);
+    SPI_Byte_Write(1);
+    pulsebithigh(SYNTH_LATCH_ID);
 
-	delay(100);
-	SPI_Byte_Write(0);
-	SPI_Byte_Write(0x8e);
-	SPI_Byte_Write(0x42);
-	pulsebithigh(SYNTH_LATCH_ID);
+    delay(100);
+    SPI_Byte_Write(0);
+    SPI_Byte_Write(0x8e);
+    SPI_Byte_Write(0x42);
+    pulsebithigh(SYNTH_LATCH_ID);
 
 }
 
 void latch(const char latchval, const char latch_id)
 {
-	switch(latch_id)
-	{
-		case SYNTH_LATCH_ID:
-		{
-		 synth_latch_bit=latchval;
-		}
-		break;
+    switch(latch_id)
+    {
+        case SYNTH_LATCH_ID:
+        {
+         synth_latch_bit=latchval;
+        }
+        break;
 
-		case SHIFT_REG_LATCH_ID:
-		{
-		 shift_reg_latch_bit=latchval;
-		}
-		break;
+        case SHIFT_REG_LATCH_ID:
+        {
+         shift_reg_latch_bit=latchval;
+        }
+        break;
 
     }
 }
 
 void pulsebithigh(const char latch_id)
 {
-	latch(0,latch_id);
-	latch(1,latch_id);
-	latch(0,latch_id);
+    latch(0,latch_id);
+    latch(1,latch_id);
+    latch(0,latch_id);
 }
 
 void set_tx_state(const int txena)
 {
-	if (txena)
-		SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER);
-	else
-		SPI_Byte_Write(SR_RX_AUDIO_ENABLE|SR_POWER);
+    if (txena)
+        SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER);
+    else
+        SPI_Byte_Write(SR_RX_AUDIO_ENABLE|SR_POWER);
 
-	pulsebithigh(SHIFT_REG_LATCH_ID);
+    pulsebithigh(SHIFT_REG_LATCH_ID);
 }
 
 //-----------------------------------------------------------------------------
@@ -127,64 +127,64 @@ void set_tx_state(const int txena)
 
 int iswhitespace(const char *c)
 {
-	return ((*c==' ') || (*c=='\r') || (*c=='\n'));
+    return ((*c==' ') || (*c=='\r') || (*c=='\n'));
 }
 
 void getstr(char *str)
 {
-	char c;
-	int ptr=0;
+    char c;
+    int ptr=0;
 
-	while (1)
-	{
-		c = getchar();
-		if (! iswhitespace(&c))
-			str[ptr++]=c;
+    while (1)
+    {
+        c = getchar();
+        if (! iswhitespace(&c))
+            str[ptr++]=c;
         else
-			break;
-		
-	}
+            break;
+        
+    }
 
-	str[ptr]=0;
+    str[ptr]=0;
 }
 
 void act_up(const int p)
 {
-	printf("acton up\n");
+    printf("acton up\n");
 }
 
 void write_synth_spi(const int *w)
 {
-	const unsigned char *datptr=&w[0];
+    const unsigned char *datptr=&w[0];
 
-	printf("w1: %x w2: %x\n",w[0],w[1]);
+    printf("w1: %x w2: %x\n",w[0],w[1]);
 
-	// HACK
-	SPI_Byte_Write(9);
-	SPI_Byte_Write(1);
-	pulsebithigh(SYNTH_LATCH_ID);
+    // HACK
+    SPI_Byte_Write(9);
+    SPI_Byte_Write(1);
+    pulsebithigh(SYNTH_LATCH_ID);
 
-	// write first word to SPI, MSB shifted out first.
-	latch(0, SYNTH_LATCH_ID);
-	SPI_Byte_Write(datptr[0]);
-	SPI_Byte_Write(datptr[1]);
+    // write first word to SPI, MSB shifted out first.
+    latch(0, SYNTH_LATCH_ID);
+    SPI_Byte_Write(datptr[0]);
+    SPI_Byte_Write(datptr[1]);
 
-	// write second word to SPI, MSB shifted out first.
-	datptr=(const unsigned char *) &w[1];
-	SPI_Byte_Write(datptr[0]);
-	SPI_Byte_Write(datptr[1]);
+    // write second word to SPI, MSB shifted out first.
+    datptr=(const unsigned char *) &w[1];
+    SPI_Byte_Write(datptr[0]);
+    SPI_Byte_Write(datptr[1]);
 
-	pulsebithigh(SYNTH_LATCH_ID);
+    pulsebithigh(SYNTH_LATCH_ID);
 
-	// write second val to SPI
-	printf("setting synth\n");
+    // write second val to SPI
+    printf("setting synth\n");
 
-	delay(50000);
+    delay(50000);
 
-	if (locked_bit)
-		printf("locked\n");
-	else
-		printf("unlocked\n");
+    if (locked_bit)
+        printf("locked\n");
+    else
+        printf("unlocked\n");
 }
 
 typedef enum
@@ -194,182 +194,170 @@ SYNTH_VAL_TYPE_COUNTER} synth_val_type_t;
 
 void act_set_synth(const synth_val_type_t synth_val_type)
 {
-	getstr(str);
+    getstr(str);
 
-	if (synth_val_type==SYNTH_VAL_TYPE_COUNTER)
-	{
-		unsigned int w[2];
+    if (synth_val_type==SYNTH_VAL_TYPE_COUNTER)
+    {
+        unsigned int w[2];
 
-		w[0]=atoi(str);
+        w[0]=atoi(str);
 
-		getstr(str);
+        getstr(str);
 
-		w[1]=atoi(str);
+        w[1]=atoi(str);
 
-		if ((w[1] & 1)||(w[1]==0))
-		{
-			printf("invalid w1\n");
-			return;
-		}
+        if ((w[1] & 1)||(w[1]==0))
+        {
+            printf("invalid w1\n");
+            return;
+        }
 
-		write_synth_spi(&w);
-	}
-	else
-	{
-		unsigned int r;
-	    r=atoi(str);
-		printf("setting r %ud\n", r);
+        write_synth_spi(&w);
+    }
+    else
+    {
+        unsigned int r;
+        r=atoi(str);
+        printf("setting r %ud\n", r);
     }
 }
 
 void act_set_power(const int powerstate)
 {
-	if (powerstate)
-	{
-		printf("poweringon\n");
-		SPI_Byte_Write(0x82);
+    if (powerstate)
+    {
+        printf("poweringon\n");
+        SPI_Byte_Write(0x82);
     }
-	else
-	{
-		printf("poweringoff\n");
-		SPI_Byte_Write(0);
-	}
+    else
+    {
+        printf("poweringoff\n");
+        SPI_Byte_Write(0);
+    }
 
-	pulsebithigh(SHIFT_REG_LATCH_ID);
+    pulsebithigh(SHIFT_REG_LATCH_ID);
 
-	if (powerstate)
-	{
-		delay(1000);
-		baa();
-	}
+    if (powerstate)
+    {
+        delay(1000);
+        baa();
+    }
 }
 
 
 void act_status()
 {
+    if (locked_bit)
+        printf("locked\n");
+    else
+        printf("unlocked\n");
 
-		if (locked_bit)
-			printf("locked\n");
-		else
-			printf("unlocked\n");
 
-
-		if (squelch_bit)
-			printf("open\n");
-		else
-			printf("closed\n");
+    if (squelch_bit)
+        printf("open\n");
+    else
+        printf("closed\n");
 }
 
 void act_test(int tv)
 {
-	int w[2];
-	act_set_power(0);
-	act_set_power(1);
-	set_tx_state(1);
+    int w[2];
+    act_set_power(0);
+    act_set_power(1);
+    set_tx_state(1);
 
-	w[0]=0;
+    w[0]=0;
 
-	switch(tv)
-	{
-		case 50:
-		{
-			w[1]=25600;
+    switch(tv)
+    {
+        case 50:
+        {
+            w[1]=25600;
 
-		}
-		break;
+        }
+        break;
 
-		case 505:
-		{
-			w[1]=25856;
+        case 505:
+        {
+            w[1]=25856;
 
-		}
-		break;
+        }
+        break;
 
-		case 51:
-		{
-			w[1]=26612;
+        case 51:
+        {
+            w[1]=26612;
 
-		}
-		break;
+        }
+        break;
 
-		case 515:
-		{
-			w[1]=26368;
+        case 515:
+        {
+            w[1]=26368;
 
-		}
-		break;
+        }
+        break;
 
-		case 52:
-		{
-			w[1]=26624;
+        case 52:
+        {
+            w[1]=26624;
 
-		}
-		break;
-	}
+        }
+        break;
+    }
 
-	write_synth_spi(&w);
+    write_synth_spi(&w);
 }
 
 #define cmd(_cmpstr,_rtn) if (strcmp(str, _cmpstr)==0) {_rtn; break;}
 
 void main (void) 
 {  
-   PCA0MD &= ~0x40;                    // WDTE = 0 (clear watchdog timer 
-                                       // enable)
-   PORT_Init();                        // Initialize Port I/O
-   SYSCLK_Init ();                     // Initialize Oscillator
-   UART0_Init();
-   SPI0_Init();
+    PCA0MD &= ~0x40;                    // WDTE = 0 (clear watchdog timer 
+    // enable)
+    PORT_Init();                        // Initialize Port I/O
+    SYSCLK_Init ();                     // Initialize Oscillator
+    UART0_Init();
+    SPI0_Init();
 
-   latch_init();
+    latch_init();
 
-	// come up powered off
-	act_set_power(0);
+    // come up powered off
+    act_set_power(0);
 
 
-   while (1)
-   {
-       getstr(&str);
+    while (1)
+    {
+        getstr(&str);
 
-	   do {
+        do {
+            cmd("u", act_up(0))
 
-		cmd("u", act_up(0))
+            cmd("r",act_set_synth(SYNTH_VAL_TYPE_REF_DIVIDER))
 
-		cmd("r",act_set_synth(SYNTH_VAL_TYPE_REF_DIVIDER))
+            cmd("50",act_test(50))
 
-		cmd("50",act_test(50))
+            cmd("505",act_test(505))
 
-		cmd("505",act_test(505))
+            cmd("51",act_test(51))
 
-		cmd("51",act_test(51))
+            cmd("515",act_test(515))
 
-		cmd("515",act_test(515))
+            cmd("52",act_test(52))
 
-		cmd("52",act_test(52))
+            cmd("n", act_set_synth(SYNTH_VAL_TYPE_COUNTER))
 
-	   else if (strcmp(str,"n")==0)
-           act_set_synth(SYNTH_VAL_TYPE_COUNTER);
+            cmd("pon",act_set_power(1))
 
-	   else if (strcmp(str,"pon")==0)
-           act_set_power(1);
+            cmd("poff",act_set_power(0))
 
-	   else if (strcmp(str,"poff")==0)
-           act_set_power(0);
+            cmd("st",act_status())
 
-	   else if (strcmp(str,"txen")==0)
-           act_set_power(2);
+            cmd("tx",set_tx_state(1))
 
-	   else if (strcmp(str,"st")==0)
-           act_status();
-
-	   else if (strcmp(str,"tx")==0)
-           set_tx_state(1);
-
-	   else if (strcmp(str,"rx")==0)
-           set_tx_state(0);
-
-	   } while(0);
-   }
+            cmd("rx",set_tx_state(0))
+        } while(0);
+    }
 }
 
 //-----------------------------------------------------------------------------
