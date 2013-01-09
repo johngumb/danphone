@@ -20,6 +20,7 @@
 #define SR_TX_AUDIO_ENABLE 0x40
 #define SR_RX_AUDIO_ENABLE 0x80
 
+#define OOBAND
 //-----------------------------------------------------------------------------
 // Global CONSTANTS
 //-----------------------------------------------------------------------------
@@ -320,6 +321,7 @@ void act_test(int tv)
         }
         break;
 
+#ifdef OOBAND
 		case 53:
 		{
 			w[1]=27136;
@@ -362,6 +364,7 @@ void act_test(int tv)
 
 		}
 		break;
+#endif
     }
 
     write_synth_spi(&w);
@@ -403,6 +406,7 @@ void main (void)
 
             cmd("52",act_test(52))
 
+#ifdef OOBAND
 			cmd("53",act_test(53))
 
 			cmd("54",act_test(54))
@@ -414,6 +418,7 @@ void main (void)
 			cmd("57",act_test(57))
 
 			cmd("58",act_test(58))
+#endif
 
             cmd("n", act_set_synth(SYNTH_VAL_TYPE_COUNTER))
 
