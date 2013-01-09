@@ -244,7 +244,6 @@ void act_set_power(const int powerstate)
     }
 }
 
-
 void act_status()
 {
     if (locked_bit)
@@ -262,9 +261,6 @@ void act_status()
 void act_test(int tv)
 {
     int w[2];
-    act_set_power(0);
-    act_set_power(1);
-    set_tx_state(1);
 
     w[0]=0;
 
@@ -304,6 +300,49 @@ void act_test(int tv)
 
         }
         break;
+
+		case 53:
+		{
+			w[1]=27136;
+
+		}
+		break;
+
+		case 54:
+		{
+			w[1]=27648;
+
+		}
+		break;
+
+		case 55:
+		{
+			w[1]=28160;
+
+		}
+		break;
+
+		case 56:
+		{
+			w[1]=28672;
+
+		}
+		break;
+
+
+		case 57:
+		{
+			w[1]=29184;
+
+		}
+		break;
+
+		case 58:
+		{
+			w[1]=29696;
+
+		}
+		break;
     }
 
     write_synth_spi(&w);
@@ -345,6 +384,18 @@ void main (void)
 
             cmd("52",act_test(52))
 
+			cmd("53",act_test(53))
+
+			cmd("54",act_test(54))
+
+			cmd("55",act_test(55))
+
+			cmd("56",act_test(56))
+
+			cmd("57",act_test(57))
+
+			cmd("58",act_test(58))
+
             cmd("n", act_set_synth(SYNTH_VAL_TYPE_COUNTER))
 
             cmd("pon",act_set_power(1))
@@ -356,6 +407,8 @@ void main (void)
             cmd("tx",set_tx_state(1))
 
             cmd("rx",set_tx_state(0))
+
+            cmd("baa",baa())
         } while(0);
     }
 }
