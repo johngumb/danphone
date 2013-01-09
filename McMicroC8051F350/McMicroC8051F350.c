@@ -44,6 +44,7 @@ sbit locked_bit=P1^1;
 #define SHIFT_REG_LATCH_ID 2
 
 static char str[20];
+static unsigned char g_powerstate;
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
@@ -116,6 +117,16 @@ void set_tx_state(const int txena)
         SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER);
     else
         SPI_Byte_Write(SR_RX_AUDIO_ENABLE|SR_POWER);
+
+    pulsebithigh(SHIFT_REG_LATCH_ID);
+}
+
+void set_pa_state(const int paena)
+{
+    if (paena)
+        SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER|SR_TX_PA);
+    else
+        SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER);
 
     pulsebithigh(SHIFT_REG_LATCH_ID);
 }
@@ -224,6 +235,8 @@ void act_set_synth(const synth_val_type_t synth_val_type)
 
 void act_set_power(const int powerstate)
 {
+    g_powerstate=powerstate;
+
     if (powerstate)
     {
         printf("poweringon\n");
@@ -246,6 +259,12 @@ void act_set_power(const int powerstate)
 
 void act_status()
 {
+    if (!g_powerstate)
+    {
+        printf("off\n");
+        return;
+    }
+
     if (locked_bit)
         printf("locked\n");
     else
@@ -282,7 +301,7 @@ void act_test(int tv)
 
         case 51:
         {
-            w[1]=26612;
+            w[1]=26112;
 
         }
         break;
@@ -409,6 +428,10 @@ void main (void)
             cmd("rx",set_tx_state(0))
 
             cmd("baa",baa())
+
+            cmd("paon",set_pa_state(1))
+
+            cmd("paoff",set_pa_state(0))
         } while(0);
     }
 }
