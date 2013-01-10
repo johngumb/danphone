@@ -165,7 +165,7 @@ void act_up(const int p)
     printf("acton up\n");
 }
 
-void write_synth_spi(const int *w)
+void write_synth_spi(const unsigned int *w)
 {
     const unsigned char *datptr=&w[0];
 
@@ -280,7 +280,7 @@ void act_status()
 
 void act_test(int tv)
 {
-    int w[2];
+    unsigned int w[2];
 
     w[0]=0;
 
