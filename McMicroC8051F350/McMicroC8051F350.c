@@ -125,7 +125,7 @@ void set_tx_state(const int txena)
 void set_pa_state(const int paena)
 {
     if (paena)
-        SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER|SR_TX_PA);
+        SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER|SR_TX_PA|SR_TX_POWER_HI_LO);
     else
         SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER);
 
