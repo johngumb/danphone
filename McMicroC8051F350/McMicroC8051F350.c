@@ -117,6 +117,9 @@ void pulsebithigh(const char latch_id)
 
 void set_tx_state(const int txena)
 {
+    unsigned int w[2];
+    w[0]=0;
+
     if (txena)
         SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER);
     else
@@ -125,14 +128,12 @@ void set_tx_state(const int txena)
     pulsebithigh(SHIFT_REG_LATCH_ID);
 
     // rx freq is last tx freq
-    if (!txena)
-    {
-        unsigned int w[2];
-        //delay(50000);
-        w[0]=0;
+    if (txena)
+        w[1]=g_last_tx;
+    else
         w[1]=g_last_tx+10816; // 21.4 IF offset
-        write_synth_spi(&w);
-    }
+
+    write_synth_spi(&w);
 }
 
 void set_pa_state(const int paena)
@@ -409,6 +410,8 @@ void main (void)
     // come up powered off
     act_set_power(0);
 
+    // default freq of 51.53
+    g_last_tx[1]=26372;
 
     while (1)
     {
