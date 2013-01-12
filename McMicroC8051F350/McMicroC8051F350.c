@@ -329,6 +329,13 @@ void act_test(int tv)
         }
         break;
 
+        case 5151:
+        {
+            w[1]=26370;
+
+        }
+        break;
+
         case 5153:
         {
             w[1]=26372;
@@ -429,6 +436,8 @@ void main (void)
             cmd("51",act_test(51))
 
             cmd("515",act_test(515))
+
+            cmd("5151",act_test(5151))
 
             cmd("5153",act_test(5153))
 
