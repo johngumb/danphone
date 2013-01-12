@@ -411,7 +411,7 @@ void main (void)
     act_set_power(0);
 
     // default freq of 51.53
-    g_last_tx[1]=26372;
+    g_last_tx=26372;
 
     while (1)
     {
