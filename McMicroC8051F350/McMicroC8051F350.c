@@ -46,6 +46,7 @@ sbit locked_bit=P1^1;
 
 static char str[20];
 static unsigned char g_powerstate;
+static unsigned int g_last_tx;
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
@@ -59,6 +60,8 @@ void SPI0_Init (void);
 void SPI_Byte_Write (const unsigned char);
 
 void pulsebithigh(const char latch_id);
+
+void write_synth_spi(const unsigned int *);
 
 void delay(unsigned int limit)
 {
@@ -120,6 +123,16 @@ void set_tx_state(const int txena)
         SPI_Byte_Write(SR_RX_AUDIO_ENABLE|SR_POWER);
 
     pulsebithigh(SHIFT_REG_LATCH_ID);
+
+    // rx freq is last tx freq
+    if (!txena)
+    {
+        unsigned int w[2];
+        //delay(50000);
+        w[0]=0;
+        w[1]=g_last_tx+10816; // 21.4 IF offset
+        write_synth_spi(&w);
+    }
 }
 
 void set_pa_state(const int paena)
@@ -176,8 +189,9 @@ void write_synth_spi(const unsigned int *w)
     SPI_Byte_Write(1);
     pulsebithigh(SYNTH_LATCH_ID);
 
+    delay(500);
     // write first word to SPI, MSB shifted out first.
-    latch(0, SYNTH_LATCH_ID);
+    //latch(0, SYNTH_LATCH_ID);
     SPI_Byte_Write(datptr[0]);
     SPI_Byte_Write(datptr[1]);
 
@@ -314,6 +328,13 @@ void act_test(int tv)
         }
         break;
 
+        case 5153:
+        {
+            w[1]=26372;
+
+        }
+        break;
+
         case 52:
         {
             w[1]=26624;
@@ -367,6 +388,8 @@ void act_test(int tv)
 #endif
     }
 
+    g_last_tx=w[1];
+
     write_synth_spi(&w);
 }
 
@@ -403,6 +426,8 @@ void main (void)
             cmd("51",act_test(51))
 
             cmd("515",act_test(515))
+
+            cmd("5153",act_test(5153))
 
             cmd("52",act_test(52))
 
