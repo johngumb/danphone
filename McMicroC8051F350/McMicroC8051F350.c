@@ -393,6 +393,20 @@ void act_test(int tv)
 
 		}
 		break;
+
+		case 5081:
+		{
+			w[1]=25906;
+
+		}
+		break;
+
+		case 5084:
+		{
+			w[1]=25910;
+
+		}
+		break;
 #endif
     }
 
@@ -470,6 +484,10 @@ void main (void)
             cmd("rx",set_tx_state(0))
 
             cmd("baa",baa())
+
+            cmd("fx", act_test(5081));
+
+            cmd("am", act_test(5084));
 
             cmd("paon",set_pa_state(1))
 
