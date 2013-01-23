@@ -91,6 +91,23 @@ class StatusLEDtimer(wx.Timer):
 
     def Notify(self):
         """Called every timer interval"""
+
+        #
+        # HACK
+        # during TX stop clicking
+        # during this time the LEDs will not update
+        # power state will not be updated 
+        #
+        if self.target.m_tx:
+
+            #
+            # HACK not sure what wx.WakeUpIdle does
+            # Where there are returns elsewhere in this file
+            # they should probably have this.
+            #
+            wx.WakeUpIdle()
+            return
+
         if self.m_power_count == self.m_power_max_count:
             self.target.check_for_power_event()
 
@@ -303,16 +320,22 @@ class MyFrame(wx.Frame):
 
         self.m_tx_timer=TxTimer(self)
 
+        self.m_tx = False
+
         return
 
     def onButtonTx(self,event):
         if self.m_tx_rx.GetValue():
             self.m_rig.enable_tx()
 
+            self.m_tx = True
+
             # maybe get rid of this
             self.m_rig.disable_audio()
         else:
             self.m_rig.disable_tx()
+
+            self.m_tx = False
 
             # maybe get rid of this
             self.m_rig.enable_audio()
