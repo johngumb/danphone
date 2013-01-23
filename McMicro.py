@@ -265,6 +265,233 @@ class McMicroFTDI(McMicro):
 
         result = ((self.m_hwif.bb.port & self.m_hwif.D3) == self.m_hwif.D3)
 
+        #print "%X" % self.m_shiftreg.m_bits
+
+        return result
+
+# could leave tx unlocked to prevent TX PA enable
+class McMicroCLI(McMicro): 
+    def __init__(self):
+        McMicro.__init__(self)
+
+        # 
+        # ensure PA stays off initially
+
+
+        # Tx/Rx brought out on pin 1 of 15 way d type
+
+        return
+
+    def __del__(self):
+        self.disable_tx()
+
+        self.setpower(False)
+
+        return
+
+    def setpower(self, val):
+        if val:
+            cli.send("on")
+        else:
+            cli.send("off")
+
+        self.disable_tx()
+
+        return
+
+    def enable_tx(self):
+        self.m_shiftreg.setbit(self.SR_TX_RX|self.SR_TX_AUDIO_ENABLE)
+
+        self.m_shiftreg.latch()
+
+        self.tune(self.m_tx_freq)
+
+        return
+
+    def disable_tx(self):
+        self.m_shiftreg.clearbit(self.SR_TX_RX)
+
+        self.m_shiftreg.latch()
+
+        if self.m_rx_freq:
+            self.tune(self.m_rx_freq)
+
+        return
+
+    def enable_pa(self):
+        self.m_shiftreg.setbit(self.SR_TX_PA)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def disable_pa(self):
+        self.m_shiftreg.clearbit(self.SR_TX_PA)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def set_tx_power_high(self):
+
+        self.m_shiftreg.clearbit(self.SR_TX_POWER_HI_LO)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def set_tx_power_low(self):
+        self.m_shiftreg.setbit(self.SR_TX_POWER_HI_LO)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def enable_audio_pa(self):
+        self.m_shiftreg.setbit(self.SR_AUDIO_PA)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def disable_audio_pa(self):
+        self.m_shiftreg.clearbit(self.SR_AUDIO_PA)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def enable_ext_alarm(self):
+        self.m_shiftreg.clearbit(self.SR_EXT_ALARM)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def disable_ext_alarm(self):
+        self.m_shiftreg.setbit(self.SR_EXT_ALARM)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def initialise(self, ftdi_device_id):
+
+        self.m_hwif=ft232r.ft232r(device_id = ftdi_device_id)
+        
+        outputs=self.m_hwif.D0|self.m_hwif.D1|self.m_hwif.D2|self.m_hwif.D4
+
+        self.m_hwif.initialise(outputs,0)
+
+        #
+        # rig control
+        self.m_shiftreg = ShiftReg.ShiftReg(hwif = self.m_hwif, clock = self.m_hwif.D0, \
+                                         data = self.m_hwif.D1, latch = self.m_hwif.D4, nbits = 8)
+
+        #
+        # synth
+        # prescaler is MC14094 (divide by 40)
+        #
+        self.m_synth = MC145158.MC145158(port = self.m_hwif, prescale_divide = 40, DATA = self.m_hwif.D1, \
+                                         CLK = self.m_hwif.D0, STB = self.m_hwif.D2, LOCK = self.m_hwif.D5)
+
+        self.m_synth.set_refclk(self.m_synth_refclk)
+
+        self.disable_tx()
+
+        self.m_shiftreg.clearbit(self.SR_TX_AUDIO_ENABLE)
+
+        self.enable_audio()
+
+        return
+
+    def enable_audio(self):
+        self.m_shiftreg.setbit(self.SR_RX_AUDIO_ENABLE)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def disable_audio(self):
+        self.m_shiftreg.clearbit(self.SR_RX_AUDIO_ENABLE)
+
+        self.m_shiftreg.latch()
+
+        return
+
+    def set_step(self, step):
+        self.set_ref_divider(self.m_synth_refclk/step)
+
+        return
+
+    def set_ref_divider(self,divratio):
+
+        self.m_divratio = divratio
+
+        self.m_synth.set_ref_divider(self.m_divratio)
+
+        return
+
+    def squelch_open(self):
+        #
+        # squelch
+        #
+        # squelch = self.m_hwif.D6
+        #
+        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+
+        result = not ((self.m_hwif.bb.port & self.m_hwif.D6) == self.m_hwif.D6)
+
+        return result
+
+    def locked(self):
+        #
+        # lock detect
+        #
+        # ld = self.m_hwif.D5
+        #
+        return self.m_synth.locked()
+
+
+    def tune(self, freq):
+        #
+        # 14.4 Mhz reference clock
+        #
+        # consider moving this to init
+        #
+
+
+        self.m_synth.set_freq( freq );
+
+        # 104.88726E rx == 74.1 MHz TX approx
+        #self.m_synth.set_freq(104.88726E6)
+        #self.m_synth.set_freq(70.4625E6+21.4E6)
+        #self.m_synth.set_freq(70.18E6+21.4E6)
+        #self.m_synth.set_freq(70.4875E6+21.4E6)
+        #self.m_synth.set_freq(70.3875E6+21.4E6)
+        #self.m_synth.set_freq(70.050E6+21.4E6)
+        #self.m_synth.set_freq(70.020E6+21.4E6)
+        #self.m_synth.set_freq(70.45E6+21.4E6)
+        #self.m_synth.set_freq(65.38750E6+21.4E6)
+        #self.m_synth.set_freq(81.9630E6+21.4E6)
+        #self.m_synth.set_freq(70.01650E6+21.4E6)
+        #self.m_synth.set_freq(70.4625E6)
+        #self.m_synth.set_freq(10.38750E6)
+
+        return
+
+    def powered_on(self):
+
+        # HACK throw away result
+        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+
+        # HACK throw away result
+        self.m_hwif.bb.port
+
+        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+
+        result = ((self.m_hwif.bb.port & self.m_hwif.D3) == self.m_hwif.D3)
+
         return result
 
 
