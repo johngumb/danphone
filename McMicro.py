@@ -2,36 +2,9 @@ import ft232r
 import ShiftReg
 import MC145158
 
+# could leave tx unlocked to prevent TX PA enable
 class McMicro:
     def __init__(self):
-        self.m_synth_refclk = 14.4E6
-
-        self.m_rx_freq = None
-
-        self.m_tx_freq = None
-
-        return
-
-    def set_rx_freq(self,freq):
-
-        self.m_rx_freq = freq + 21.4E6
-
-        # FIXME
-        self.tune(self.m_rx_freq)
-
-        return
-
-    def set_tx_freq(self,freq):
-
-        self.m_tx_freq = freq
-
-        return
-
-# could leave tx unlocked to prevent TX PA enable
-class McMicroFTDI(McMicro): 
-    def __init__(self):
-        McMicro.__init__(self)
-
         self.SR_AUDIO_PA=0x80
         self.SR_POWER=0x40 # pin 5
         self.SR_TX_RX=0x20 # pin 6, ensure PA stays off initially
@@ -51,6 +24,12 @@ class McMicroFTDI(McMicro):
         #0x04 pin 13
         #0x08 pin 14
         
+        self.m_synth_refclk = 14.4E6
+
+        self.m_rx_freq = None
+
+        self.m_tx_freq = None
+
         return
 
     def __del__(self):
@@ -192,6 +171,21 @@ class McMicroFTDI(McMicro):
 
         return
 
+    def set_rx_freq(self,freq):
+
+        self.m_rx_freq = freq + 21.4E6
+
+        # FIXME
+        self.tune(self.m_rx_freq)
+
+        return
+
+    def set_tx_freq(self,freq):
+
+        self.m_tx_freq = freq
+
+        return
+
     def set_step(self, step):
         self.set_ref_divider(self.m_synth_refclk/step)
 
@@ -269,7 +263,7 @@ class McMicroFTDI(McMicro):
 
 
 def test():
-    mc = McMicroFTDI()
+    mc = McMicro()
 
     mc.initialise()
 
