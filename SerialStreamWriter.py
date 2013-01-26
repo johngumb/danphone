@@ -1,19 +1,8 @@
 import time
 
 class SerialStreamWriter:
-    def __init__(self,hwif,DATA=0,CLK=0,STB=0):
+    def __init__(self,hwif):
         self.m_hwif=hwif
-
-        self.m_data = DATA
-        self.m_clk = CLK
-        self.m_stb = STB
-        self.m_hwif = hwif
-
-        dirval=(DATA|CLK|STB)
-
-        # FIXME
-        if self.m_hwif:
-            self.m_hwif.bb.direction |= dirval
 
         self.m_debug = False
 
@@ -87,6 +76,22 @@ class SerialStreamWriter:
 
         return
 
+class SerialStreamWriterFTDI(SerialStreamWriter):
+    def __init__(self,hwif,DATA=0,CLK=0,STB=0):
+        SerialStreamWriter.__init__(self, hwif)
+
+        self.m_data = DATA
+        self.m_clk = CLK
+        self.m_stb = STB
+
+        dirval=(DATA|CLK|STB)
+
+        # FIXME
+        if self.m_hwif:
+            self.m_hwif.bb.direction |= dirval
+
+        return
+
     def latch(self):
 
         # generate strobe pulse
@@ -94,3 +99,23 @@ class SerialStreamWriter:
 
         return
   
+
+class SerialStreamWriterCLI(SerialStreamWriter):
+    def __init__(self,hwif):
+        SerialStreamWriter.__init__(self, ident, hwif)
+
+        self.m_ident = ident
+
+        return
+
+    def output_msb_first(self, val, nbits):
+        self.m_hwif.send("%S%X" % (self.m_ident, self.m_data))
+
+        return
+
+    def latch(self):
+
+        # press CR?
+
+
+        return

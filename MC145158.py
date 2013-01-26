@@ -1,16 +1,9 @@
 import sys
 
-import SerialStreamWriter
-
 class MC145158:
-    def __init__(self, port, prescale_divide, DATA=0,CLK=0,STB=0,LOCK=0):
+    def __init__(self, prescale_divide, serial_writer, getlock):
 
-        self.m_port = port
-
-        self.m_stream_writer=SerialStreamWriter.SerialStreamWriter(port,DATA,CLK,STB)
-
-        # FIXME
-        self.m_port.bb.direction &= ~LOCK
+        self.m_stream_writer=serial_writer
 
         self.m_refclk = None
 
@@ -18,7 +11,7 @@ class MC145158:
 
         self.m_prescale_divide = prescale_divide
 
-        self.m_lockbit = LOCK
+        self.m_getlock = getlock
 
         return
 
@@ -95,11 +88,9 @@ class MC145158:
         #
         # ld = self.m_port.D5
 
-        self.m_port.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+        return self.m_getlock()
 
-        result = ((self.m_port.bb.port & self.m_lockbit) == self.m_lockbit)
 
-        return result
 
  
  

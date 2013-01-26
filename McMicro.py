@@ -1,6 +1,7 @@
 import ft232r
 import ShiftReg
 import MC145158
+import SerialStreamWriter
 
 # could leave tx unlocked to prevent TX PA enable
 class McMicro:
@@ -127,25 +128,47 @@ class McMicro:
 
         return
 
+    def getlock(self):
+        if self.m_ftdi:
+            self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+
+            lockbit=self.m_hwif.D5
+
+            result = ((self.m_hwif.bb.port & lockbit) == lockbit)
+
+        return result
+
     def initialise(self, ftdi_device_id):
 
-        self.m_hwif=ft232r.ft232r(device_id = ftdi_device_id)
-        
-        outputs=self.m_hwif.D0|self.m_hwif.D1|self.m_hwif.D2|self.m_hwif.D4
+        if ftdi_device_id != "cli":
+            self.m_hwif=ft232r.ft232r(device_id = ftdi_device_id)
 
-        self.m_hwif.initialise(outputs,0)
+            outputs=self.m_hwif.D0|self.m_hwif.D1|self.m_hwif.D2|self.m_hwif.D4
+
+            self.m_hwif.initialise(outputs,0)
+
+            self.m_latch_serial_writer = SerialStreamWriter.SerialStreamWriterFTDI(self.m_hwif, DATA=self.m_hwif.D1, CLK=self.m_hwif.D0, STB=self.m_hwif.D4)
+
+            self.m_synth_serial_stream_writer=SerialStreamWriter.SerialStreamWriterFTDI(self.m_hwif,DATA=self.m_hwif.D1,CLK = self.m_hwif.D0, STB=self.m_hwif.D2)
+
+            self.m_ftdi = True
+        else:
+            self.m_latch_serial_writer = SerialStreamWriter.SerialStreamWriter(self.m_hwif)
+
+            self.m_synth_serial_stream_writer=SerialStreamWriter.SerialStreamWriter(self.m_hwif)
+
+            self.m_ftdi = False
 
         #
         # rig control
-        self.m_shiftreg = ShiftReg.ShiftReg(hwif = self.m_hwif, clock = self.m_hwif.D0, \
-                                         data = self.m_hwif.D1, latch = self.m_hwif.D4, nbits = 8)
+        #
+        self.m_shiftreg = ShiftReg.ShiftReg(serial_writer = self.m_latch_serial_writer, nbits = 8)
 
         #
         # synth
         # prescaler is MC14094 (divide by 40)
         #
-        self.m_synth = MC145158.MC145158(port = self.m_hwif, prescale_divide = 40, DATA = self.m_hwif.D1, \
-                                         CLK = self.m_hwif.D0, STB = self.m_hwif.D2, LOCK = self.m_hwif.D5)
+        self.m_synth = MC145158.MC145158(prescale_divide = 40, serial_writer=self.m_synth_serial_stream_writer, getlock=self.getlock)
 
         self.m_synth.set_refclk(self.m_synth_refclk)
 
@@ -205,9 +228,12 @@ class McMicro:
         #
         # squelch = self.m_hwif.D6
         #
-        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+        if self.m_ftdi:
+            self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
 
-        result = not ((self.m_hwif.bb.port & self.m_hwif.D6) == self.m_hwif.D6)
+            result = not ((self.m_hwif.bb.port & self.m_hwif.D6) == self.m_hwif.D6)
+        else:
+            pass
 
         return result
 
@@ -249,15 +275,18 @@ class McMicro:
 
     def powered_on(self):
 
-        # HACK throw away result
-        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+        if self.m_ftdi:
+            # HACK throw away result
+            self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
 
-        # HACK throw away result
-        self.m_hwif.bb.port
+            # HACK throw away result
+            self.m_hwif.bb.port
 
-        self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
+            self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
 
-        result = ((self.m_hwif.bb.port & self.m_hwif.D3) == self.m_hwif.D3)
+            result = ((self.m_hwif.bb.port & self.m_hwif.D3) == self.m_hwif.D3)
+        else:
+            pass
 
         return result
 

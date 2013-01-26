@@ -1,13 +1,7 @@
-import ft232r
-import SerialStreamWriter
-
 class ShiftReg:
-    def __init__(self, hwif, clock, data, latch, nbits):
-        assert(hwif)
+    def __init__(self, serial_writer, nbits):
 
-        self.m_hwif = hwif
-
-        self.m_serial_writer = SerialStreamWriter.SerialStreamWriter(hwif, DATA=data, CLK=clock, STB=latch)
+        self.m_serial_writer = serial_writer
 
         self.m_bits = 0
 
@@ -25,7 +19,7 @@ class ShiftReg:
 
         return
 
-    def latch(self,downtime=0):
+    def latch(self):
 
         self.m_serial_writer.output(self.m_bits, self.m_nbits)
 
