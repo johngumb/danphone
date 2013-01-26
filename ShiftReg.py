@@ -21,7 +21,7 @@ class ShiftReg:
 
     def latch(self):
 
-        self.m_serial_writer.output(self.m_bits, self.m_nbits)
+        self.m_serial_writer.output_msb_first(self.m_bits, self.m_nbits)
 
         self.m_serial_writer.latch()
 

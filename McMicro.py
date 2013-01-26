@@ -6,14 +6,14 @@ import SerialStreamWriter
 # could leave tx unlocked to prevent TX PA enable
 class McMicro:
     def __init__(self):
-        self.SR_AUDIO_PA=0x80
-        self.SR_POWER=0x40 # pin 5
-        self.SR_TX_RX=0x20 # pin 6, ensure PA stays off initially
-        self.SR_TX_POWER_HI_LO=0x10
-        self.SR_EXT_ALARM=0x08
-        self.SR_TX_PA=0x04
-        self.SR_TX_AUDIO_ENABLE=0x02
-        self.SR_RX_AUDIO_ENABLE=0x01
+        self.SR_AUDIO_PA=0x01
+        self.SR_POWER=0x02 # pin 5
+        self.SR_TX_RX=0x04 # pin 6, ensure PA stays off initially
+        self.SR_TX_POWER_HI_LO=0x08
+        self.SR_EXT_ALARM=0x10
+        self.SR_TX_PA=0x20
+        self.SR_TX_AUDIO_ENABLE=0x40
+        self.SR_RX_AUDIO_ENABLE=0x80
 
         # Tx/Rx brought out on pin 1 of 15 way d type
 
