@@ -2,6 +2,7 @@ import ft232r
 import ShiftReg
 import MC145158
 import SerialStreamWriter
+import Cli
 
 # could leave tx unlocked to prevent TX PA enable
 class McMicro:
@@ -153,9 +154,11 @@ class McMicro:
 
             self.m_ftdi = True
         else:
-            self.m_latch_serial_writer = SerialStreamWriter.SerialStreamWriter(self.m_hwif)
+            self.m_hwif = Cli.TelnetCLI()
 
-            self.m_synth_serial_stream_writer=SerialStreamWriter.SerialStreamWriter(self.m_hwif)
+            self.m_latch_serial_writer = SerialStreamWriter.SerialStreamWriterCLI(self.m_hwif,"C")
+
+            self.m_synth_serial_stream_writer=SerialStreamWriter.SerialStreamWriterCLI(self.m_hwif,"S")
 
             self.m_ftdi = False
 
@@ -286,7 +289,7 @@ class McMicro:
 
             result = ((self.m_hwif.bb.port & self.m_hwif.D3) == self.m_hwif.D3)
         else:
-            pass
+            result = True
 
         return result
 

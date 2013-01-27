@@ -101,21 +101,21 @@ class SerialStreamWriterFTDI(SerialStreamWriter):
   
 
 class SerialStreamWriterCLI(SerialStreamWriter):
-    def __init__(self,hwif):
-        SerialStreamWriter.__init__(self, ident, hwif)
+    def __init__(self, hwif, ident):
+        SerialStreamWriter.__init__(self, hwif)
 
         self.m_ident = ident
 
         return
 
     def output_msb_first(self, val, nbits):
-        self.m_hwif.send("%S%X" % (self.m_ident, self.m_data))
+        self.m_hwif.send("%s%X" % (self.m_ident, val))
 
         return
 
     def latch(self):
 
         # press CR?
-
+        self.m_hwif.enter()
 
         return
