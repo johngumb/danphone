@@ -20,7 +20,7 @@
 #define SR_TX_AUDIO_ENABLE 0x40
 #define SR_RX_AUDIO_ENABLE 0x80
 
-#define OOBAND
+//#define OOBAND
 //-----------------------------------------------------------------------------
 // Global CONSTANTS
 //-----------------------------------------------------------------------------
@@ -250,6 +250,20 @@ void act_set_synth(const synth_val_type_t synth_val_type)
     }
 }
 
+unsigned char hexdigittobyte(char ch)
+{
+	unsigned char val;
+
+	if ( (ch>='0') && (ch<='9') )
+		val=ch-'0';
+	else if ( (ch>='A') && (ch<='F') )
+		val=ch-'A'+10;
+	else
+		printf("HEX ERROR:%x\n",ch);
+
+	return val;
+}
+
 unsigned char strtohex(char *ch)
 {
 	unsigned char i=0;
@@ -258,15 +272,8 @@ unsigned char strtohex(char *ch)
 
 	while (i<2)
 	{
-		unsigned char v=ch[i];
-		unsigned char val;
+		unsigned char val = hexdigittobyte(ch[i]);
 
-		if ( (v>='0') && (v<='9') )
-			val=v-'0';
-		else if ( (v>='A') && (v<='F') )
-			val=v-'A'+10;
-		else
-			printf("HEX ERROR\n");
 
 		if (i==0)
 		{
@@ -293,20 +300,28 @@ void act_control(void)
 
 void act_synth(void)
 {
-	unsigned char offset=1;
+	unsigned char offset=1; // skip first command string byte
 
-    // HACK
-    SPI_Byte_Write(9);
-    SPI_Byte_Write(1);
-    pulsebithigh(SYNTH_LATCH_ID);
+	// deal with, for example "SD9C" or "S09C"
+	if ((strlen(str)%2)==0)
+	{
+		unsigned char fval=0;
 
-    delay(500);
-	// assume hex string is always of form
+		fval+=hexdigittobyte(str[offset]);
+
+		SPI_Byte_Write(fval);
+		//printf("Z%02x",fval);
+
+		offset++;
+	}
+
+	// at this point,remaining
+	// hex string is always of form
 	// 11223344 i.e. even number of chars
 	while (str[offset]!=0)
 	{
 		SPI_Byte_Write(strtohex(&str[offset]));
-
+		//printf("%02x",strtohex(&str[offset]));
 		offset+=2;
 	}
 
