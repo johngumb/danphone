@@ -295,6 +295,12 @@ void act_synth(void)
 {
 	unsigned char offset=1;
 
+    // HACK
+    SPI_Byte_Write(9);
+    SPI_Byte_Write(1);
+    pulsebithigh(SYNTH_LATCH_ID);
+
+    delay(500);
 	// assume hex string is always of form
 	// 11223344 i.e. even number of chars
 	while (str[offset]!=0)
