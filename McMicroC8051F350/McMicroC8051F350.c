@@ -174,6 +174,7 @@ void getstr(char *str)
     str[ptr]=0;
 }
 
+
 void act_up(const int p)
 {
     printf("acton up\n");
@@ -247,6 +248,63 @@ void act_set_synth(const synth_val_type_t synth_val_type)
         r=atoi(str);
         printf("setting r %ud\n", r);
     }
+}
+
+unsigned char strtohex(char *ch)
+{
+	unsigned char i=0;
+	unsigned char rval=0;
+
+
+	while (i<2)
+	{
+		unsigned char v=ch[i];
+		unsigned char val;
+
+		if ( (v>='0') && (v<='9') )
+			val=v-'0';
+		else if ( (v>='A') && (v<='F') )
+			val=v-'A'+10;
+		else
+			printf("HEX ERROR\n");
+
+		if (i==0)
+		{
+			rval=val<<4;
+		}
+		else
+		{
+			rval=rval+val;
+		}
+
+		i++;
+	}
+
+	return rval;
+}
+
+void act_control(void)
+{
+	SPI_Byte_Write(strtohex(&str[1]));
+
+	pulsebithigh(SHIFT_REG_LATCH_ID);
+}
+
+
+void act_synth(void)
+{
+	unsigned char offset=1;
+
+	// assume hex string is always of form
+	// 11223344 i.e. even number of chars
+	while (str[offset]!=0)
+	{
+		SPI_Byte_Write(strtohex(&str[offset]));
+
+		offset+=2;
+	}
+
+	pulsebithigh(SYNTH_LATCH_ID);
 }
 
 void act_set_power(const int powerstate)
@@ -417,6 +475,8 @@ void act_test(int tv)
 
 #define cmd(_cmpstr,_rtn) if (strcmp(str, _cmpstr)==0) {_rtn; break;}
 
+#define partcmd(_cmpchar, _rtn) if (str[0]==_cmpchar) {_rtn; break; }
+
 void main (void) 
 {  
     PCA0MD &= ~0x40;                    // WDTE = 0 (clear watchdog timer 
@@ -439,6 +499,10 @@ void main (void)
         getstr(&str);
 
         do {
+			partcmd('C', act_control());
+
+			partcmd('S', act_synth());
+
             cmd("u", act_up(0))
 
             cmd("r",act_set_synth(SYNTH_VAL_TYPE_REF_DIVIDER))
