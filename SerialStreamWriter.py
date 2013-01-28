@@ -109,7 +109,19 @@ class SerialStreamWriterCLI(SerialStreamWriter):
         return
 
     def output_msb_first(self, val, nbits):
-        self.m_hwif.send("%s%X" % (self.m_ident, val))
+
+
+        hexval="%X" % val
+
+        nibbles_val=len(hexval)
+        if (nbits % 4) == 0:
+            nibbles_required = nbits/4
+        else:
+            nibbles_required = (nbits/4) + 1
+
+        zeropad = nibbles_required - nibbles_val
+
+        self.m_hwif.send(self.m_ident + '0'*zeropad + hexval)
 
         return
 
