@@ -295,6 +295,8 @@ void act_control(void)
 	SPI_Byte_Write(strtohex(&str[1]));
 
 	pulsebithigh(SHIFT_REG_LATCH_ID);
+
+    printf("OK\n");
 }
 
 
@@ -326,6 +328,8 @@ void act_synth(void)
 	}
 
 	pulsebithigh(SYNTH_LATCH_ID);
+
+    printf("OK\n");
 }
 
 void act_set_power(const int powerstate)
@@ -352,8 +356,17 @@ void act_set_power(const int powerstate)
     }
 }
 
+//sbit tb=P0^3;
 void act_status()
 {
+
+#if 0
+    if (tb)
+        printf("high\n");
+    else
+        printf("low\n");
+#endif
+
     if (!g_powerstate)
     {
         printf("off\n");
@@ -370,6 +383,22 @@ void act_status()
         printf("open\n");
     else
         printf("closed\n");
+     
+}
+
+void act_stbyte()
+{
+    unsigned char result=0;
+
+    if (locked_bit)
+        result+=1;
+
+    if (squelch_bit)
+        result+=2;
+
+    putchar('0'+result);
+    putchar('Z');
+    putchar('\n');
 }
 
 void act_test(int tv)
@@ -523,6 +552,8 @@ void main (void)
 			partcmd('C', act_control());
 
 			partcmd('S', act_synth());
+
+            cmd("Z", act_stbyte());
 
             cmd("u", act_up(0))
 
