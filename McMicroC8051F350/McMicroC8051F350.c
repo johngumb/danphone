@@ -292,9 +292,15 @@ unsigned char strtohex(char *ch)
 
 void act_control(void)
 {
-	SPI_Byte_Write(strtohex(&str[1]));
+    unsigned char val = strtohex(&str[1]);
+
+	SPI_Byte_Write(val);
 
 	pulsebithigh(SHIFT_REG_LATCH_ID);
+
+    /* allow unit to power up */
+    if (val & SR_POWER)
+        delay(1000);
 
     printf("OK\n");
 }
