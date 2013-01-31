@@ -28,7 +28,7 @@
 #define SYSCLK      24500000           // SYSCLK frequency in Hz
 #define BAUDRATE        115200           // Baud rate of UART in bps
 
-#define SPI_CLOCK          300000      // Maximum SPI clock
+#define SPI_CLOCK          250000      // Maximum SPI clock
                                        // The SPI clock is a maximum of 500 kHz
                                        // when this example is used with
                                        // the SPI0_Slave code example.
@@ -362,11 +362,11 @@ void act_set_power(const int powerstate)
     }
 }
 
-//sbit tb=P0^3;
+sbit tb=P0^1;
 void act_status()
 {
 
-#if 0
+#if 1
     if (tb)
         printf("high\n");
     else
