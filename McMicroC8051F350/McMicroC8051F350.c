@@ -36,6 +36,7 @@
 
 //sbit LED = P0^7;                          // LED='1' means ON
 
+sbit power_on_bit=P0^1;
 sbit synth_latch_bit=P0^3;
 sbit shift_reg_latch_bit=P0^7;
 sbit squelch_bit=P1^0;
@@ -362,18 +363,9 @@ void act_set_power(const int powerstate)
     }
 }
 
-sbit tb=P0^1;
 void act_status()
 {
-
-#if 1
-    if (tb)
-        printf("high\n");
-    else
-        printf("low\n");
-#endif
-
-    if (!g_powerstate)
+    if (power_on_bit)
     {
         printf("off\n");
         return;
@@ -396,11 +388,16 @@ void act_stbyte()
 {
     unsigned char result=0;
 
-    if (locked_bit)
-        result+=1;
+    if (!power_on_bit)
+    {
+        result+=4;
 
-    if (squelch_bit)
-        result+=2;
+        if (locked_bit)
+            result+=1;
+
+        if (squelch_bit)
+            result+=2;
+    }
 
     putchar('0'+result);
     putchar('Z');
