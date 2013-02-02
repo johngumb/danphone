@@ -273,6 +273,8 @@ unsigned char strtohex(char *ch)
 	return rval;
 }
 
+void stchar(void);
+
 void act_control(void)
 {
     unsigned char val = strtohex(&str[1]);
@@ -285,7 +287,8 @@ void act_control(void)
     if (val & SR_POWER)
         delay(1000);
 
-    printf("OK\n");
+    stchar();
+    printf("K\n");
 }
 
 
@@ -316,8 +319,8 @@ void act_synth(void)
 	}
 
 	pulsebithigh(SYNTH_LATCH_ID);
-
-    printf("OK\n");
+    stchar();
+    printf("K\n");
 }
 
 void act_set_power(const int powerstate)
@@ -363,9 +366,9 @@ void act_status()
      
 }
 
-void act_stbyte()
+void stchar()
 {
-    unsigned char result=0;
+    char result=0;
 
     if (!power_on_bit)
     {
@@ -379,7 +382,12 @@ void act_stbyte()
     }
 
     putchar('0'+result);
-    putchar('Z');
+}
+
+void act_stbyte()
+{
+    stchar();
+    putchar('K');
     putchar('\n');
 }
 
