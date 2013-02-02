@@ -387,7 +387,7 @@ void stchar()
 void act_stbyte()
 {
     stchar();
-    putchar('Z');
+    putchar('K');
     putchar('\n');
 }
 
