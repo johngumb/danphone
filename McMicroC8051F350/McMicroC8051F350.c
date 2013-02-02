@@ -288,8 +288,7 @@ void act_control(void)
         delay(1000);
 
     stchar();
-
-    printf("OK\n");
+    printf("K\n");
 }
 
 
@@ -321,7 +320,7 @@ void act_synth(void)
 
 	pulsebithigh(SYNTH_LATCH_ID);
     stchar();
-    printf("OK\n");
+    printf("K\n");
 }
 
 void act_set_power(const int powerstate)
