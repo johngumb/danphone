@@ -121,13 +121,15 @@ class SerialStreamWriterCLI(SerialStreamWriter):
 
         zeropad = nibbles_required - nibbles_val
 
-        self.m_hwif.send(self.m_ident + '0'*zeropad + hexval)
+        self.m_hwif.enqueue(self.m_ident + '0'*zeropad + hexval)
 
         return
 
     def latch(self):
 
+        # just a dummy routine for CLI based writers
+        # as the 
         # press CR?
-        self.m_hwif.enter()
+        #self.m_hwif.enter()
 
         return

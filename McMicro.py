@@ -3,6 +3,33 @@ import ShiftReg
 import MC145158
 import SerialStreamWriter
 import Cli
+import threading
+
+import time
+
+class StatusMonitor(threading.Thread):
+
+    def __init__(self, group=None, target=None, name=None,
+                 args=(), kwargs=None, verbose=None):
+        threading.Thread.__init__(self, group=group, target=target, name=name,
+                                  verbose=verbose)
+
+        self.m_args = args
+
+    def run(self,args=()):
+
+        mcmicro = self.m_args
+
+        while True:
+            time.sleep(0.1)
+
+            #
+            # no need to queue a status command
+            # if there is already one in progress
+            # as status comes back on all commands
+            #
+            if not mcmicro.m_hwif.cmd_in_progress():
+                mcmicro.getstatus()
 
 # could leave tx unlocked to prevent TX PA enable
 class McMicro:
@@ -31,6 +58,8 @@ class McMicro:
         self.m_rx_freq = None
 
         self.m_tx_freq = None
+
+        self.m_last_status = 0
 
         return
 
@@ -63,7 +92,7 @@ class McMicro:
         return
 
     def disable_tx(self):
-        self.m_shiftreg.clearbit(self.SR_TX_RX)
+        self.m_shiftreg.clearbit(self.SR_TX_RX|self.SR_TX_AUDIO_ENABLE)
 
         self.m_shiftreg.latch()
 
@@ -129,6 +158,11 @@ class McMicro:
 
         return
 
+    def getstatus(self):
+
+        self.m_hwif.enqueue("Z\n")
+
+
     def getlock(self):
         if self.m_ftdi:
             self.m_hwif.bb.ftdi_fn.ftdi_usb_purge_rx_buffer()
@@ -136,8 +170,14 @@ class McMicro:
             lockbit=self.m_hwif.D5
 
             result = ((self.m_hwif.bb.port & lockbit) == lockbit)
+        else:
+            result = self.m_last_status & 1
 
         return result
+
+    def stcharupdate(self, statstr):
+        self.m_last_status = int(statstr)
+        return
 
     def initialise(self, ftdi_device_id):
 
@@ -154,13 +194,18 @@ class McMicro:
 
             self.m_ftdi = True
         else:
-            self.m_hwif = Cli.TelnetCLI()
+            self.m_hwif = Cli.TelnetCLI(self)
 
             self.m_latch_serial_writer = SerialStreamWriter.SerialStreamWriterCLI(self.m_hwif,"C")
 
             self.m_synth_serial_stream_writer=SerialStreamWriter.SerialStreamWriterCLI(self.m_hwif,"S")
 
             self.m_ftdi = False
+
+            self.m_status_monitor = StatusMonitor(args=(self))
+
+            self.m_status_monitor.start()
+
 
         #
         # rig control
@@ -236,7 +281,7 @@ class McMicro:
 
             result = not ((self.m_hwif.bb.port & self.m_hwif.D6) == self.m_hwif.D6)
         else:
-            pass
+            result = self.m_last_status & 2
 
         return result
 
@@ -255,8 +300,6 @@ class McMicro:
         #
         # consider moving this to init
         #
-
-
         self.m_synth.set_freq( freq );
 
         # 104.88726E rx == 74.1 MHz TX approx
@@ -289,7 +332,7 @@ class McMicro:
 
             result = ((self.m_hwif.bb.port & self.m_hwif.D3) == self.m_hwif.D3)
         else:
-            result = True
+            result = self.m_last_status & 4
 
         return result
 
