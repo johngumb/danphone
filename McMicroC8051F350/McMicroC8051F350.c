@@ -34,7 +34,6 @@
                                        // the SPI0_Slave code example.
 
 
-//sbit LED = P0^7;                          // LED='1' means ON
 
 sbit power_on_bit=P0^1;
 sbit synth_latch_bit=P0^3;
@@ -46,7 +45,6 @@ sbit locked_bit=P1^1;
 #define SHIFT_REG_LATCH_ID 2
 
 static char str[20];
-static unsigned char g_powerstate;
 static unsigned int g_last_tx;
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
@@ -82,7 +80,6 @@ void baa()
     SPI_Byte_Write(1);
     pulsebithigh(SYNTH_LATCH_ID);
 
-    delay(100);
     SPI_Byte_Write(0);
     SPI_Byte_Write(0x8e);
     SPI_Byte_Write(0x42);
@@ -192,9 +189,7 @@ void write_synth_spi(const unsigned int *w)
     SPI_Byte_Write(1);
     pulsebithigh(SYNTH_LATCH_ID);
 
-    delay(500);
     // write first word to SPI, MSB shifted out first.
-    //latch(0, SYNTH_LATCH_ID);
     SPI_Byte_Write(datptr[0]);
     SPI_Byte_Write(datptr[1]);
 
@@ -216,39 +211,27 @@ void write_synth_spi(const unsigned int *w)
         printf("unlocked\n");
 }
 
-typedef enum
-{
-SYNTH_VAL_TYPE_REF_DIVIDER,
-SYNTH_VAL_TYPE_COUNTER} synth_val_type_t;
 
-void act_set_synth(const synth_val_type_t synth_val_type)
+void act_set_synth()
 {
+    unsigned int w[2];
+
     getstr(str);
 
-    if (synth_val_type==SYNTH_VAL_TYPE_COUNTER)
+    w[0]=atoi(str);
+
+    getstr(str);
+
+    w[1]=atoi(str);
+
+    if (w[1]==0)
     {
-        unsigned int w[2];
-
-        w[0]=atoi(str);
-
-        getstr(str);
-
-        w[1]=atoi(str);
-
-        if ((w[1] & 1)||(w[1]==0))
-        {
-            printf("invalid w1\n");
-            return;
-        }
-
-        write_synth_spi(&w);
+        printf("invalid w1\n");
+        return;
     }
-    else
-    {
-        unsigned int r;
-        r=atoi(str);
-        printf("setting r %ud\n", r);
-    }
+
+    write_synth_spi(&w);
+
 }
 
 unsigned char hexdigittobyte(char ch)
@@ -269,7 +252,6 @@ unsigned char strtohex(char *ch)
 {
 	unsigned char i=0;
 	unsigned char rval=0;
-
 
 	while (i<2)
 	{
@@ -319,7 +301,6 @@ void act_synth(void)
 		fval+=hexdigittobyte(str[offset]);
 
 		SPI_Byte_Write(fval);
-		//printf("Z%02x",fval);
 
 		offset++;
 	}
@@ -341,8 +322,6 @@ void act_synth(void)
 
 void act_set_power(const int powerstate)
 {
-    g_powerstate=powerstate;
-
     if (powerstate)
     {
         printf("poweringon\n");
@@ -461,6 +440,20 @@ void act_test(int tv)
         }
         break;
 
+		case 5081:
+		{
+			w[1]=25906;
+
+		}
+		break;
+
+		case 5084:
+		{
+			w[1]=25910;
+
+		}
+		break;
+
 #ifdef OOBAND
 		case 53:
 		{
@@ -504,22 +497,13 @@ void act_test(int tv)
 
 		}
 		break;
-
-		case 5081:
-		{
-			w[1]=25906;
-
-		}
-		break;
-
-		case 5084:
-		{
-			w[1]=25910;
-
-		}
-		break;
 #endif
     }
+
+    /* 12.5 kHz */
+    SPI_Byte_Write(9);
+    SPI_Byte_Write(1);
+    pulsebithigh(SYNTH_LATCH_ID);
 
     g_last_tx=w[1];
 
@@ -560,8 +544,6 @@ void main (void)
 
             cmd("u", act_up(0))
 
-            cmd("r",act_set_synth(SYNTH_VAL_TYPE_REF_DIVIDER))
-
             cmd("50",act_test(50))
 
             cmd("505",act_test(505))
@@ -590,7 +572,7 @@ void main (void)
 			cmd("58",act_test(58))
 #endif
 
-            cmd("n", act_set_synth(SYNTH_VAL_TYPE_COUNTER))
+            cmd("n", act_set_synth())
 
             cmd("pon",act_set_power(1))
 
