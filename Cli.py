@@ -43,7 +43,7 @@ class TelnetCLI:
         self.m_mcmicro.stcharupdate(text[-2])
 
         while (len(self.m_cmdlist)):
-            cmd = self.m_cmdlist.pop()
+            cmd = self.m_cmdlist.pop(0)
             l=len(self.m_cmdlist)
             print "dequeued",cmd, l, "elements left"
             self.send(cmd)
