@@ -26,17 +26,18 @@ class TelnetCLI:
             self.m_cmd_in_progress=True
             self.send(msg)
 
+    def xmit(self, msg):
+        self.m_tn.write(msg+"\n")
+
+        return self.m_tn.expect(["K"])
+
     def send(self, msg):
 
         #print "sending",msg
 
         self.m_cmd_in_progress=True
 
-        self.m_tn.write(msg)
-
-        self.m_tn.write("\n")
-
-        (idx, mo, text)=self.m_tn.expect(["K"])
+        (idx, mo, text)=self.xmit(msg)
 
         #print text
 
@@ -48,10 +49,11 @@ class TelnetCLI:
             print "dequeued",cmd, l, "elements left"
             self.send(cmd)
 
+        # system should notify in case of state change
+        #self.xmit("Y")
+
         self.m_cmd_in_progress=False
 
-    def flush(self):
-        self.m_tn.read_lazy()
 
     def read_until(self, expected):
         #return self.m_tn.read_until(expected)

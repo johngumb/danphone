@@ -78,18 +78,44 @@ class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
         wx.Timer.__init__(self)
         self.target = target
-        self.m_squelch_sample = True
 
-        self.m_lock_max_count = 4
-
-        self.m_power_max_count = 8
-
-        self.m_lock_count = self.m_lock_max_count
-
-        self.m_power_count = self.m_power_max_count
+        self.m_counts_initialised=False
 
         self.Start(dur)
+
         return
+
+    def init_counts_if_not_done(self):
+
+        if self.m_counts_initialised:
+            return
+
+        if self.target.m_devid=="cli":
+
+            self.m_squelch_sample = False
+
+            #
+            # consider init counts function
+            #
+            self.m_lock_max_count = 1
+
+            self.m_power_max_count = 1
+
+            self.m_lock_count = self.m_lock_max_count
+
+            self.m_power_count = self.m_power_max_count
+        else:
+            self.m_squelch_sample = True
+
+            self.m_lock_max_count = 4
+
+            self.m_power_max_count = 8
+
+            self.m_lock_count = self.m_lock_max_count
+
+            self.m_power_count = self.m_power_max_count
+            
+        self.m_counts_initialised = True
 
     def Notify(self):
         """Called every timer interval"""
@@ -109,6 +135,8 @@ class StatusLEDtimer(wx.Timer):
             #
             wx.WakeUpIdle()
             return
+
+        self.init_counts_if_not_done()
 
         if self.m_power_count == self.m_power_max_count:
             self.target.check_for_power_event()
@@ -456,7 +484,7 @@ class MyFrame(wx.Frame):
             if len(sys.argv) > 1:
                 # check frequency before enabling PA
                 # maybe do not allow tx on 70.3875 or 70.4125
-                if sys.argv[-1]=="-p":
+                if sys.argv[-1]=="p":
                     self.m_button_pa.SetValue(True)
             mute(self.m_audioserver)
             self.m_stay_muted=True
