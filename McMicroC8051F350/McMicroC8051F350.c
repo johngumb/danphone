@@ -154,6 +154,17 @@ int iswhitespace(const char *c)
     return ((*c==' ') || (*c=='\r') || (*c=='\n'));
 }
 
+char getchar_jag (void)
+{
+   char c;
+
+   while (!RI0);
+   c = SBUF0;
+   RI0 = 0;
+
+   return c;
+}
+
 void getstr(char *str)
 {
     char c;
@@ -161,7 +172,7 @@ void getstr(char *str)
 
     while (1)
     {
-        c = getchar();
+        c = getchar_jag();
         if (! iswhitespace(&c))
             str[ptr++]=c;
         else
