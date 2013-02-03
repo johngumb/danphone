@@ -154,18 +154,34 @@ int iswhitespace(const char *c)
     return ((*c==' ') || (*c=='\r') || (*c=='\n'));
 }
 
+#define CHAR_WAIT_MAX 1000
+char g_inword;
 char getchar_jag (void)
 {
    char c;
+   int i;
 
-   while (!RI0);
+   if ( g_inword)
+       while (!RI0);
+    else
+    {
+       for (i=0; (i<CHAR_WAIT_MAX); i++)
+       {
+          if (RI0)
+            break;
+
+          if (i==CHAR_WAIT_MAX)
+            return -1;
+        }
+    }
+   
    c = SBUF0;
    RI0 = 0;
 
    return c;
 }
 
-void getstr(char *str)
+char getstr(char *str)
 {
     char c;
     int ptr=0;
@@ -173,20 +189,25 @@ void getstr(char *str)
     while (1)
     {
         c = getchar_jag();
-        if (! iswhitespace(&c))
+        if (c==-1)
+        {
+            return c;
+        }
+        else if (! iswhitespace(&c))
+        {
+            g_inword=1;
+
             str[ptr++]=c;
+        }
         else
+        {
+            if (c=='\n')
+                g_inword=0;
             break;
-        
+        }
     }
 
     str[ptr]=0;
-}
-
-
-void act_up(const int p)
-{
-    printf("acton up\n");
 }
 
 void write_synth_spi(const unsigned int *w)
@@ -544,6 +565,8 @@ void main (void)
 
     latch_init();
 
+    g_inword = 0;
+
     // come up powered off
     act_set_power(0);
 
@@ -560,8 +583,6 @@ void main (void)
 			partcmd('S', act_synth());
 
             cmd("Z", act_stbyte());
-
-            cmd("u", act_up(0))
 
             cmd("50",act_test(50))
 
