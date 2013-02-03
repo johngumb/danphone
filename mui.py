@@ -100,7 +100,7 @@ class StatusLEDtimer(wx.Timer):
         # during this time the LEDs will not update
         # power state will not be updated 
         #
-        if self.target.m_tx:
+        if self.target.m_tx and not self.target.m_devid=="cli":
 
             #
             # HACK not sure what wx.WakeUpIdle does
@@ -199,15 +199,15 @@ class MyFrame(wx.Frame):
 
         sixmetres=False
         if len(sys.argv) > 1 and sys.argv[1]=="-6":
-            devid="cli"
+            self.m_devid="cli"
             sixmetres=True
             self.m_audioserver="skate"
         else:
-            devid="MCVEC40K"
+            self.m_devid="MCVEC40K"
             self.m_audioserver="dab"
         
         g_audioserver=self.m_audioserver
-        self.m_rig.initialise(device_id=devid)
+        self.m_rig.initialise(device_id=self.m_devid)
 
         self.m_spin_ctrl_1 = FS.FloatSpin(self, ID_SPIN_1)
         
