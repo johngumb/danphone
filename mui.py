@@ -484,7 +484,7 @@ class MyFrame(wx.Frame):
             if len(sys.argv) > 1:
                 # check frequency before enabling PA
                 # maybe do not allow tx on 70.3875 or 70.4125
-                if sys.argv[-1]=="-p":
+                if sys.argv[-1]=="p":
                     self.m_button_pa.SetValue(True)
             mute(self.m_audioserver)
             self.m_stay_muted=True
