@@ -179,21 +179,9 @@ class McMicro:
         self.m_last_status = int(statstr)
         return
 
-    def initialise(self, ftdi_device_id):
+    def initialise(self, device_id):
 
-        if ftdi_device_id != "cli":
-            self.m_hwif=ft232r.ft232r(device_id = ftdi_device_id)
-
-            outputs=self.m_hwif.D0|self.m_hwif.D1|self.m_hwif.D2|self.m_hwif.D4
-
-            self.m_hwif.initialise(outputs,0)
-
-            self.m_latch_serial_writer = SerialStreamWriter.SerialStreamWriterFTDI(self.m_hwif, DATA=self.m_hwif.D1, CLK=self.m_hwif.D0, STB=self.m_hwif.D4)
-
-            self.m_synth_serial_stream_writer=SerialStreamWriter.SerialStreamWriterFTDI(self.m_hwif,DATA=self.m_hwif.D1,CLK = self.m_hwif.D0, STB=self.m_hwif.D2)
-
-            self.m_ftdi = True
-        else:
+        if device_id == "cli":
             self.m_hwif = Cli.TelnetCLI(self)
 
             self.m_latch_serial_writer = SerialStreamWriter.SerialStreamWriterCLI(self.m_hwif,"C")
@@ -205,6 +193,20 @@ class McMicro:
             self.m_status_monitor = StatusMonitor(args=(self))
 
             self.m_status_monitor.start()
+
+        else:
+
+            self.m_hwif=ft232r.ft232r(device_id = device_id)
+
+            outputs=self.m_hwif.D0|self.m_hwif.D1|self.m_hwif.D2|self.m_hwif.D4
+
+            self.m_hwif.initialise(outputs,0)
+
+            self.m_latch_serial_writer = SerialStreamWriter.SerialStreamWriterFTDI(self.m_hwif, DATA=self.m_hwif.D1, CLK=self.m_hwif.D0, STB=self.m_hwif.D4)
+
+            self.m_synth_serial_stream_writer=SerialStreamWriter.SerialStreamWriterFTDI(self.m_hwif,DATA=self.m_hwif.D1,CLK = self.m_hwif.D0, STB=self.m_hwif.D2)
+
+            self.m_ftdi = True
 
 
         #

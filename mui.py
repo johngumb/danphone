@@ -38,21 +38,23 @@ ID_BUTTON_AUDIO_DISABLE=wx.NewId()
 
 MUTED = False
 
+g_audioserver=""
+
 # TODO fix initial mute state
 # TODO radio might start with signal present.
-def mute():
+def mute(audioserver):
     global MUTED
     if not MUTED:
-        os.system("jack_disconnect dab:from_slave_2 system:playback_1")
-        os.system("jack_disconnect dab:from_slave_2 system:playback_2")
+        os.system("jack_disconnect %s:from_slave_2 system:playback_1" % audioserver)
+        os.system("jack_disconnect %s:from_slave_2 system:playback_2" % audioserver)
         MUTED = True
     return
 
-def unmute():
+def unmute(audioserver):
     global MUTED
     if MUTED:
-        os.system("jack_connect dab:from_slave_2 system:playback_1")
-        os.system("jack_connect dab:from_slave_2 system:playback_2")
+        os.system("jack_connect %s:from_slave_2 system:playback_1" % audioserver)
+        os.system("jack_connect %s:from_slave_2 system:playback_2" % audioserver)
         MUTED = False
     return
 
@@ -137,11 +139,11 @@ class StatusLEDtimer(wx.Timer):
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
-                        unmute()
+                        unmute(self.target.m_audioserver)
             else:
                 self.target.m_squelch_led.SetState(0)
                 if not self.target.m_monitor_button.GetValue():
-                    mute()
+                    mute(self.target.m_audioserver)
         else:
             lastopen = True
             samples_to_check = 3
@@ -157,12 +159,12 @@ class StatusLEDtimer(wx.Timer):
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
-                        unmute()
+                        unmute(self.target.m_audioserver)
 
             if (not sopen) and lastclosed:
                 self.target.m_squelch_led.SetState(0)
                 if not self.target.m_monitor_button.GetValue():
-                    mute()
+                    mute(self.target.m_audioserver)
 
 #        self.target.m_sopen_last_time[3] = self.target.m_sopen_last_time[2]
 
@@ -183,6 +185,8 @@ class StatusLEDtimer(wx.Timer):
 
 class MyFrame(wx.Frame):
     def __init__(self, *args, **kwds):
+        global g_audioserver
+
         # begin wxGlade: MyFrame.__init__
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
@@ -193,7 +197,17 @@ class MyFrame(wx.Frame):
 
         self.m_max_freq=77E6
 
-        self.m_rig.initialise(ftdi_device_id="MCVEC40K")
+        sixmetres=False
+        if len(sys.argv) > 1 and sys.argv[1]=="-6":
+            devid="cli"
+            sixmetres=True
+            self.m_audioserver="skate"
+        else:
+            devid="MCVEC40K"
+            self.m_audioserver="dab"
+        
+        g_audioserver=self.m_audioserver
+        self.m_rig.initialise(device_id=devid)
 
         self.m_spin_ctrl_1 = FS.FloatSpin(self, ID_SPIN_1)
         
@@ -205,7 +219,10 @@ class MyFrame(wx.Frame):
 
         steps=["Auto","4","5","6.25","8","10","12.5"]
 
-        self.m_step_selected = "12.5"
+        if sixmetres:
+            self.m_step_selected = "10"
+        else:
+            self.m_step_selected = "12.5"
 
         self.m_step = float( self.m_step_selected ) * 1000
 
@@ -220,8 +237,12 @@ class MyFrame(wx.Frame):
         for f in [self.m_spin_ctrl_1, self.m_spin_ctrl_2]:
             f.SetFormat("%F")
             f.SetDigits(self.m_digits)
-            self.m_freq=70.45E6
+            if sixmetres:
+                self.m_freq=50.840E6
+            else:
+                self.m_freq=70.45E6
             f.SetDefaultValue( self.m_freq /1E6)
+
             f.SetValue( self.m_freq / 1E6)
             f.SetToDefaultValue()
             f.SetSnapToTicks(True)
@@ -425,7 +446,7 @@ class MyFrame(wx.Frame):
 
     def onButtonMonitor(self,event):
         if self.m_monitor_button.GetValue():
-            unmute()
+            unmute(self.m_audioserver)
 
         return
 
@@ -435,14 +456,15 @@ class MyFrame(wx.Frame):
             if len(sys.argv) > 1:
                 # check frequency before enabling PA
                 # maybe do not allow tx on 70.3875 or 70.4125
-                self.m_button_pa.SetValue(True)
-            mute()
+                if sys.argv[-1]=="-p":
+                    self.m_button_pa.SetValue(True)
+            mute(self.m_audioserver)
             self.m_stay_muted=True
             self.m_tx_timer.Start(1000*60*5)
         else:
             time.sleep(0.3)
             self.m_tx_timer.Stop()
-            unmute()
+            unmute(self.m_audioserver)
             self.m_stay_muted=False
             self.m_tx_rx.SetValue(False)
             self.m_button_pa.SetValue(False)
@@ -454,10 +476,10 @@ class MyFrame(wx.Frame):
 
     def onButtonMute(self,event):
         if self.m_mute_button.GetValue():
-            mute()
+            mute(self.m_audioserver)
             self.m_stay_muted=True
         else:
-            unmute()
+            unmute(self.m_audioserver)
             self.m_stay_muted=False
 
         return
@@ -578,7 +600,7 @@ class MyFrame(wx.Frame):
 
         sizer_1.Add(self.m_led2, 0, wx.ADJUST_MINSIZE, 0)
 
-        self.m_step_combo.SetStringSelection("12.5")
+        self.m_step_combo.SetStringSelection(self.m_step_selected)
 
         self.Bind(wx.EVT_COMBOBOX, self.OnStepSelected, self.m_step_combo) 
 
@@ -608,9 +630,9 @@ if __name__=="__main__":
         os.system("lsmod | grep -q ftdi_sio && while ! rmmod ftdi_sio; do sleep 1; done")
         app = MyApp(clearSigInt=True)
         app.MainLoop()
-        mute()        
+        mute(g_audioserver)        
 
     except KeyboardInterrupt:
-        mute()
+        mute(g_audioserver)
         sys.exit(1)
 
