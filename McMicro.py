@@ -20,7 +20,7 @@ class StatusMonitor(threading.Thread):
 
         mcmicro = self.m_args
 
-        while True:
+        while not mcmicro.m_request_thread_exit:
             time.sleep(0.1)
 
             #
@@ -61,9 +61,13 @@ class McMicro:
 
         self.m_last_status = 0
 
+        self.m_request_thread_exit = False
+
         return
 
     def __del__(self):
+        self.m_request_thread_exit = True
+
         self.disable_tx()
 
         self.setpower(False)

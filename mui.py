@@ -39,6 +39,7 @@ ID_BUTTON_AUDIO_DISABLE=wx.NewId()
 MUTED = False
 
 g_audioserver=""
+g_rig = None
 
 # TODO fix initial mute state
 # TODO radio might start with signal present.
@@ -214,12 +215,15 @@ class StatusLEDtimer(wx.Timer):
 class MyFrame(wx.Frame):
     def __init__(self, *args, **kwds):
         global g_audioserver
+        global g_rig
 
         # begin wxGlade: MyFrame.__init__
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
 
         self.m_rig = McMicro.McMicro()
+
+        g_rig = self.m_rig
 
         self.m_min_freq=45.9E6
 
@@ -656,9 +660,12 @@ if __name__=="__main__":
         os.system("lsmod | grep -q ftdi_sio && while ! rmmod ftdi_sio; do sleep 1; done")
         app = MyApp(clearSigInt=True)
         app.MainLoop()
+        g_rig.m_request_thread_exit=True
         mute(g_audioserver)        
 
     except KeyboardInterrupt:
+        g_rig.m_request_thread_exit=True
         mute(g_audioserver)
+
         sys.exit(1)
 
