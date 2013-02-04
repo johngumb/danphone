@@ -160,7 +160,7 @@ class McMicro:
 
     def getstatus(self):
 
-        self.m_hwif.enqueue("Z\n")
+        self.m_hwif.enqueue("Z")
 
 
     def getlock(self):
@@ -176,8 +176,8 @@ class McMicro:
         return result
 
     def stcharupdate(self, statstr):
-        self.m_last_status = int(statstr)
-        return
+        if statstr.strip():
+            self.m_last_status = int(statstr)
 
     def initialise(self, device_id):
 
