@@ -46,6 +46,15 @@ sbit locked_bit=P1^1;
 
 static char str[20];
 static unsigned int g_last_tx;
+
+#define REPORTING 0
+#if REPORTING
+#define CHAR_WAIT_MAX 1000
+
+char g_line_in_progress;
+static char g_reporting;
+#endif
+
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
@@ -154,15 +163,17 @@ int iswhitespace(const char *c)
     return ((*c==' ') || (*c=='\r') || (*c=='\n'));
 }
 
-#define CHAR_WAIT_MAX 1000
-char g_inword;
+
 char getchar_jag (void)
 {
    char c;
+#if REPORTING
    int i;
 
-   if ( g_inword)
+
+   if ( g_line_in_progress)
        while (!RI0);
+
     else
     {
        for (i=0; (i<CHAR_WAIT_MAX); i++)
@@ -174,6 +185,9 @@ char getchar_jag (void)
             return -1;
         }
     }
+#else
+    while (!RI0);
+#endif
    
    c = SBUF0;
    RI0 = 0;
@@ -189,20 +203,28 @@ char getstr(char *str)
     while (1)
     {
         c = getchar_jag();
+#if REPORTING
         if (c==-1)
         {
+            g_line_in_progress=1;
             return c;
         }
-        else if (! iswhitespace(&c))
+        else 
+#endif
+        if (! iswhitespace(&c))
         {
-            g_inword=1;
+#if REPORTING
+            g_line_in_progress=1;
+#endif
 
             str[ptr++]=c;
         }
         else
         {
+#if REPORTING
             if (c=='\n')
-                g_inword=0;
+                g_line_in_progress=1;
+#endif
             break;
         }
     }
@@ -305,6 +327,7 @@ unsigned char strtohex(char *ch)
 	return rval;
 }
 
+void act_stbyte();
 void stchar(void);
 
 void act_control(void)
@@ -315,12 +338,13 @@ void act_control(void)
 
 	pulsebithigh(SHIFT_REG_LATCH_ID);
 
+#if 0
     /* allow unit to power up */
     if (val & SR_POWER)
         delay(1000);
+#endif
 
-    stchar();
-    printf("K\n");
+    act_stbyte();
 }
 
 
@@ -351,8 +375,8 @@ void act_synth(void)
 	}
 
 	pulsebithigh(SYNTH_LATCH_ID);
-    stchar();
-    printf("K\n");
+
+    act_stbyte();
 }
 
 void act_set_power(const int powerstate)
@@ -398,7 +422,7 @@ void act_status()
      
 }
 
-void stchar()
+unsigned char stval()
 {
     char result=0;
 
@@ -413,7 +437,12 @@ void stchar()
             result+=2;
     }
 
-    putchar('0'+result);
+    return result;
+}
+
+void stchar()
+{
+    putchar(stval()+'0');
 }
 
 void act_stbyte()
@@ -422,6 +451,13 @@ void act_stbyte()
     putchar('K');
     putchar('\n');
 }
+
+#if REPORTING
+void act_report(char startstop)
+{
+    g_reporting=startstop;
+}
+#endif
 
 void act_test(int tv)
 {
@@ -556,6 +592,12 @@ void act_test(int tv)
 
 void main (void) 
 {  
+#if REPORTING
+    char last_cstat; 
+    g_line_in_progress = 0;
+    g_reporting = 0;
+#endif
+
     PCA0MD &= ~0x40;                    // WDTE = 0 (clear watchdog timer 
     // enable)
     PORT_Init();                        // Initialize Port I/O
@@ -564,8 +606,6 @@ void main (void)
     SPI0_Init();
 
     latch_init();
-
-    g_inword = 0;
 
     // come up powered off
     act_set_power(0);
@@ -581,6 +621,12 @@ void main (void)
 			partcmd('C', act_control());
 
 			partcmd('S', act_synth());
+
+#if REPORTING
+            cmd("X", act_report(0))
+
+            cmd("Y", act_report(1))
+#endif
 
             cmd("Z", act_stbyte());
 
@@ -633,6 +679,19 @@ void main (void)
             cmd("paon",set_pa_state(1))
 
             cmd("paoff",set_pa_state(0))
+
+
+#if REPORTING
+            if (g_reporting) {
+                char cstat=stval();
+
+                if (cstat!=last_cstat)
+                {
+                    act_stbyte();
+                }
+                last_cstat=cstat;
+             }
+#endif
         } while(0);
     }
 }
