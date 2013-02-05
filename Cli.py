@@ -42,12 +42,59 @@ class TelnetCLI:
             self.m_cmd_in_progress=True
             self.send(msg)
 
+    def resync(self):
+        print "resyncing serial interface"
+
+        startchar = 'a'
+
+        synchar=ord(startchar)
+
+        syncount = 0
+
+        while syncount < 5:
+
+            ts = 'R'+chr(synchar)+"\n"
+
+            #print ts
+
+            time.sleep(0.05)
+
+            self.m_tn.write(ts)
+            
+            (idx, mo, txt) = self.m_tn.expect(["Y"],0.05)
+
+            if idx == -1 and mo == None:
+                print "."
+                continue
+
+            rxs = txt[-2]
+
+            #
+            # sending ahead of receiving, swallow Ys
+            # till we sync
+            #
+            #print rxs,chr(synchar)
+
+            if ord(rxs)<synchar:
+                self.m_tn.expect(["Y"],0.1)
+                syncount = 0
+
+            if rxs == chr(synchar):
+                syncount = syncount + 1
+            else:
+                if chr(synchar) == 'z':
+                    synchar=ord(startchar)
+
+                synchar = synchar + 1
+                syncount = 0
+
+
+
     def xmit(self, msg):
 
         timeout = False
 
         while True:
-
             if timeout:
                 print "retrying",msg
                 time.sleep(0.1)
@@ -60,18 +107,12 @@ class TelnetCLI:
             # timeout?
             #
             if idx == -1 and mo == None:
-                print "timeout on", msg
+                print "xmit timeout on", msg
                 timeout=True
 
-                self.m_tn.write("\n")
-
-                #
-                # don't bother retrying getstatus
-                #
-#                if msg[0] == "Z":
-#                    break                
+                self.resync()
             else:
-                break
+                break            
             
         return ( idx, mo, txt )
 
