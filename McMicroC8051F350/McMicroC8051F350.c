@@ -586,6 +586,15 @@ void act_test(int tv)
     write_synth_spi(&w);
 }
 
+void act_hostsync()
+{
+    putchar(str[1]);
+
+    putchar('Y');
+
+    putchar('\n');
+}
+
 #define cmd(_cmpstr,_rtn) if (strcmp(str, _cmpstr)==0) {_rtn; break;}
 
 #define partcmd(_cmpchar, _rtn) if (str[0]==_cmpchar) {_rtn; break; }
@@ -627,6 +636,7 @@ void main (void)
 
             cmd("Y", act_report(1))
 #endif
+            partcmd('R', act_hostsync())
 
             cmd("Z", act_stbyte());
 
