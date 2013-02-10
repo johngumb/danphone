@@ -21,7 +21,7 @@ class StatusMonitor(threading.Thread):
         mcmicro = self.m_args
 
         while not mcmicro.m_request_thread_exit:
-            time.sleep(0.1)
+            time.sleep(0.3)
 
             #
             # no need to queue a status command
