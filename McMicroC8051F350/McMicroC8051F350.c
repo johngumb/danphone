@@ -64,6 +64,7 @@ void UART0_Init (void);
 void PORT_Init (void);
 void Timer2_Init (int);
 void SPI0_Init (void);
+void PCA0_Init (void);
 
 void SPI_Byte_Write (const unsigned char);
 
@@ -195,7 +196,7 @@ char getchar_jag (void)
    return c;
 }
 
-char getstr(char *str)
+void getstr(char *str)
 {
     char c;
     int ptr=0;
@@ -609,10 +610,11 @@ void main (void)
 
     PCA0MD &= ~0x40;                    // WDTE = 0 (clear watchdog timer 
     // enable)
-    PORT_Init();                        // Initialize Port I/O
     SYSCLK_Init ();                     // Initialize Oscillator
     UART0_Init();
     SPI0_Init();
+	PCA0_Init();
+    PORT_Init();                        // Initialize Port I/O
 
     latch_init();
 
@@ -756,11 +758,15 @@ void PORT_Init (void)
 {
    //P0MDOUT |= 0x15;                    // Enable UTX as push-pull output, SPI
 
-   P0MDOUT = (P04|P07);    // Enable UTX as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
+   // NSS gets used as a GPIO pin
+   P0SKIP = P03;
+
+   P0MDOUT = (P04|P06|P07);    // Enable UTX as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
    P1MDOUT = 0;
 
    XBR0     = 0x03;                    // Enable UART on P0.4(TX) and P0.5(RX), SPI also
-   XBR1     = 0x40;                    // Enable crossbar and enable weak pull-ups
+   XBR1    = 0x41;                     // Route CEX0 to a port pin
+                                       // Enable crossbar and weak pull-ups
 }
 
 //-----------------------------------------------------------------------------
@@ -777,7 +783,7 @@ void PORT_Init (void)
 
 void SYSCLK_Init (void)
 {
-   OSCICN |= 0x03;                     // Configure internal oscillator for
+   OSCICN = 0x83;                     // Configure internal oscillator for
                                        // its maximum frequency
    RSTSRC  = 0x04;                     // Enable missing clock detector
 }
@@ -873,6 +879,25 @@ void SPI_Byte_Write (const unsigned char dat)
    NSSMD0 = 1;                         // Disable the Slave
 #endif
 
+}
+
+#define CEX0_FREQUENCY  50000
+void PCA0_Init (void)
+{
+   // Configure PCA time base; overflow interrupt disabled
+   PCA0CN = 0x00;                      // Stop counter; clear all flags
+   PCA0MD = 0x00;                      // Use SYSCLK/12 as time base
+
+   PCA0CPM0 = 0x46;                    // Module 0 = Frequency Output mode
+
+   // Configure frequency for CEX0
+   // PCA0CPH0 = (SYSCLK/12)/(2*CEX0_FREQUENCY), where:
+   // SYSCLK/12 = PCA time base
+   // CEX0_FREQUENCY = desired frequency
+   PCA0CPH0 = (SYSCLK/12)/(2*CEX0_FREQUENCY);
+
+   // Start PCA counter
+   CR = 1;
 }
 
 #if 0
