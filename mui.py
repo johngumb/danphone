@@ -225,7 +225,7 @@ class MyFrame(wx.Frame):
 
         g_rig = self.m_rig
 
-        self.m_min_freq=45.9E6
+        self.m_min_freq=35.9E6
 
         self.m_max_freq=77E6
 
