@@ -78,15 +78,15 @@ class TelnetCLI:
             if ord(rxs)<synchar:
                 self.m_tn.expect(["Y"],0.1)
                 syncount = 0
-
-            if rxs == chr(synchar):
-                syncount = syncount + 1
             else:
-                if chr(synchar) == 'z':
-                    synchar=ord(startchar)
+                if rxs == chr(synchar):
+                    syncount = syncount + 1
+                else:
+                    if chr(synchar) == 'z':
+                        synchar=ord(startchar)
 
-                synchar = synchar + 1
-                syncount = 0
+                    synchar = synchar + 1
+                    syncount = 0
 
 
 
