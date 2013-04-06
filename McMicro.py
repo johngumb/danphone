@@ -93,6 +93,13 @@ class McMicro:
 
         self.tune(self.m_tx_freq)
 
+        if self.m_tx_freq==51.34E6:
+            self.set_ctcss(77)
+        elif self.m_tx_freq==51.31E6:
+            self.set_ctcss(82.5)
+        else:
+            self.set_ctcss(0)
+
         return
 
     def disable_tx(self):
@@ -102,6 +109,8 @@ class McMicro:
 
         if self.m_rx_freq:
             self.tune(self.m_rx_freq)
+
+        self.set_ctcss(0)
 
         return
 
@@ -257,9 +266,34 @@ class McMicro:
 
         return
 
+    def set_ctcss(self, tone):
+
+        if tone:
+            #
+            # 74LS393 divides by 64
+            #
+            byteval=int(round(24.5E6/12)/(tone*2*64))
+        else:
+            #
+            # CTCSS off
+            #
+            byteval=0
+
+        if not self.m_ftdi:
+            self.m_hwif.enqueue("T%02X" % byteval)
+
+        return
+
     def set_tx_freq(self,freq):
 
-        self.m_tx_freq = freq
+        freq = round(freq)
+
+        if (freq >= 50.72E6) and (freq <= 50.88E6):
+            tx_offset = 5E5
+        else:
+            tx_offset = 0
+
+        self.m_tx_freq = freq + tx_offset
 
         return
 
