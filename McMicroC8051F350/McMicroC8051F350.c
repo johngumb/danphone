@@ -380,6 +380,25 @@ void act_synth(void)
     act_stbyte();
 }
 
+void act_ctcss(void)
+{
+	unsigned char toneval;
+
+	toneval = strtohex(str+1);
+
+	if (!toneval)
+		CR = 0;
+	else
+	{
+		// Start PCA counter
+		CR = 1;
+
+		PCA0CPH0 = toneval;
+	}
+
+	//printf("CTCSS: %02x\n", toneval);
+}
+
 void act_set_power(const int powerstate)
 {
     if (powerstate)
@@ -632,6 +651,8 @@ void main (void)
 			partcmd('C', act_control());
 
 			partcmd('S', act_synth());
+
+			partcmd('T', act_ctcss());
 
 #if REPORTING
             cmd("X", act_report(0))
