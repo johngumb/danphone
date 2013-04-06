@@ -786,6 +786,9 @@ void SYSCLK_Init (void)
    OSCICN = 0x83;                     // Configure internal oscillator for
                                        // its maximum frequency
    RSTSRC  = 0x04;                     // Enable missing clock detector
+
+   CLKSEL = 0;                          // Select the internal osc. as
+                                        // the SYSCLK source
 }
 
 //-----------------------------------------------------------------------------
@@ -882,6 +885,7 @@ void SPI_Byte_Write (const unsigned char dat)
 }
 
 #define CEX0_FREQUENCY  50000
+//#define CEX0_FREQUENCY 20000
 void PCA0_Init (void)
 {
    // Configure PCA time base; overflow interrupt disabled
@@ -894,7 +898,11 @@ void PCA0_Init (void)
    // PCA0CPH0 = (SYSCLK/12)/(2*CEX0_FREQUENCY), where:
    // SYSCLK/12 = PCA time base
    // CEX0_FREQUENCY = desired frequency
-   PCA0CPH0 = (SYSCLK/12)/(2*CEX0_FREQUENCY);
+//   PCA0CPH0 = (SYSCLK/12)/(2*CEX0_FREQUENCY);
+
+    // [jag] cannot use above calculation on target - doesn't work
+    // presumably due to 8 bit target. Better to calculate this value on host.
+    PCA0CPH0 = 209;
 
    // Start PCA counter
    CR = 1;
