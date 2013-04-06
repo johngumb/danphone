@@ -397,6 +397,8 @@ void act_ctcss(void)
 	}
 
 	//printf("CTCSS: %02x\n", toneval);
+
+       act_stbyte();
 }
 
 void act_set_power(const int powerstate)
