@@ -774,9 +774,12 @@ void main (void)
 // P0.3 - SPI NSS    (digital output, push-pull) -- look to re-use
 // P0.4   digital   push-pull    UART TX
 // P0.5   digital   open-drain   UART RX
-// P0.6 ?
+// P0.6 - CTCSS tone
 // P0.7 - MC Micro shiftreg latch
-// 
+// P1.0 - status - lock bit
+// P1.1 - status - squelch open
+// P1.2 - status - power on
+//
 void PORT_Init (void)
 {
    //P0MDOUT |= 0x15;                    // Enable UTX as push-pull output, SPI
@@ -907,8 +910,6 @@ void SPI_Byte_Write (const unsigned char dat)
 
 }
 
-#define CEX0_FREQUENCY  50000
-//#define CEX0_FREQUENCY 20000
 void PCA0_Init (void)
 {
    // Configure PCA time base; overflow interrupt disabled
@@ -922,15 +923,13 @@ void PCA0_Init (void)
    // SYSCLK/12 = PCA time base
    // CEX0_FREQUENCY = desired frequency
 //   PCA0CPH0 = (SYSCLK/12)/(2*CEX0_FREQUENCY);
-
     // [jag] cannot use above calculation on target - doesn't work
     // presumably due to 8 bit target. Better to calculate this value on host.
-    PCA0CPH0 = 209; // 77 Hz
+    //PCA0CPH0 = 207; // 77 Hz
+    //PCA0CPH0 = 193; // 82.5Hz
 
-    PCA0CPH0 = 193; // 82.5Hz
-
-   // Start PCA counter
-   CR = 1;
+   // PCA counter initially disabled
+   CR = 0;
 }
 
 #if 0
