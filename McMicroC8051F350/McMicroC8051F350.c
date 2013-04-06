@@ -902,7 +902,9 @@ void PCA0_Init (void)
 
     // [jag] cannot use above calculation on target - doesn't work
     // presumably due to 8 bit target. Better to calculate this value on host.
-    PCA0CPH0 = 209;
+    PCA0CPH0 = 209; // 77 Hz
+
+    PCA0CPH0 = 193; // 82.5Hz
 
    // Start PCA counter
    CR = 1;
