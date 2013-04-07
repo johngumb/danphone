@@ -87,16 +87,21 @@ class McMicro:
         return
 
     def enable_tx(self):
+        if self.m_tx_freq in [50.05E6, 50.016E6]:
+            return
+
         self.m_shiftreg.setbit(self.SR_TX_RX|self.SR_TX_AUDIO_ENABLE)
 
         self.m_shiftreg.latch()
 
         self.tune(self.m_tx_freq)
 
-        if self.m_tx_freq==51.34E6:
+        if self.m_tx_freq in [51.34E6, 51.35E6, 51.3E6]: # GB3AM, GB3CT, GB3ZY
             self.set_ctcss(77)
-        elif self.m_tx_freq==51.31E6:
+        elif self.m_tx_freq==51.31E6: # GB3FX
             self.set_ctcss(82.5)
+        elif self.m_tx_freq==51.27E6: # GB3DB
+            self.set_ctcss(110.9)
         else:
             self.set_ctcss(0)
 
