@@ -1,0 +1,7 @@
+DEV="-D hw:0"
+amixer ${DEV} sset Master 24 on
+amixer ${DEV} sset PCM 31 on
+amixer ${DEV} sset Front 31 on
+amixer ${DEV} sset Line 16 on
+amixer ${DEV} sset Capture 14 on
+amixer ${DEV} sset Mix cap 1 on
