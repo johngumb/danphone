@@ -169,10 +169,12 @@ class StatusLEDtimer(wx.Timer):
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
                         unmute(self.target.m_audioserver)
+                        self.target.m_rig.enable_audio_pa()
             else:
                 self.target.m_squelch_led.SetState(0)
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
+                    self.target.m_rig.disable_audio_pa()
         else:
             lastopen = True
             samples_to_check = 3
@@ -189,11 +191,13 @@ class StatusLEDtimer(wx.Timer):
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
                         unmute(self.target.m_audioserver)
+                        self.target.m_rig.enable_audio_pa()
 
             if (not sopen) and lastclosed:
                 self.target.m_squelch_led.SetState(0)
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
+                    self.target.m_rig.disable_audio_pa()
 
 #        self.target.m_sopen_last_time[3] = self.target.m_sopen_last_time[2]
 
@@ -508,9 +512,11 @@ class MyFrame(wx.Frame):
         if self.m_mute_button.GetValue():
             mute(self.m_audioserver)
             self.m_stay_muted=True
+            self.target.m_rig.disable_audio_pa()
         else:
             unmute(self.m_audioserver)
             self.m_stay_muted=False
+            self.target.m_rig.enable_audio_pa()
 
         return
 

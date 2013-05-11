@@ -63,6 +63,8 @@ class McMicro:
 
         self.m_request_thread_exit = False
 
+        self.m_inhibit_audio_pa = True
+
         return
 
     def __del__(self):
@@ -156,9 +158,10 @@ class McMicro:
         return
 
     def disable_audio_pa(self):
-        self.m_shiftreg.clearbit(self.SR_AUDIO_PA)
+        if not self.m_inhibit_audio_pa:
+            self.m_shiftreg.clearbit(self.SR_AUDIO_PA)
 
-        self.m_shiftreg.latch()
+            self.m_shiftreg.latch()
 
         return
 
