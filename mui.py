@@ -512,11 +512,11 @@ class MyFrame(wx.Frame):
         if self.m_mute_button.GetValue():
             mute(self.m_audioserver)
             self.m_stay_muted=True
-            self.target.m_rig.disable_audio_pa()
+            self.m_rig.disable_audio_pa()
         else:
             unmute(self.m_audioserver)
             self.m_stay_muted=False
-            self.target.m_rig.enable_audio_pa()
+            self.m_rig.enable_audio_pa()
 
         return
 
