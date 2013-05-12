@@ -28,11 +28,11 @@ class TelnetCLI:
         #
         # optimisation
         #
-        if self.m_last_msg:
-            if msg==self.m_last_msg and msg[0]!="Z":
+        if msg[0]!="Z":
+            if msg==self.m_last_msg:
                 return
-
-        self.m_last_msg=msg
+            else:
+                self.m_last_msg=msg
 
         if self.m_cmd_in_progress:
             self.m_cmdlist.append(msg)
