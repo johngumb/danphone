@@ -35,7 +35,8 @@
 
 
 
-sbit power_on_bit=P0^1;
+/* sbit unused_input=P0^1; look to re-use this; was used for 9.6V status */
+sbit power_on_bit=P1^2;
 sbit synth_latch_bit=P0^3;
 sbit shift_reg_latch_bit=P0^7;
 sbit squelch_bit=P1^0;
@@ -425,7 +426,7 @@ void act_set_power(const int powerstate)
 
 void act_status()
 {
-    if (power_on_bit)
+    if (!power_on_bit)
     {
         printf("off\n");
         return;
@@ -448,7 +449,12 @@ unsigned char stval()
 {
     char result=0;
 
-    if (!power_on_bit)
+    /* TODO simply read P11 byte as bits map directly to what we return here */
+    /* possibly...                                                           */
+    /* Doing this might mean un-meaningful values for locked/squelch get     */
+    /* returned if the unit is powered off but in the interests of           */
+    /* efficiency it might be worth tolerating this.                         */
+    if (power_on_bit)
     {
         result+=4;
 
