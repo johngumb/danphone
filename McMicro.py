@@ -278,9 +278,9 @@ class McMicro:
 
         if tone:
             #
-            # 74LS393 divides by 64
+            # 74LS393 divides by 128
             #
-            byteval=int(round(24.5E6/12)/(tone*2*64))
+            byteval=int(round(24.5E6/12)/(tone*128))
         else:
             #
             # CTCSS off
