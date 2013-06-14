@@ -1,0 +1,13 @@
+RELEASE="OpenPMR-0.0.1"
+rm -f ${RELEASE}.tgz
+rm -rf ${RELEASE}
+mkdir ${RELEASE}
+mkdir ${RELEASE}/patches
+mkdir ${RELEASE}/McMicroC8051F350
+
+cp Cli.py COPYING D74174.py DanPhone.py ft232r.py MC145158.py McMicro.py SerialStreamWriter.py ShiftReg.py spinctrl.py TC9181F.py McMicroC8051F350/McMicroC8051F350.c patches/pylibftdi-open.patch README.txt mui.py ledthing.py ${RELEASE}
+
+cp McMicroC8051F350/McMicroC8051F350.c McMicroC8051F350
+cp patches/pylibftdi-open.patch patches
+
+tar -czf ${RELEASE}.tgz ${RELEASE}
