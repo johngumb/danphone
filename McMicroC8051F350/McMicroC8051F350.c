@@ -807,6 +807,7 @@ void main (void)
 // P1.1 - status - squelch open
 // P1.2 - status - power on
 //
+#define UART_TX_OPEN_DRAIN
 void PORT_Init (void)
 {
    //P0MDOUT |= 0x15;                    // Enable UTX as push-pull output, SPI
@@ -814,7 +815,11 @@ void PORT_Init (void)
    // NSS gets used as a GPIO pin
    P0SKIP = P03;
 
-   P0MDOUT = (P04|P06|P07);    // Enable UTX as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
+#ifdef UART_TX_OPEN_DRAIN
+   P0MDOUT = (P06|P07);    // Enable UTX (P04) as open drain out, SCK, MOSI and SYNTH_LATCH are open drain
+#else
+   P0MDOUT = (P04|P06|P07);    // Enable UTX (P04) as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
+#endif
    P1MDOUT = 0;
 
    XBR0     = 0x03;                    // Enable UART on P0.4(TX) and P0.5(RX), SPI also
