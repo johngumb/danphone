@@ -164,6 +164,8 @@ class TelnetCLI:
 
         self.m_cmd_in_progress=True
 
+        #print self.m_serial.getCTS()
+
         # debug
         self.m_current_msg = msg
 
