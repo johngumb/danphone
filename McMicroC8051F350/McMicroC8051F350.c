@@ -62,6 +62,7 @@ sbit synth_latch_bit=P0^3;
 sbit shift_reg_latch_bit=P0^7;
 sbit squelch_bit=P1^0;
 sbit locked_bit=P1^1;
+sbit rts_bit=P1^3;
 
 #define SYNTH_LATCH_ID 1
 #define SHIFT_REG_LATCH_ID 2
@@ -508,6 +509,11 @@ void act_report(char startstop)
 }
 #endif
 
+void set_rts(int state)
+{
+    rts_bit = state;
+}
+
 void act_test(int tv)
 {
     unsigned int w[2];
@@ -742,6 +748,9 @@ void main (void)
 
             cmd("paoff",set_pa_state(0))
 
+            cmd("rtson", set_rts(1))
+
+            cmd("rtsoff", set_rts(0))
 
 #if REPORTING
             if (g_reporting) {
