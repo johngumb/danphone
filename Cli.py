@@ -19,6 +19,7 @@
 # along with OpenPMR.  If not, see <http://www.gnu.org/licenses/>.
 
 import telnetlib
+import serial
 import time
 
 class SerialCLI:
@@ -28,7 +29,9 @@ class SerialCLI:
 class TelnetCLI:
     def __init__(self, mcmicro):
 
-        self.m_tn = telnetlib.Telnet("skate",2217)
+#        self.m_tn = telnetlib.Telnet("skate",2217)
+
+        self.m_serial = serial.serial_for_url("rfc2217://skate:2217",115200)
 
         self.m_mcmicro = mcmicro
 
@@ -62,6 +65,25 @@ class TelnetCLI:
             self.m_cmd_in_progress=True
             self.send(msg)
 
+    def expect(self, char, timeout=0.1):
+
+        """ simplified expect-like interface """
+
+        chbuf = ""
+
+        while True:
+            ch = self.m_serial.read(timeout)
+
+            if not ch:
+                return (-1, None, None)
+
+            chbuf = chbuf + ch
+
+            if ch == char:
+                break
+
+        return (0, True, chbuf)
+
     def resync(self):
         print "resyncing serial interface"
 
@@ -79,9 +101,9 @@ class TelnetCLI:
 
             time.sleep(0.05)
 
-            self.m_tn.write(ts)
+            self.m_serial.write(ts)
             
-            (idx, mo, txt) = self.m_tn.expect(["Y"],0.05)
+            (idx, mo, txt) = self.expect("Y",0.05)
 
             if idx == -1 and mo == None:
                 print "."
@@ -96,7 +118,7 @@ class TelnetCLI:
             #print rxs,chr(synchar)
 
             if ord(rxs)<synchar:
-                self.m_tn.expect(["Y"],0.1)
+                self.expect('Y', 0.1)
                 syncount = 0
             else:
                 if rxs == chr(synchar):
@@ -119,9 +141,9 @@ class TelnetCLI:
                 print "retrying",msg
                 time.sleep(0.1)
 
-            self.m_tn.write(msg+"\n")
+            self.m_serial.write(msg+"\n")
 
-            (idx, mo, txt) = self.m_tn.expect(["K"],0.1)
+            (idx, mo, txt) = self.expect("K",0.1)
 
             #
             # timeout?
@@ -163,12 +185,6 @@ class TelnetCLI:
         #self.xmit("Y")
 
         self.m_cmd_in_progress=False
-
-
-    def read_until(self, expected):
-        #return self.m_tn.read_until(expected)
-        #return self.m_tn.expect(["Z"])
-        return self.m_tn.read_very_eager()
 
     def cmd_in_progress(self):
         return self.m_cmd_in_progress
