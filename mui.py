@@ -82,13 +82,27 @@ class TxTimer(wx.Timer):
     def __init__(self,target):
         wx.Timer.__init__(self)
         self.target = target
+        self.m_tx_timeout_count = 0
+        self.m_tx_timeout_threshold = 12
         return
     
     def Notify(self):
+
         if self.target.m_tx_button.GetValue():
-            print "tx timeout"
-            self.target.m_tx_button.SetValue(False)
-            self.target.onButtonTransmit(None)
+            #
+            # longer timeout in QRP mode
+            #
+            print "tx timeout",
+            if self.m_button_tx_power_level.GetValue():
+                print
+                self.m_tx_timeout_count = self.m_tx_timeout_threshold
+            else:
+                print ", low power"
+                self.m_tx_timeout_count +=1
+
+            if self.m_tx_timeout_count == self.m_tx_timeout_threshold:
+                self.target.m_tx_button.SetValue(False)
+                self.target.onButtonTransmit(None)
 
         wx.WakeUpIdle()
 
@@ -513,7 +527,7 @@ class MyFrame(wx.Frame):
                     self.m_button_pa.SetValue(True)
             mute(self.m_audioserver)
             self.m_stay_muted=True
-            self.m_tx_timer.Start(1000*60*5)
+            self.m_tx_timer.Start(1000*60*60)
         else:
             time.sleep(0.3)
             self.m_tx_timer.Stop()
