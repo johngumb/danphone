@@ -60,6 +60,14 @@ MUTED = False
 g_audioserver=""
 g_rig = None
 
+def sdrmute():
+    pass
+    #os.system("/home/john/sdr off")
+
+def sdrunmute():
+    pass
+    #os.system("/home/john/sdr on")
+
 # TODO fix initial mute state
 # TODO radio might start with signal present.
 def mute(audioserver):
@@ -202,12 +210,12 @@ class StatusLEDtimer(wx.Timer):
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
                         unmute(self.target.m_audioserver)
-                        self.target.m_rig.enable_audio_pa()
+                    self.target.m_rig.enable_audio_pa()
             else:
                 self.target.m_squelch_led.SetState(0)
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
-                    self.target.m_rig.disable_audio_pa()
+                self.target.m_rig.disable_audio_pa()
         else:
             lastopen = True
             samples_to_check = 3
@@ -535,13 +543,16 @@ class MyFrame(wx.Frame):
                 if sys.argv[-1]=="p":
                     self.m_button_pa.SetValue(True)
             mute(self.m_audioserver)
+            sdrmute()
             self.m_stay_muted=True
             self.m_tx_timer.Start(1000*60*60)
         else:
             time.sleep(0.3)
             self.m_tx_timer.Stop()
-            unmute(self.m_audioserver)
-            self.m_stay_muted=False
+            if not self.m_monitor_button.GetValue():
+                self.m_stay_muted=False
+                unmute(self.m_audioserver)
+            sdrunmute()
             self.m_tx_rx.SetValue(False)
             self.m_button_pa.SetValue(False)
 
@@ -554,11 +565,15 @@ class MyFrame(wx.Frame):
         if self.m_mute_button.GetValue():
             mute(self.m_audioserver)
             self.m_stay_muted=True
-            self.m_rig.disable_audio_pa()
+
+            # for now allow rig speaker to continue monitoring
+            #self.m_rig.disable_audio_pa()
         else:
             unmute(self.m_audioserver)
             self.m_stay_muted=False
-            self.m_rig.enable_audio_pa()
+
+            # for now allow rig speaker to continue monitoring
+            #self.m_rig.enable_audio_pa()
 
         return
 
