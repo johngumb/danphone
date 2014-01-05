@@ -62,11 +62,11 @@ g_rig = None
 
 def sdrmute():
     pass
-    #os.system("/home/john/sdr off")
+#    os.system("/home/john/sdr off")
 
 def sdrunmute():
     pass
-    #os.system("/home/john/sdr on")
+#    os.system("/home/john/sdr on")
 
 # TODO fix initial mute state
 # TODO radio might start with signal present.
@@ -210,12 +210,16 @@ class StatusLEDtimer(wx.Timer):
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
                         unmute(self.target.m_audioserver)
+
                     self.target.m_rig.enable_audio_pa()
             else:
                 self.target.m_squelch_led.SetState(0)
+
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
-                self.target.m_rig.disable_audio_pa()
+
+                if not self.target.m_audio_pa_button.GetValue():
+                    self.target.m_rig.disable_audio_pa()
         else:
             lastopen = True
             samples_to_check = 3
@@ -238,6 +242,7 @@ class StatusLEDtimer(wx.Timer):
                 self.target.m_squelch_led.SetState(0)
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
+                if not self.target.m_audio_pa_button.GetValue():
                     self.target.m_rig.disable_audio_pa()
 
 #        self.target.m_sopen_last_time[3] = self.target.m_sopen_last_time[2]
@@ -275,7 +280,7 @@ class MyFrame(wx.Frame):
         self.m_max_freq=77E6
 
         # linear attatched to Aux button
-        self.m_aux_linear=True
+        #self.m_aux_linear=True
 
         sixmetres=False
         if len(sys.argv) > 1 and sys.argv[1]=="-6":
@@ -453,9 +458,9 @@ class MyFrame(wx.Frame):
 
     def onButtonTxPowerLevel(self,event):
         if self.m_button_tx_power_level.GetValue():
-            if self.m_aux_linear:
-                self.m_ext_alarm_button.SetValue(False)
-                self.onButtonExtAlarm(event)  
+            #if self.m_aux_linear:
+            #    self.m_ext_alarm_button.SetValue(False)
+            #    self.onButtonExtAlarm(event)  
             self.m_rig.set_tx_power_high()
         else:
             self.m_rig.set_tx_power_low()
@@ -511,9 +516,9 @@ class MyFrame(wx.Frame):
 
     def onButtonExtAlarm(self,event):
         if self.m_ext_alarm_button.GetValue():
-            if self.m_aux_linear:
-                self.m_button_tx_power_level.SetValue(False)
-                self.onButtonTxPowerLevel(event)
+            #if self.m_aux_linear:
+            #    self.m_button_tx_power_level.SetValue(False)
+            #    self.onButtonTxPowerLevel(event)
             self.m_rig.enable_ext_alarm()
         else:
             self.m_rig.disable_ext_alarm()
