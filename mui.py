@@ -60,6 +60,9 @@ MUTED = False
 g_audioserver=""
 g_rig = None
 
+def sixmetres():
+    return len(sys.argv) > 1 and sys.argv[1]=="-6"
+
 def sdrmute():
     pass
 #    os.system("/home/john/sdr off")
@@ -282,10 +285,8 @@ class MyFrame(wx.Frame):
         # linear attatched to Aux button
         #self.m_aux_linear=True
 
-        sixmetres=False
-        if len(sys.argv) > 1 and sys.argv[1]=="-6":
+        if sixmetres():
             self.m_devid="cli"
-            sixmetres=True
             self.m_audioserver="skate"
         else:
             self.m_devid="MCVEC40K"
@@ -304,7 +305,7 @@ class MyFrame(wx.Frame):
 
         steps=["Auto","4","5","6.25","8","10","12.5"]
 
-        if sixmetres:
+        if sixmetres():
             self.m_step_selected = "10"
         else:
             self.m_step_selected = "12.5"
@@ -322,7 +323,7 @@ class MyFrame(wx.Frame):
         for f in [self.m_spin_ctrl_1, self.m_spin_ctrl_2]:
             f.SetFormat("%F")
             f.SetDigits(self.m_digits)
-            if sixmetres:
+            if sixmetres():
                 self.m_freq=50.840E6
             else:
                 self.m_freq=70.45E6
