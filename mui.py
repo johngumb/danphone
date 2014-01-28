@@ -25,8 +25,11 @@
 
 # spinctrl.py
 
+
+import sys
 import os
 import time
+import tempfile
 
 import wx
 import ledthing
@@ -34,7 +37,7 @@ import ledthing
 import wx.lib.agw.floatspin as FS
 
 import McMicro
-import sys
+
 
 ID_SPIN_1=wx.NewId()
 ID_SPIN_2=wx.NewId()
@@ -429,6 +432,30 @@ class MyFrame(wx.Frame):
 
         self.m_tx = False
 
+        self.m_txlockdir="/var/run/mui/txlock"
+
+        if not os.path.exists(self.m_txlockdir):
+            os.makedirs(self.m_txlockdir)
+
+        return
+
+    def get_tx_lock(self):
+        self.m_tx_lockfile = None
+
+        if len(os.listdir(self.m_txlockdir)) > 0:
+            return False
+
+        (_, self.m_tx_lockfile) = tempfile.mkstemp(dir=self.m_txlockdir)
+
+        return True
+
+    def free_tx_lock(self):
+
+        if self.m_tx_lockfile and os.path.exists(self.m_tx_lockfile):
+            os.unlink(self.m_tx_lockfile)
+
+        self.m_tx_lockfile = None
+
         return
 
     def onButtonTx(self,event):
@@ -541,7 +568,7 @@ class MyFrame(wx.Frame):
         return
 
     def onButtonTransmit(self,event):
-        if self.m_tx_button.GetValue():
+        if self.m_tx_button.GetValue() and self.get_tx_lock():
             self.m_tx_rx.SetValue(True)
             if len(sys.argv) > 1:
                 # check frequency before enabling PA
@@ -553,6 +580,7 @@ class MyFrame(wx.Frame):
             self.m_stay_muted=True
             self.m_tx_timer.Start(1000*60*60)
         else:
+            self.free_tx_lock()
             time.sleep(0.3)
             self.m_tx_timer.Stop()
             if not self.m_monitor_button.GetValue():
