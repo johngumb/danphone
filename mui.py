@@ -57,6 +57,7 @@ ID_BUTTON_ON_OFF=wx.NewId()
 ID_BUTTON_AUDIO_PA=wx.NewId()
 ID_BUTTON_EXT_ALARM=wx.NewId()
 ID_BUTTON_AUDIO_DISABLE=wx.NewId()
+ID_BUTTON_TX_SAFETY=wx.NewId()
 
 MUTED = False
 
@@ -370,7 +371,10 @@ class MyFrame(wx.Frame):
         self.m_audio_pa_button = wx.ToggleButton(self, ID_BUTTON_AUDIO_PA, "SPKR")
 
         self.m_ext_alarm_button = wx.ToggleButton(self, ID_BUTTON_EXT_ALARM, "AUX")
+
         self.m_disable_audio_button = wx.ToggleButton(self, ID_BUTTON_AUDIO_DISABLE, "AUDIO")
+
+        self.m_tx_safety_button = wx.ToggleButton(self, ID_BUTTON_TX_SAFETY, "TxSafety")
 
         self.status_led_timer=StatusLEDtimer(self,400)
 
@@ -436,6 +440,8 @@ class MyFrame(wx.Frame):
 
         if not os.path.exists(self.m_txlockdir):
             os.makedirs(self.m_txlockdir)
+
+        self.m_tx_lockfile = None
 
         return
 
@@ -568,7 +574,8 @@ class MyFrame(wx.Frame):
         return
 
     def onButtonTransmit(self,event):
-        if self.m_tx_button.GetValue() and self.get_tx_lock():
+            
+        if self.m_tx_safety_button.GetValue() and self.m_tx_button.GetValue() and self.get_tx_lock():
             self.m_tx_rx.SetValue(True)
             if len(sys.argv) > 1:
                 # check frequency before enabling PA
@@ -580,6 +587,9 @@ class MyFrame(wx.Frame):
             self.m_stay_muted=True
             self.m_tx_timer.Start(1000*60*60)
         else:
+            if not self.m_tx_safety_button.GetValue():
+                print "Tx safety catch on"
+
             self.free_tx_lock()
             time.sleep(0.3)
             self.m_tx_timer.Stop()
@@ -722,6 +732,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_audio_pa_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_ext_alarm_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_disable_audio_button, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_tx_safety_button, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
 
