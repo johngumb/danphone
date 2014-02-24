@@ -2,7 +2,7 @@
 #
 # OpenPMR - tools to make old PMR radios useful.
 #
-# Copyright (C) 2013  John Gumb, G4RDC
+# Copyright (C) 2013,2014  John Gumb, G4RDC
 #
 # This file is part of OpenPMR.
 
@@ -574,8 +574,13 @@ class MyFrame(wx.Frame):
         return
 
     def onButtonTransmit(self,event):
-            
-        if self.m_tx_safety_button.GetValue() and self.m_tx_button.GetValue() and self.get_tx_lock():
+
+        if not self.m_tx_safety_button.GetValue():
+            print "Tx safety catch on"
+            self.m_tx_button.SetValue(False)
+            return
+
+        if self.m_tx_button.GetValue() and self.get_tx_lock():
             self.m_tx_rx.SetValue(True)
             if len(sys.argv) > 1:
                 # check frequency before enabling PA
@@ -587,9 +592,6 @@ class MyFrame(wx.Frame):
             self.m_stay_muted=True
             self.m_tx_timer.Start(1000*60*60)
         else:
-            if not self.m_tx_safety_button.GetValue():
-                print "Tx safety catch on"
-
             self.free_tx_lock()
             time.sleep(0.3)
             self.m_tx_timer.Stop()
