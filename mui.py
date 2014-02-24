@@ -123,6 +123,27 @@ class TxTimer(wx.Timer):
 
         return
 
+class TxSafetyTimer(wx.Timer):
+    def __init__(self,target):
+        wx.Timer.__init__(self)
+        self.target = target
+        return
+    
+    def Notify(self):
+
+        if self.target.m_tx_safety_button.GetValue():
+            self.target.m_tx_safety_button.SetValue(False)
+
+        self.target.m_tx_button.SetValue(False)
+
+        self.target.onButtonTransmitAction(None)
+
+        self.Stop()
+
+        wx.WakeUpIdle()
+
+        return
+
 class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
         wx.Timer.__init__(self)
@@ -401,6 +422,7 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_EXT_ALARM,self.onButtonExtAlarm)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_AUDIO_DISABLE,self.onButtonAudioDisable)
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_SAFETY,self.onButtonTxSafety)
 
         # watch freq step here
 
@@ -433,6 +455,8 @@ class MyFrame(wx.Frame):
         self.m_cur_squelch_refresh = self.m_squelch_refresh
 
         self.m_tx_timer=TxTimer(self)
+
+        self.m_tx_safety_timer=TxSafetyTimer(self)
 
         self.m_tx = False
 
@@ -573,13 +597,16 @@ class MyFrame(wx.Frame):
 
         return
 
-    def onButtonTransmit(self,event):
-
-        if not self.m_tx_safety_button.GetValue():
-            print "Tx safety catch on"
+    def onButtonTxSafety(self,event):
+        if self.m_tx_safety_button.GetValue():
+            # lock stays off for 30 minutes
+            self.m_tx_safety_timer.Start(30*60*1000)
+        else:
+            self.m_tx_safety_timer.Stop()
             self.m_tx_button.SetValue(False)
-            return
+            self.onButtonTransmitAction(event)
 
+    def onButtonTransmitAction(self,event):
         if self.m_tx_button.GetValue() and self.get_tx_lock():
             self.m_tx_rx.SetValue(True)
             if len(sys.argv) > 1:
@@ -604,6 +631,17 @@ class MyFrame(wx.Frame):
 
         self.onButtonTx(event)
         self.onButtonPA(event)
+
+        return
+
+    def onButtonTransmit(self,event):
+
+        if not self.m_tx_safety_button.GetValue():
+            print "Tx safety catch on"
+            self.m_tx_button.SetValue(False)
+            return
+
+        self.onButtonTransmitAction(event)
 
         return
 
