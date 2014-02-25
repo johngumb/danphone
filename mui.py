@@ -134,10 +134,6 @@ class TxSafetyTimer(wx.Timer):
         if self.target.m_tx_safety_button.GetValue():
             self.target.m_tx_safety_button.SetValue(False)
 
-        self.target.m_tx_button.SetValue(False)
-
-        self.target.onButtonTransmitAction(None)
-
         self.Stop()
 
         wx.WakeUpIdle()
@@ -617,7 +613,7 @@ class MyFrame(wx.Frame):
             mute(self.m_audioserver)
             sdrmute()
             self.m_stay_muted=True
-            self.m_tx_timer.Start(1000*60*10)
+            self.m_tx_timer.Start(1000*60*7)
         else:
             self.free_tx_lock()
             time.sleep(0.3)
