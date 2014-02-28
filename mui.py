@@ -595,8 +595,8 @@ class MyFrame(wx.Frame):
 
     def onButtonTxSafety(self,event):
         if self.m_tx_safety_button.GetValue():
-            # lock stays off for 30 minutes
-            self.m_tx_safety_timer.Start(30*60*1000)
+            # lock stays off for 8 minutes
+            self.m_tx_safety_timer.Start(8*60*1000)
         else:
             self.m_tx_safety_timer.Stop()
             self.m_tx_button.SetValue(False)
