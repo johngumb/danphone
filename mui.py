@@ -68,12 +68,12 @@ def sixmetres():
     return len(sys.argv) > 1 and sys.argv[1]=="-6"
 
 def sdrmute():
-    pass
-#    os.system("/home/john/sdr off")
+    return
+    os.system("/home/john/sdr off")
 
 def sdrunmute():
-    pass
-#    os.system("/home/john/sdr on")
+    return
+    os.system("/home/john/sdr on")
 
 # TODO fix initial mute state
 # TODO radio might start with signal present.
@@ -463,6 +463,9 @@ class MyFrame(wx.Frame):
 
         self.m_tx_lockfile = None
 
+        # lock stays off for 8 minutes
+        self.m_tx_safety_timeout=8*60*1000
+
         return
 
     def get_tx_lock(self):
@@ -595,8 +598,7 @@ class MyFrame(wx.Frame):
 
     def onButtonTxSafety(self,event):
         if self.m_tx_safety_button.GetValue():
-            # lock stays off for 8 minutes
-            self.m_tx_safety_timer.Start(8*60*1000)
+            self.m_tx_safety_timer.Start(self.m_tx_safety_timeout)
         else:
             self.m_tx_safety_timer.Stop()
             self.m_tx_button.SetValue(False)
@@ -636,6 +638,9 @@ class MyFrame(wx.Frame):
             print "Tx safety catch on"
             self.m_tx_button.SetValue(False)
             return
+
+        self.m_tx_safety_timer.Stop()
+        self.m_tx_safety_timer.Start(self.m_tx_safety_timeout)
 
         self.onButtonTransmitAction(event)
 
