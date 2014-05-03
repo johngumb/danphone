@@ -301,7 +301,7 @@ class MyFrame(wx.Frame):
 
         self.m_min_freq=35.9E6
 
-        self.m_max_freq=77E6
+        self.m_max_freq=450E6
 
         # linear attatched to Aux button
         #self.m_aux_linear=True

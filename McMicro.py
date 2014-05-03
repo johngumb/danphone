@@ -287,7 +287,10 @@ class McMicro:
 
     def set_rx_freq(self,freq):
 
-        self.m_rx_freq = freq + 21.4E6
+        if freq < 100.0E6:
+            self.m_rx_freq = freq + 21.4E6
+        else:
+            self.m_rx_freq = freq - 21.4E6
 
         # FIXME
         self.tune(self.m_rx_freq)
