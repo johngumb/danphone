@@ -8,7 +8,7 @@
 
 # OpenPMR is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
+# the Free Software Foundation, either version 3 of the icense, or
 # (at your option) any later version.
 
 # OpenPMR is distributed in the hope that it will be useful,
@@ -92,6 +92,34 @@ def unmute(audioserver):
         os.system("jack_connect %s:from_slave_2 system:playback_2" % audioserver)
         MUTED = False
     return
+
+class ScanTimer(wx.Timer):
+    def __init__(self,target):
+        wx.Timer.__init__(self)
+        self.target = target
+        self.m_idx=0
+        return
+
+    def Notify(self):
+        wx.WakeUpIdle()
+
+        freqs = (70.45, 70.2)
+        
+        if os.path.exists("/tmp/scan"):
+            self.m_idx +=1
+            if self.m_idx==len(freqs):
+                self.m_idx=0
+            freq = freqs[self.m_idx]
+
+            self.target.m_spin_ctrl_2.SetValue(freq)
+
+            freqm = freq*1.0E6
+            self.target.m_rig.set_rx_freq(freqm)
+            self.target.m_rig.set_tx_freq(freqm)
+
+            self.Start(3000)
+
+        return
 
 class TxTimer(wx.Timer):
     def __init__(self,target):
@@ -461,6 +489,9 @@ class MyFrame(wx.Frame):
         if not os.path.exists(self.m_txlockdir):
             os.makedirs(self.m_txlockdir)
 
+        self.m_scan_timer=ScanTimer(self)
+        self.m_scan_timer.Start(3000)
+        
         self.m_tx_lockfile = None
 
         # lock stays off for 8 minutes
