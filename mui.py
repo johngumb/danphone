@@ -489,8 +489,9 @@ class MyFrame(wx.Frame):
         if not os.path.exists(self.m_txlockdir):
             os.makedirs(self.m_txlockdir)
 
-        self.m_scan_timer=ScanTimer(self)
-        self.m_scan_timer.Start(3000)
+        if not sixmetres():
+            self.m_scan_timer=ScanTimer(self)
+            self.m_scan_timer.Start(3000)
         
         self.m_tx_lockfile = None
 
