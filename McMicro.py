@@ -302,6 +302,8 @@ class McMicro:
         if tone:
             #
             # 74LS393 divides by 128
+            # wiring: GND: 2, 12, 7
+            #         connected: 6-13
             #
             byteval=int(round(24.5E6/12)/(tone*128))
         else:
