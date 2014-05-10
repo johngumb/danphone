@@ -105,7 +105,7 @@ class ScanTimer(wx.Timer):
 
         freqs = (70.45, 70.2)
         
-        if os.path.exists("/tmp/scan"):
+        if os.path.exists("/tmp/scan") and not self.target.m_rig.squelch_open():
             self.m_idx +=1
             if self.m_idx==len(freqs):
                 self.m_idx=0
