@@ -120,7 +120,7 @@ class ScanTimer(wx.Timer):
             self.target.m_rig.set_rx_freq(freqm)
             self.target.m_rig.set_tx_freq(freqm)
 
-            self.Start(3000)
+            self.Start(self.m_target.m_scan_period)
 
         return
 
@@ -492,8 +492,9 @@ class MyFrame(wx.Frame):
         if not os.path.exists(self.m_txlockdir):
             os.makedirs(self.m_txlockdir)
 
+        self.m_scan_period=5000
         self.m_scan_timer=ScanTimer(self)
-        self.m_scan_timer.Start(5000)
+        self.m_scan_timer.Start(self.m_scan_period)
         
         self.m_tx_lockfile = None
 
