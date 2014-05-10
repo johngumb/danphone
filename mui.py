@@ -103,7 +103,10 @@ class ScanTimer(wx.Timer):
     def Notify(self):
         wx.WakeUpIdle()
 
-        freqs = (70.45, 70.2)
+        if sixmetres():
+            freqs = (51.51, 51.7)
+        else:
+            freqs = (70.45, 70.2)
         
         if os.path.exists("/tmp/scan") and not self.target.m_rig.squelch_open():
             self.m_idx +=1
@@ -489,9 +492,8 @@ class MyFrame(wx.Frame):
         if not os.path.exists(self.m_txlockdir):
             os.makedirs(self.m_txlockdir)
 
-        if not sixmetres():
-            self.m_scan_timer=ScanTimer(self)
-            self.m_scan_timer.Start(3000)
+        self.m_scan_timer=ScanTimer(self)
+        self.m_scan_timer.Start(5000)
         
         self.m_tx_lockfile = None
 
