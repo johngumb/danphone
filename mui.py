@@ -67,6 +67,9 @@ g_rig = None
 def sixmetres():
     return len(sys.argv) > 1 and sys.argv[1]=="-6"
 
+def twometres():
+    return len(sys.argv) > 1 and sys.argv[1]=="-2"
+
 def sdrmute():
     return
     os.system("/home/john/sdr off")
@@ -105,6 +108,8 @@ class ScanTimer(wx.Timer):
 
         if sixmetres():
             freqs = (51.51, 51.7)
+        elif twometres():
+            freqs = (145.5, 145.675)
         else:
             freqs = (70.45, 70.2)
         
@@ -340,6 +345,9 @@ class MyFrame(wx.Frame):
         if sixmetres():
             self.m_devid=("cli",("skate",2217))
             self.m_audioserver="skate"
+        elif twometres():
+            self.m_devid=("cli",("rudd",2217))
+            self.m_audioserver="rudd"
         else:
             self.m_devid=("ft232r","MCVEC40K")
             self.m_audioserver="dab"
@@ -377,6 +385,8 @@ class MyFrame(wx.Frame):
             f.SetDigits(self.m_digits)
             if sixmetres():
                 self.m_freq=50.840E6
+            elif twometres():
+                self.m_freq=145.5E6
             else:
                 self.m_freq=70.45E6
             f.SetDefaultValue( self.m_freq /1E6)
