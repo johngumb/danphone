@@ -187,7 +187,7 @@ class StatusLEDtimer(wx.Timer):
         if self.m_counts_initialised:
             return
 
-        if self.target.m_devid=="cli":
+        if self.target.m_devid[0]=="cli":
 
             self.m_squelch_sample = False
 
@@ -223,7 +223,7 @@ class StatusLEDtimer(wx.Timer):
         # during this time the LEDs will not update
         # power state will not be updated 
         #
-        if self.target.m_tx and not self.target.m_devid=="cli":
+        if self.target.m_tx and not self.target.m_devid[0]=="cli":
 
             #
             # HACK not sure what wx.WakeUpIdle does
@@ -338,10 +338,10 @@ class MyFrame(wx.Frame):
         #self.m_aux_linear=True
 
         if sixmetres():
-            self.m_devid="cli"
+            self.m_devid=("cli",("skate",2217))
             self.m_audioserver="skate"
         else:
-            self.m_devid="MCVEC40K"
+            self.m_devid=("ft232r","MCVEC40K")
             self.m_audioserver="dab"
 
         g_audioserver=self.m_audioserver

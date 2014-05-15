@@ -27,11 +27,11 @@ class SerialCLI:
         return
 
 class TelnetCLI:
-    def __init__(self, mcmicro):
+    def __init__(self, mcmicro, server_transport_addr):
 
 #        self.m_tn = telnetlib.Telnet("skate",2217)
 
-        self.m_serial = serial.serial_for_url("rfc2217://skate:2217",115200)
+        self.m_serial = serial.serial_for_url("rfc2217://%s:%d" % server_transport_addr, 115200)
 
         self.m_mcmicro = mcmicro
 

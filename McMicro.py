@@ -222,8 +222,10 @@ class McMicro:
 
     def initialise(self, device_id):
 
-        if device_id == "cli":
-            self.m_hwif = Cli.TelnetCLI(self)
+        (devtype, devaddr) = device_id
+
+        if devtype == "cli":
+            self.m_hwif = Cli.TelnetCLI(self, devaddr)
 
             self.m_latch_serial_writer = SerialStreamWriter.SerialStreamWriterCLI(self.m_hwif,"C")
 
@@ -237,7 +239,7 @@ class McMicro:
 
         else:
 
-            self.m_hwif=ft232r.ft232r(device_id = device_id)
+            self.m_hwif=ft232r.ft232r(device_id = devaddr)
 
             outputs=self.m_hwif.D0|self.m_hwif.D1|self.m_hwif.D2|self.m_hwif.D4
 
