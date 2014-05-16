@@ -101,33 +101,38 @@ class ScanTimer(wx.Timer):
         wx.Timer.__init__(self)
         self.target = target
         self.m_idx=0
+
+        if sixmetres():
+            self.m_freqs = (51.51, 51.7)
+        elif twometres():
+            freqs = [145.5]
+            f = 145.6
+            while f < 145.79:
+                freqs.append(f)
+                f += 0.0125
+            self.m_freqs = freqs
+        else:
+            self.m_freqs = (70.45, 70.2)
+
         return
 
     def Notify(self):
         wx.WakeUpIdle()
 
-        if sixmetres():
-            freqs = (51.51, 51.7)
-        elif twometres():
-            freqs = [145.5]
-            f = 145.6
-            while f < 145.8:
-                freqs.append(f)
-                f += 0.0125
-        else:
-            freqs = (70.45, 70.2)
-
         if os.path.exists("/tmp/scan") and not self.target.m_rig.squelch_open():
-            self.m_idx +=1
-            if self.m_idx==len(freqs):
+
+            if self.m_idx==len(self.m_freqs):
                 self.m_idx=0
-            freq = freqs[self.m_idx]
+
+            freq = self.m_freqs[self.m_idx]
 
             self.target.m_spin_ctrl_2.SetValue(freq)
 
             freqm = freq*1.0E6
             self.target.m_rig.set_rx_freq(freqm)
             self.target.m_rig.set_tx_freq(freqm)
+
+            self.m_idx +=1
 
             self.Start(self.target.m_scan_period)
 
