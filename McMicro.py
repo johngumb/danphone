@@ -85,6 +85,8 @@ class McMicro:
 
         self.m_inhibit_audio_pa = False
 
+        self.m_ctcss_fudge = 1.0
+
         return
 
     def __del__(self):
@@ -95,6 +97,9 @@ class McMicro:
         self.setpower(False)
 
         return
+
+    def set_ctcss_fudge(self, val):
+        self.m_ctcss_fudge = val
 
     def setpower(self, val):
         if val:
@@ -124,8 +129,10 @@ class McMicro:
             self.set_ctcss(82.5)
         elif self.m_tx_freq==51.27E6: # GB3DB
             self.set_ctcss(110.9)
-        elif self.m_tx_freq==145.675E6:
+        elif self.m_tx_freq in [145.075E6, 145.1625E6]: # RD, NE
             self.set_ctcss(118.8)
+        elif self.m_tx_freq==145.1375E6: # AL
+            self.set_ctcss(77)
         else:
             self.set_ctcss(0)
 
@@ -309,7 +316,9 @@ class McMicro:
             # wiring: GND: 2, 12, 7
             #         connected: 6-13
             #
-            byteval=int(round(24.5E6/12)/(tone*128))
+            fudge = self.m_ctcss_fudge
+
+            byteval=int(round(24.5E6/(12*fudge))/(tone*128))
         else:
             #
             # CTCSS off

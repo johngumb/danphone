@@ -347,6 +347,7 @@ class MyFrame(wx.Frame):
             self.m_audioserver="skate"
         elif twometres():
             self.m_devid=("cli",("rudd",2217))
+            self.m_rig.set_ctcss_fudge(0.9812)
             self.m_audioserver="rudd"
         else:
             self.m_devid=("ft232r","MCVEC40K")
@@ -386,7 +387,7 @@ class MyFrame(wx.Frame):
             if sixmetres():
                 self.m_freq=50.840E6
             elif twometres():
-                self.m_freq=145.5E6
+                self.m_freq=145.675E6
             else:
                 self.m_freq=70.45E6
             f.SetDefaultValue( self.m_freq /1E6)
