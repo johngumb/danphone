@@ -109,10 +109,14 @@ class ScanTimer(wx.Timer):
         if sixmetres():
             freqs = (51.51, 51.7)
         elif twometres():
-            freqs = (145.5, 145.675)
+            freqs = [145.5]
+            f = 145.6
+            while f < 145.8:
+                freqs.append(f)
+                f += 0.0125
         else:
             freqs = (70.45, 70.2)
-        
+
         if os.path.exists("/tmp/scan") and not self.target.m_rig.squelch_open():
             self.m_idx +=1
             if self.m_idx==len(freqs):
@@ -125,7 +129,7 @@ class ScanTimer(wx.Timer):
             self.target.m_rig.set_rx_freq(freqm)
             self.target.m_rig.set_tx_freq(freqm)
 
-            self.Start(self.m_target.m_scan_period)
+            self.Start(self.target.m_scan_period)
 
         return
 
