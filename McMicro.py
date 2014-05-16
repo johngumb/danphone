@@ -124,6 +124,8 @@ class McMicro:
             self.set_ctcss(82.5)
         elif self.m_tx_freq==51.27E6: # GB3DB
             self.set_ctcss(110.9)
+        elif self.m_tx_freq==145.675E6:
+            self.set_ctcss(118.8)
         else:
             self.set_ctcss(0)
 
@@ -325,6 +327,8 @@ class McMicro:
 
         if (freq >= 50.72E6) and (freq <= 50.88E6):
             tx_offset = 5E5
+        elif (freq >= 145.6E6) and (freq <= 145.8E6):
+            tx_offset = -6E5
         else:
             tx_offset = 0
 
