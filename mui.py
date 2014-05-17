@@ -107,10 +107,13 @@ class ScanTimer(wx.Timer):
         elif twometres():
             freqs = [145.5]
             f = 145.6
+            i = 0
             while f < 145.79:
-                freqs.append(f)
-                freqs.append(145.5)
+                if i != 3: # avoid 146.6375 DMR
+                    freqs.append(f)
+                    freqs.append(145.5)
                 f += 0.0125
+                i += 1
             self.m_freqs = freqs
         else:
             self.m_freqs = (70.45, 70.2)
