@@ -109,6 +109,7 @@ class ScanTimer(wx.Timer):
             f = 145.6
             while f < 145.79:
                 freqs.append(f)
+                freqs.append(145.5)
                 f += 0.0125
             self.m_freqs = freqs
         else:
