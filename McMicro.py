@@ -133,7 +133,7 @@ class McMicro:
             self.set_ctcss(118.8)
         elif self.m_tx_freq in [145.125E6]: # SN
             self.set_ctcss(71.9)
-        elif self.m_tx_freq==145.1375E6: # AL
+        elif self.m_tx_freq in [145.1375E6, 145.1875E6]: # AL,BF
             self.set_ctcss(77)
         else:
             self.set_ctcss(0)
