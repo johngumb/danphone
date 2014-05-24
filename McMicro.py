@@ -129,7 +129,7 @@ class McMicro:
             self.set_ctcss(82.5)
         elif self.m_tx_freq==51.27E6: # GB3DB
             self.set_ctcss(110.9)
-        elif self.m_tx_freq in [145.075E6, 145.1625E6, 145.050E6]: # RD, NE, WH
+        elif self.m_tx_freq in [145.075E6, 145.1625E6, 145.050E6, 145.1E6]: # RD, NE, WH, VA
             self.set_ctcss(118.8)
         elif self.m_tx_freq in [145.125E6]: # SN
             self.set_ctcss(71.9)
