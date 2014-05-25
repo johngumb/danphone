@@ -207,7 +207,7 @@ class StatusLEDtimer(wx.Timer):
 
         if self.target.m_devid[0]=="cli":
 
-            self.m_squelch_sample = False
+            self.m_squelch_sample = True
 
             #
             # consider init counts function
