@@ -1,0 +1,8 @@
+#!/bin/bash
+
+machines="$(cat machines)"
+
+for mc in ${machines}; do
+        echo "audiogo ${mc}...."
+	ssh root@${mc} "bash /home/jag/audiogo $1"
+done
