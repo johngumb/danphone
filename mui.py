@@ -70,6 +70,9 @@ def sixmetres():
 def twometres():
     return len(sys.argv) > 1 and sys.argv[1]=="-2"
 
+def fourmetres():
+    return len(sys.argv) > 1 and sys.argv[1]=="-4"
+
 def sdrmute():
     return
     os.system("/home/john/sdr off")
@@ -295,7 +298,7 @@ class StatusLEDtimer(wx.Timer):
                     self.target.m_rig.disable_audio_pa()
         else:
             lastopen = True
-            samples_to_check = 3
+            samples_to_check = 2
             for i in range(samples_to_check):
                 if self.target.m_sopen_last_time.has_key(i):
                     lastopen  = lastopen and self.target.m_sopen_last_time[i]
@@ -362,6 +365,9 @@ class MyFrame(wx.Frame):
             self.m_devid=("cli",("rudd",2217))
             self.m_rig.set_ctcss_fudge(0.9812)
             self.m_audioserver="rudd"
+        elif fourmetres():
+            self.m_devid=("cli",("dab",2217))
+            self.m_audioserver="dab"
         else:
             self.m_devid=("ft232r","MCVEC40K")
             self.m_audioserver="dab"
