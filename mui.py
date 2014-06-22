@@ -685,12 +685,14 @@ class MyFrame(wx.Frame):
             self.free_tx_lock()
             time.sleep(0.3)
             self.m_tx_timer.Stop()
+
+            self.m_tx_rx.SetValue(False)
+            self.m_button_pa.SetValue(False)
+
             if not self.m_monitor_button.GetValue():
                 self.m_stay_muted=False
                 unmute(self.m_audioserver)
             sdrunmute()
-            self.m_tx_rx.SetValue(False)
-            self.m_button_pa.SetValue(False)
 
         self.onButtonTx(event)
         self.onButtonPA(event)
