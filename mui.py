@@ -75,11 +75,13 @@ def fourmetres():
 
 def sdrmute():
     return
-    os.system("/home/john/sdr off")
+    if fourmetres():
+        os.system("/home/john/sdr off")
 
 def sdrunmute():
     return
-    os.system("/home/john/sdr on")
+    if fourmetres():
+        os.system("/home/john/sdr on")
 
 # TODO fix initial mute state
 # TODO radio might start with signal present.
@@ -106,7 +108,7 @@ class ScanTimer(wx.Timer):
         self.m_idx=0
 
         if sixmetres():
-            self.m_freqs = (51.51, 51.7)
+            self.m_freqs = (51.51, 50.84, 51.51, 50.81)
         elif twometres():
             freqs = [145.5]
             f = 145.6
