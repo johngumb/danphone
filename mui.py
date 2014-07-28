@@ -289,7 +289,8 @@ class StatusLEDtimer(wx.Timer):
                     if not self.target.m_stay_muted:
                         unmute(self.target.m_audioserver)
 
-                    self.target.m_rig.enable_audio_pa()
+                    if self.m_use_audio_pa:
+                        self.target.m_rig.enable_audio_pa()
             else:
                 self.target.m_squelch_led.SetState(0)
 
@@ -314,7 +315,8 @@ class StatusLEDtimer(wx.Timer):
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
                         unmute(self.target.m_audioserver)
-                        self.target.m_rig.enable_audio_pa()
+                        if self.m_use_audio_pa:
+                            self.target.m_rig.enable_audio_pa()
 
             if (not sopen) and lastclosed:
                 self.target.m_squelch_led.SetState(0)
@@ -532,6 +534,8 @@ class MyFrame(wx.Frame):
 
         # lock stays off for 8 minutes
         self.m_tx_safety_timeout=8*60*1000
+
+        self.m_use_audio_pa = False
 
         return
 
