@@ -83,6 +83,16 @@ def sdrunmute():
     if fourmetres():
         os.system("/home/john/sdr on")
 
+def mic_connect():
+    # connect mic from laptop to audio server
+    os.system("jack_connect system:capture_1 %s:to_slave_1" % g_audioserver)
+    return
+
+def mic_disconnect():
+    # disconnect mic from laptop to audio server
+    os.system("jack_disconnect system:capture_1 %s:to_slave_1" % g_audioserver)
+    return
+
 # TODO fix initial mute state
 # TODO radio might start with signal present.
 def mute(audioserver):
@@ -377,7 +387,13 @@ class MyFrame(wx.Frame):
             self.m_audioserver="dab"
 
         g_audioserver=self.m_audioserver
+
         self.m_rig.initialise(device_id=self.m_devid)
+
+        # connect mic from laptop to audio server
+        # Do this after rig.initialise as that hangs on first run with
+        # serial controlled rigs.
+        mic_connect()
 
         self.m_spin_ctrl_1 = FS.FloatSpin(self, ID_SPIN_1)
         
@@ -884,11 +900,13 @@ if __name__=="__main__":
         app = MyApp(clearSigInt=True)
         app.MainLoop()
         g_rig.m_request_thread_exit=True
-        mute(g_audioserver)        
+        mute(g_audioserver)
+        mic_disconnect()
 
     except KeyboardInterrupt:
         g_rig.m_request_thread_exit=True
         mute(g_audioserver)
+        mic_disconnect()
 
         sys.exit(1)
 
