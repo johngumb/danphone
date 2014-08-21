@@ -67,6 +67,16 @@ def unmute():
         MUTED = False
     return
 
+def mic_connect():
+    # connect mic from laptop to audio server
+    os.system("jack_connect system:capture_1 cobbler:to_slave_1")
+    return
+
+def mic_disconnect():
+    # disconnect mic from laptop to audio server
+    os.system("jack_disconnect system:capture_1 cobbler:to_slave_1")
+    return
+
 class OnOffTimer(wx.Timer):
     def __init__(self,target,dur=500):
         wx.Timer.__init__(self)
@@ -560,11 +570,14 @@ class MyApp(wx.App):
 if __name__=="__main__":
     try:
         os.system("lsmod | grep -q ftdi_sio && while ! rmmod ftdi_sio; do sleep 1; done")
+        mic_connect()
         app = MyApp(clearSigInt=True)
         app.MainLoop()
+        mic_disconnect()
         mute()        
 
     except KeyboardInterrupt:
         mute()
+        mic_disconnect()
         sys.exit(1)
 
