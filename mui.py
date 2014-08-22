@@ -554,7 +554,14 @@ class MyFrame(wx.Frame):
         return
 
     def use_audio_pa(self):
-        return not os.path.exists("/tmp/silent")
+        result = False
+
+        if not os.path.exists("/tmp/silent"):
+            hour = int(time.strftime("%H"))
+
+            result = (hour > 7) and (hour < 23)
+        
+        return result
 
     def get_tx_lock(self):
         self.m_tx_lockfile = None
