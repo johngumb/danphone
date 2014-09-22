@@ -129,12 +129,20 @@ class McMicro:
             self.set_ctcss(82.5)
         elif self.m_tx_freq==51.27E6: # GB3DB
             self.set_ctcss(110.9)
+        elif self.m_tx_freq in [145.025E6]: # MH
+            self.set_ctcss(88.5)
         elif self.m_tx_freq in [145.075E6, 145.1625E6, 145.050E6, 145.1E6]: # RD, NE, WH, VA
             self.set_ctcss(118.8)
+#            self.set_ctcss(110.9)
         elif self.m_tx_freq in [145.125E6]: # SN
             self.set_ctcss(71.9)
         elif self.m_tx_freq in [145.1375E6, 145.1875E6]: # AL,BF
+#        elif self.m_tx_freq in [145.1375E6]: # AL
             self.set_ctcss(77)
+#        elif self.m_tx_freq in [145.1875E6]: # JB
+#            self.set_ctcss(103.5)
+        elif self.m_tx_freq in [145.0E6]: # 
+            self.set_ctcss(94.8)
         else:
             self.set_ctcss(0)
 
@@ -300,6 +308,8 @@ class McMicro:
 
     def set_rx_freq(self,freq):
 
+        self.m_requested_rx_freq = freq
+
         if freq < 100.0E6:
             self.m_rx_freq = freq + 21.4E6
         else:
@@ -309,6 +319,10 @@ class McMicro:
         self.tune(self.m_rx_freq)
 
         return
+
+    def get_rx_freq(self):
+
+        return self.m_requested_rx_freq
 
     def set_ctcss(self, tone):
 

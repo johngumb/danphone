@@ -63,6 +63,18 @@ MUTED = False
 
 g_audioserver=""
 g_rig = None
+g_lastf = None
+
+def writefreq(rig):
+    global g_lastf
+    curfreq = rig.m_rig.get_rx_freq()
+
+    if g_lastf != rig.m_rig.get_rx_freq():
+        with open("/tmp/lastf","a+") as flog:
+            print >> flog, "%3.4F" % (curfreq/1E6)
+            flog.close()
+        g_lastf = curfreq
+    return
 
 def sixmetres():
     return len(sys.argv) > 1 and sys.argv[1]=="-6"
@@ -118,7 +130,19 @@ class ScanTimer(wx.Timer):
         self.m_idx=0
 
         if sixmetres():
-            self.m_freqs = (51.51, 50.84, 51.51, 50.81)
+#            self.m_freqs = (51.51, 50.84, 51.51, 50.81,50.80,)
+            freqs = [50.53]
+            f = 50.75
+            i = 0
+            while f < 50.87:
+                if i != 4:
+                    freqs.append(f)
+                if i % 3 == 0:
+                    freqs.append(51.51)
+                f += 0.01
+                i += 1
+
+            self.m_freqs = freqs
         elif twometres():
             freqs = [145.5]
             f = 145.6
@@ -298,6 +322,7 @@ class StatusLEDtimer(wx.Timer):
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
                         unmute(self.target.m_audioserver)
+                        writefreq(self.target)
 
                     if self.target.use_audio_pa():
                         self.target.m_rig.enable_audio_pa()
@@ -325,6 +350,7 @@ class StatusLEDtimer(wx.Timer):
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
                         unmute(self.target.m_audioserver)
+                        writefreq(self.target)
                         if self.target.use_audio_pa():
                             self.target.m_rig.enable_audio_pa()
 
@@ -660,7 +686,8 @@ class MyFrame(wx.Frame):
 
     def onButtonAudioPA(self,event):
         if self.m_audio_pa_button.GetValue():
-            self.m_rig.enable_audio_pa()
+            if self.use_audio_pa():
+                self.m_rig.enable_audio_pa()
         else:
             self.m_rig.disable_audio_pa()
 
