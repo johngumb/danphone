@@ -71,7 +71,7 @@ def writefreq(rig):
 
     if g_lastf != rig.m_rig.get_rx_freq():
         with open("/tmp/lastf","a+") as flog:
-            print >> flog, "%3.4F" % (curfreq/1E6)
+            print >> flog, "%s %3.4F" % (time.ctime(),(curfreq/1E6))
             flog.close()
         g_lastf = curfreq
     return
