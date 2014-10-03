@@ -63,17 +63,16 @@ MUTED = False
 
 g_audioserver=""
 g_rig = None
-g_lastf = None
 
 def writefreq(rig):
-    global g_lastf
+    global MUTED
+
     curfreq = rig.m_rig.get_rx_freq()
 
-    if g_lastf != rig.m_rig.get_rx_freq():
+    if MUTED:
         with open("/tmp/lastf","a+") as flog:
             print >> flog, "%s %3.4F" % (time.ctime(),(curfreq/1E6))
             flog.close()
-        g_lastf = curfreq
     return
 
 def sixmetres():
@@ -321,8 +320,8 @@ class StatusLEDtimer(wx.Timer):
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
-                        unmute(self.target.m_audioserver)
                         writefreq(self.target)
+                        unmute(self.target.m_audioserver)
 
                     if self.target.use_audio_pa():
                         self.target.m_rig.enable_audio_pa()
@@ -349,8 +348,9 @@ class StatusLEDtimer(wx.Timer):
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
-                        unmute(self.target.m_audioserver)
                         writefreq(self.target)
+                        unmute(self.target.m_audioserver)
+
                         if self.target.use_audio_pa():
                             self.target.m_rig.enable_audio_pa()
 
