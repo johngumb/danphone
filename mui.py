@@ -86,12 +86,12 @@ def fourmetres():
 
 def sdrmute():
     return
-    if fourmetres():
+    if not (twometres() or sixmetres()):
         os.system("/home/john/sdr off")
 
 def sdrunmute():
     return
-    if fourmetres():
+    if not (twometres() or sixmetres()):
         os.system("/home/john/sdr on")
 
 def mic_connect():
