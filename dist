@@ -1,4 +1,5 @@
 unoconv --listener &
+sleep 2
 
 RELEASE="OpenPMR-0.0.1"
 rm -f ${RELEASE}.tgz
