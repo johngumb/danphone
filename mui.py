@@ -2,13 +2,13 @@
 #
 # OpenPMR - tools to make old PMR radios useful.
 #
-# Copyright (C) 2013  John Gumb, G4RDC
+# Copyright (C) 2013,2014  John Gumb, G4RDC
 #
 # This file is part of OpenPMR.
 
 # OpenPMR is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
+# the Free Software Foundation, either version 3 of the icense, or
 # (at your option) any later version.
 
 # OpenPMR is distributed in the hope that it will be useful,
@@ -25,8 +25,11 @@
 
 # spinctrl.py
 
+
+import sys
 import os
 import time
+import tempfile
 
 import wx
 import ledthing
@@ -34,7 +37,7 @@ import ledthing
 import wx.lib.agw.floatspin as FS
 
 import McMicro
-import sys
+
 
 ID_SPIN_1=wx.NewId()
 ID_SPIN_2=wx.NewId()
@@ -54,11 +57,52 @@ ID_BUTTON_ON_OFF=wx.NewId()
 ID_BUTTON_AUDIO_PA=wx.NewId()
 ID_BUTTON_EXT_ALARM=wx.NewId()
 ID_BUTTON_AUDIO_DISABLE=wx.NewId()
+ID_BUTTON_TX_SAFETY=wx.NewId()
 
 MUTED = False
 
 g_audioserver=""
 g_rig = None
+
+def writefreq(rig):
+    global MUTED
+
+    curfreq = rig.m_rig.get_rx_freq()
+
+    if MUTED:
+        with open("/tmp/lastf","a+") as flog:
+            print >> flog, "%s %3.4F" % (time.ctime(),(curfreq/1E6))
+            flog.close()
+    return
+
+def sixmetres():
+    return len(sys.argv) > 1 and sys.argv[1]=="-6"
+
+def twometres():
+    return len(sys.argv) > 1 and sys.argv[1]=="-2"
+
+def fourmetres():
+    return len(sys.argv) > 1 and sys.argv[1]=="-4"
+
+def sdrmute():
+    return
+    if not (twometres() or sixmetres()):
+        os.system("/home/john/sdr off")
+
+def sdrunmute():
+    return
+    if not (twometres() or sixmetres()):
+        os.system("/home/john/sdr on")
+
+def mic_connect():
+    # connect mic from laptop to audio server
+    os.system("jack_connect system:capture_1 %s:to_slave_1" % g_audioserver)
+    return
+
+def mic_disconnect():
+    # disconnect mic from laptop to audio server
+    os.system("jack_disconnect system:capture_1 %s:to_slave_1" % g_audioserver)
+    return
 
 # TODO fix initial mute state
 # TODO radio might start with signal present.
@@ -78,17 +122,106 @@ def unmute(audioserver):
         MUTED = False
     return
 
+class ScanTimer(wx.Timer):
+    def __init__(self,target):
+        wx.Timer.__init__(self)
+        self.target = target
+        self.m_idx=0
+
+        if sixmetres():
+#            self.m_freqs = (51.51, 50.84, 51.51, 50.81,50.80,)
+            freqs = [50.53]
+            f = 50.75
+            i = 0
+            while f < 50.87:
+                if i != 4:
+                    freqs.append(f)
+                if i % 3 == 0:
+                    freqs.append(51.51)
+                f += 0.01
+                i += 1
+
+            self.m_freqs = freqs
+        elif twometres():
+            freqs = [145.5]
+            f = 145.6
+            i = 0
+            while f < 145.79:
+                if i != 3: # avoid 146.6375 DMR
+                    freqs.append(f)
+                    freqs.append(145.5)
+                f += 0.0125
+                i += 1
+            self.m_freqs = freqs
+        else:
+            self.m_freqs = (70.45, 70.2)
+
+        return
+
+    def Notify(self):
+        wx.WakeUpIdle()
+
+        if os.path.exists("/tmp/scan") and not self.target.m_rig.squelch_open():
+
+            if self.m_idx==len(self.m_freqs):
+                self.m_idx=0
+
+            freq = self.m_freqs[self.m_idx]
+
+            self.target.m_spin_ctrl_2.SetValue(freq)
+
+            freqm = freq*1.0E6
+            self.target.m_rig.set_rx_freq(freqm)
+            self.target.m_rig.set_tx_freq(freqm)
+
+            self.m_idx +=1
+
+            self.Start(self.target.m_scan_period)
+
+        return
+
 class TxTimer(wx.Timer):
+    def __init__(self,target):
+        wx.Timer.__init__(self)
+        self.target = target
+        self.m_tx_timeout_count = 0
+        self.m_tx_timeout_threshold = 12
+        return
+    
+    def Notify(self):
+
+        if self.target.m_tx_button.GetValue():
+            #
+            # longer timeout in QRP mode
+            #
+            print "tx timeout",
+            if self.m_button_tx_power_level.GetValue():
+                print
+                self.m_tx_timeout_count = self.m_tx_timeout_threshold
+            else:
+                print ", low power"
+                self.m_tx_timeout_count +=1
+
+            if self.m_tx_timeout_count == self.m_tx_timeout_threshold:
+                self.target.m_tx_button.SetValue(False)
+                self.target.onButtonTransmit(None)
+
+        wx.WakeUpIdle()
+
+        return
+
+class TxSafetyTimer(wx.Timer):
     def __init__(self,target):
         wx.Timer.__init__(self)
         self.target = target
         return
     
     def Notify(self):
-        if self.target.m_tx_button.GetValue():
-            print "tx timeout"
-            self.target.m_tx_button.SetValue(False)
-            self.target.onButtonTransmit(None)
+
+        if self.target.m_tx_safety_button.GetValue():
+            self.target.m_tx_safety_button.SetValue(False)
+
+        self.Stop()
 
         wx.WakeUpIdle()
 
@@ -110,9 +243,9 @@ class StatusLEDtimer(wx.Timer):
         if self.m_counts_initialised:
             return
 
-        if self.target.m_devid=="cli":
+        if self.target.m_devid[0]=="cli":
 
-            self.m_squelch_sample = False
+            self.m_squelch_sample = True
 
             #
             # consider init counts function
@@ -146,7 +279,7 @@ class StatusLEDtimer(wx.Timer):
         # during this time the LEDs will not update
         # power state will not be updated 
         #
-        if self.target.m_tx and not self.target.m_devid=="cli":
+        if self.target.m_tx and not self.target.m_devid[0]=="cli":
 
             #
             # HACK not sure what wx.WakeUpIdle does
@@ -187,16 +320,22 @@ class StatusLEDtimer(wx.Timer):
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
+                        writefreq(self.target)
                         unmute(self.target.m_audioserver)
+
+                    if self.target.use_audio_pa():
                         self.target.m_rig.enable_audio_pa()
             else:
                 self.target.m_squelch_led.SetState(0)
+
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
+
+                if not self.target.m_audio_pa_button.GetValue():
                     self.target.m_rig.disable_audio_pa()
         else:
             lastopen = True
-            samples_to_check = 3
+            samples_to_check = 2
             for i in range(samples_to_check):
                 if self.target.m_sopen_last_time.has_key(i):
                     lastopen  = lastopen and self.target.m_sopen_last_time[i]
@@ -209,13 +348,17 @@ class StatusLEDtimer(wx.Timer):
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
                     if not self.target.m_stay_muted:
+                        writefreq(self.target)
                         unmute(self.target.m_audioserver)
-                        self.target.m_rig.enable_audio_pa()
+
+                        if self.target.use_audio_pa():
+                            self.target.m_rig.enable_audio_pa()
 
             if (not sopen) and lastclosed:
                 self.target.m_squelch_led.SetState(0)
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
+                if not self.target.m_audio_pa_button.GetValue():
                     self.target.m_rig.disable_audio_pa()
 
 #        self.target.m_sopen_last_time[3] = self.target.m_sopen_last_time[2]
@@ -250,19 +393,33 @@ class MyFrame(wx.Frame):
 
         self.m_min_freq=35.9E6
 
-        self.m_max_freq=77E6
+        self.m_max_freq=450E6
 
-        sixmetres=False
-        if len(sys.argv) > 1 and sys.argv[1]=="-6":
-            self.m_devid="cli"
-            sixmetres=True
+        # linear attatched to Aux button
+        #self.m_aux_linear=True
+
+        if sixmetres():
+            self.m_devid=("cli",("skate",2217))
             self.m_audioserver="skate"
-        else:
-            self.m_devid="MCVEC40K"
+        elif twometres():
+            self.m_devid=("cli",("rudd",2217))
+            self.m_rig.set_ctcss_fudge(0.9812)
+            self.m_audioserver="rudd"
+        elif fourmetres():
+            self.m_devid=("cli",("dab",2217))
             self.m_audioserver="dab"
-        
+        else:
+            self.m_devid=("ft232r","MCVEC40K")
+            self.m_audioserver="dab"
+
         g_audioserver=self.m_audioserver
+
         self.m_rig.initialise(device_id=self.m_devid)
+
+        # connect mic from laptop to audio server
+        # Do this after rig.initialise as that hangs on first run with
+        # serial controlled rigs.
+        mic_connect()
 
         self.m_spin_ctrl_1 = FS.FloatSpin(self, ID_SPIN_1)
         
@@ -274,7 +431,7 @@ class MyFrame(wx.Frame):
 
         steps=["Auto","4","5","6.25","8","10","12.5"]
 
-        if sixmetres:
+        if sixmetres():
             self.m_step_selected = "10"
         else:
             self.m_step_selected = "12.5"
@@ -292,8 +449,10 @@ class MyFrame(wx.Frame):
         for f in [self.m_spin_ctrl_1, self.m_spin_ctrl_2]:
             f.SetFormat("%F")
             f.SetDigits(self.m_digits)
-            if sixmetres:
+            if sixmetres():
                 self.m_freq=50.840E6
+            elif twometres():
+                self.m_freq=145.675E6
             else:
                 self.m_freq=70.45E6
             f.SetDefaultValue( self.m_freq /1E6)
@@ -336,7 +495,10 @@ class MyFrame(wx.Frame):
         self.m_audio_pa_button = wx.ToggleButton(self, ID_BUTTON_AUDIO_PA, "SPKR")
 
         self.m_ext_alarm_button = wx.ToggleButton(self, ID_BUTTON_EXT_ALARM, "AUX")
+
         self.m_disable_audio_button = wx.ToggleButton(self, ID_BUTTON_AUDIO_DISABLE, "AUDIO")
+
+        self.m_tx_safety_button = wx.ToggleButton(self, ID_BUTTON_TX_SAFETY, "TxSafety")
 
         self.status_led_timer=StatusLEDtimer(self,400)
 
@@ -363,6 +525,7 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_EXT_ALARM,self.onButtonExtAlarm)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_AUDIO_DISABLE,self.onButtonAudioDisable)
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_SAFETY,self.onButtonTxSafety)
 
         # watch freq step here
 
@@ -396,7 +559,52 @@ class MyFrame(wx.Frame):
 
         self.m_tx_timer=TxTimer(self)
 
+        self.m_tx_safety_timer=TxSafetyTimer(self)
+
         self.m_tx = False
+
+        self.m_txlockdir="/var/run/mui/txlock"
+
+        if not os.path.exists(self.m_txlockdir):
+            os.makedirs(self.m_txlockdir)
+
+        self.m_scan_period=5000
+        self.m_scan_timer=ScanTimer(self)
+        self.m_scan_timer.Start(self.m_scan_period)
+        
+        self.m_tx_lockfile = None
+
+        # lock stays off for 16 minutes
+        self.m_tx_safety_timeout=16*60*1000
+
+        return
+
+    def use_audio_pa(self):
+        result = False
+
+        if not os.path.exists("/tmp/silent"):
+            hour = int(time.strftime("%H"))
+
+            result = (hour > 7) and (hour < 23)
+        
+        return result
+
+    def get_tx_lock(self):
+        self.m_tx_lockfile = None
+
+        if len(os.listdir(self.m_txlockdir)) > 0:
+            return False
+
+        (_, self.m_tx_lockfile) = tempfile.mkstemp(dir=self.m_txlockdir)
+
+        return True
+
+    def free_tx_lock(self):
+
+        if self.m_tx_lockfile and os.path.exists(self.m_tx_lockfile):
+            os.unlink(self.m_tx_lockfile)
+
+        self.m_tx_lockfile = None
 
         return
 
@@ -428,6 +636,9 @@ class MyFrame(wx.Frame):
 
     def onButtonTxPowerLevel(self,event):
         if self.m_button_tx_power_level.GetValue():
+            #if self.m_aux_linear:
+            #    self.m_ext_alarm_button.SetValue(False)
+            #    self.onButtonExtAlarm(event)  
             self.m_rig.set_tx_power_high()
         else:
             self.m_rig.set_tx_power_low()
@@ -475,7 +686,8 @@ class MyFrame(wx.Frame):
 
     def onButtonAudioPA(self,event):
         if self.m_audio_pa_button.GetValue():
-            self.m_rig.enable_audio_pa()
+            if self.use_audio_pa():
+                self.m_rig.enable_audio_pa()
         else:
             self.m_rig.disable_audio_pa()
 
@@ -483,6 +695,9 @@ class MyFrame(wx.Frame):
 
     def onButtonExtAlarm(self,event):
         if self.m_ext_alarm_button.GetValue():
+            #if self.m_aux_linear:
+            #    self.m_button_tx_power_level.SetValue(False)
+            #    self.onButtonTxPowerLevel(event)
             self.m_rig.enable_ext_alarm()
         else:
             self.m_rig.disable_ext_alarm()
@@ -503,8 +718,16 @@ class MyFrame(wx.Frame):
 
         return
 
-    def onButtonTransmit(self,event):
-        if self.m_tx_button.GetValue():
+    def onButtonTxSafety(self,event):
+        if self.m_tx_safety_button.GetValue():
+            self.m_tx_safety_timer.Start(self.m_tx_safety_timeout)
+        else:
+            self.m_tx_safety_timer.Stop()
+            self.m_tx_button.SetValue(False)
+            self.onButtonTransmitAction(event)
+
+    def onButtonTransmitAction(self,event):
+        if self.m_tx_button.GetValue() and self.get_tx_lock():
             self.m_tx_rx.SetValue(True)
             if len(sys.argv) > 1:
                 # check frequency before enabling PA
@@ -512,18 +735,38 @@ class MyFrame(wx.Frame):
                 if sys.argv[-1]=="p":
                     self.m_button_pa.SetValue(True)
             mute(self.m_audioserver)
+            sdrmute()
             self.m_stay_muted=True
-            self.m_tx_timer.Start(1000*60*5)
+            self.m_tx_timer.Start(1000*60*7)
         else:
+            self.free_tx_lock()
             time.sleep(0.3)
             self.m_tx_timer.Stop()
-            unmute(self.m_audioserver)
-            self.m_stay_muted=False
+
             self.m_tx_rx.SetValue(False)
             self.m_button_pa.SetValue(False)
 
+            if not self.m_monitor_button.GetValue():
+                self.m_stay_muted=False
+                unmute(self.m_audioserver)
+            sdrunmute()
+
         self.onButtonTx(event)
         self.onButtonPA(event)
+
+        return
+
+    def onButtonTransmit(self,event):
+
+        if not self.m_tx_safety_button.GetValue():
+            print "Tx safety catch on"
+            self.m_tx_button.SetValue(False)
+            return
+
+        self.m_tx_safety_timer.Stop()
+        self.m_tx_safety_timer.Start(self.m_tx_safety_timeout)
+
+        self.onButtonTransmitAction(event)
 
         return
 
@@ -531,11 +774,15 @@ class MyFrame(wx.Frame):
         if self.m_mute_button.GetValue():
             mute(self.m_audioserver)
             self.m_stay_muted=True
-            self.m_rig.disable_audio_pa()
+
+            # for now allow rig speaker to continue monitoring
+            #self.m_rig.disable_audio_pa()
         else:
             unmute(self.m_audioserver)
             self.m_stay_muted=False
-            self.m_rig.enable_audio_pa()
+
+            # for now allow rig speaker to continue monitoring
+            #self.m_rig.enable_audio_pa()
 
         return
 
@@ -650,6 +897,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_audio_pa_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_ext_alarm_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_disable_audio_button, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_tx_safety_button, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
 
@@ -686,11 +934,13 @@ if __name__=="__main__":
         app = MyApp(clearSigInt=True)
         app.MainLoop()
         g_rig.m_request_thread_exit=True
-        mute(g_audioserver)        
+        mute(g_audioserver)
+        mic_disconnect()
 
     except KeyboardInterrupt:
         g_rig.m_request_thread_exit=True
         mute(g_audioserver)
+        mic_disconnect()
 
         sys.exit(1)
 

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+sh /home/john/sys x
+
+machines="$(cat machines)"
+
+for mc in ${machines}; do
+        echo "powering off ${mc}...."
+	ssh root@${mc} "poweroff &"
+done

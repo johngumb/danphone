@@ -85,6 +85,8 @@ class McMicro:
 
         self.m_inhibit_audio_pa = False
 
+        self.m_ctcss_fudge = 1.0
+
         return
 
     def __del__(self):
@@ -95,6 +97,9 @@ class McMicro:
         self.setpower(False)
 
         return
+
+    def set_ctcss_fudge(self, val):
+        self.m_ctcss_fudge = val
 
     def setpower(self, val):
         if val:
@@ -120,10 +125,27 @@ class McMicro:
 
         if self.m_tx_freq in [51.34E6, 51.35E6, 51.3E6]: # GB3AM, GB3CT, GB3ZY
             self.set_ctcss(77)
-        elif self.m_tx_freq==51.31E6: # GB3FX
+        elif self.m_tx_freq in [51.31E6, 50.52E6]: # GB3FX, GB3WX
             self.set_ctcss(82.5)
         elif self.m_tx_freq==51.27E6: # GB3DB
             self.set_ctcss(110.9)
+        elif self.m_tx_freq in [145.025E6]: # MH
+            self.set_ctcss(88.5)
+        elif self.m_tx_freq in [145.075E6, 145.1625E6, 145.050E6, 145.1E6]: # RD, NE, WH, VA
+            self.set_ctcss(118.8)
+#            self.set_ctcss(110.9)
+        elif self.m_tx_freq in [145.125E6]: # SN
+#            self.set_ctcss(71.9)
+            self.set_ctcss(110.9)           #DA
+        elif self.m_tx_freq in [145.1375E6, 145.1875E6]: # AL,BF
+#        elif self.m_tx_freq in [145.1375E6]: # AL
+            self.set_ctcss(77)
+#        elif self.m_tx_freq in [145.1875E6]: # JB
+#            self.set_ctcss(103.5)
+        elif self.m_tx_freq in [145.0E6]: # 
+            self.set_ctcss(94.8)
+        elif self.m_tx_freq in [145.175E6]: # GB3FR
+            self.set_ctcss(71.9)
         else:
             self.set_ctcss(0)
 
@@ -222,8 +244,10 @@ class McMicro:
 
     def initialise(self, device_id):
 
-        if device_id == "cli":
-            self.m_hwif = Cli.TelnetCLI(self)
+        (devtype, devaddr) = device_id
+
+        if devtype == "cli":
+            self.m_hwif = Cli.TelnetCLI(self, devaddr)
 
             self.m_latch_serial_writer = SerialStreamWriter.SerialStreamWriterCLI(self.m_hwif,"C")
 
@@ -237,7 +261,7 @@ class McMicro:
 
         else:
 
-            self.m_hwif=ft232r.ft232r(device_id = device_id)
+            self.m_hwif=ft232r.ft232r(device_id = devaddr)
 
             outputs=self.m_hwif.D0|self.m_hwif.D1|self.m_hwif.D2|self.m_hwif.D4
 
@@ -287,20 +311,33 @@ class McMicro:
 
     def set_rx_freq(self,freq):
 
-        self.m_rx_freq = freq + 21.4E6
+        self.m_requested_rx_freq = freq
+
+        if freq < 100.0E6:
+            self.m_rx_freq = freq + 21.4E6
+        else:
+            self.m_rx_freq = freq - 21.4E6
 
         # FIXME
         self.tune(self.m_rx_freq)
 
         return
 
+    def get_rx_freq(self):
+
+        return self.m_requested_rx_freq
+
     def set_ctcss(self, tone):
 
         if tone:
             #
             # 74LS393 divides by 128
+            # wiring: GND: 2, 12, 7
+            #         connected: 6-13
             #
-            byteval=int(round(24.5E6/12)/(tone*128))
+            fudge = self.m_ctcss_fudge
+
+            byteval=int(round(24.5E6/(12*fudge))/(tone*128))
         else:
             #
             # CTCSS off
@@ -318,6 +355,8 @@ class McMicro:
 
         if (freq >= 50.72E6) and (freq <= 50.88E6):
             tx_offset = 5E5
+        elif (freq >= 145.6E6) and (freq <= 145.8E6):
+            tx_offset = -6E5
         else:
             tx_offset = 0
 
