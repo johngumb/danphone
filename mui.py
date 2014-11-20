@@ -70,7 +70,7 @@ def writefreq(rig):
     curfreq = rig.m_rig.get_rx_freq()
 
     if MUTED:
-        with open("/tmp/lastf","a+") as flog:
+        with open(os.path.expanduser("~/lastf"),"a+") as flog:
             print >> flog, "%s %3.4F" % (time.ctime(),(curfreq/1E6))
             flog.close()
     return
