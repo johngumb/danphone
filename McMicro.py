@@ -124,7 +124,9 @@ class McMicro:
         self.tune(self.m_tx_freq)
 
         if self.m_tx_freq in [51.34E6, 51.35E6, 51.3E6]: # GB3AM, GB3CT, GB3ZY
-            self.set_ctcss(77)
+            self.set_ctcss(77.0)
+        elif self.m_tx_freq in [51.23E6]: # GB3XD
+            self.set_ctcss(71.9)
         elif self.m_tx_freq in [51.31E6, 50.52E6]: # GB3FX, GB3WX
             self.set_ctcss(82.5)
         elif self.m_tx_freq==51.27E6: # GB3DB
@@ -135,15 +137,15 @@ class McMicro:
             self.set_ctcss(118.8)
 #            self.set_ctcss(110.9)
         elif self.m_tx_freq in [145.125E6]: # SN
-#            self.set_ctcss(71.9)
-            self.set_ctcss(110.9)           #DA
+            self.set_ctcss(71.9)
+#            self.set_ctcss(110.9)           #DA
         elif self.m_tx_freq in [145.1375E6, 145.1875E6]: # AL,BF
 #        elif self.m_tx_freq in [145.1375E6]: # AL
             self.set_ctcss(77)
 #        elif self.m_tx_freq in [145.1875E6]: # JB
 #            self.set_ctcss(103.5)
         elif self.m_tx_freq in [145.0E6]: # 
-            self.set_ctcss(94.8)
+            self.set_ctcss(88.5)
         elif self.m_tx_freq in [145.175E6]: # GB3FR
             self.set_ctcss(71.9)
         else:
