@@ -129,19 +129,21 @@ class ScanTimer(wx.Timer):
         self.m_idx=0
 
         if sixmetres():
-#            self.m_freqs = (51.51, 50.84, 51.51, 50.81,50.80,)
-            freqs = [50.53]
-            f = 50.75
-            i = 0
-            while f < 50.87:
-                if i != 4:
-                    freqs.append(f)
-                if i % 3 == 0:
-                    freqs.append(51.51)
-                f += 0.01
-                i += 1
+            self.m_freqs = (51.51, 50.84, 51.51, 50.81,)
+            if False:
+                freqs = [50.53]
+                f = 50.75
+                i = 0
+                while f < 50.87:
+                    if i != 4:
+                        freqs.append(f)
+                    if i % 3 == 0:
+                        freqs.append(51.51)
+                    f += 0.01
+                    i += 1
 
-            self.m_freqs = freqs
+                self.m_freqs = freqs
+
         elif twometres():
             freqs = [145.5]
             f = 145.6
@@ -585,7 +587,7 @@ class MyFrame(wx.Frame):
         if not os.path.exists("/tmp/silent"):
             hour = int(time.strftime("%H"))
 
-            result = (hour > 7) and (hour < 23)
+            result = (hour > 7) and (hour < 22)
         
         return result
 
