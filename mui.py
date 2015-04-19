@@ -163,7 +163,7 @@ class ScanTimer(wx.Timer):
     def Notify(self):
         wx.WakeUpIdle()
 
-        if os.path.exists("/tmp/scan") and not self.target.m_rig.squelch_open():
+        if os.path.exists("/tmp/scan") and not self.target.m_rig.squelch_open() and (sixmetres() or twometres()):
 
             if self.m_idx==len(self.m_freqs):
                 self.m_idx=0
@@ -401,8 +401,9 @@ class MyFrame(wx.Frame):
         #self.m_aux_linear=True
 
         if sixmetres():
-            self.m_devid=("cli",("skate",2217))
-            self.m_audioserver="skate"
+            self.m_devid=("cli",("tang",2217))
+            self.m_rig.set_ctcss_fudge(0.988)
+            self.m_audioserver="tang"
         elif twometres():
             self.m_devid=("cli",("rudd",2217))
             self.m_rig.set_ctcss_fudge(0.9812)
