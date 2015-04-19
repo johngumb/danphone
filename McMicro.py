@@ -18,14 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenPMR.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+import time
+import threading
+
 import ft232r
 import ShiftReg
 import MC145158
 import SerialStreamWriter
 import Cli
-import threading
-
-import time
 
 class StatusMonitor(threading.Thread):
 
@@ -123,11 +124,11 @@ class McMicro:
 
         self.tune(self.m_tx_freq)
 
-        if self.m_tx_freq in [51.34E6, 51.35E6, 51.3E6]: # GB3AM, GB3CT, GB3ZY
+        if self.m_tx_freq in [51.34E6, 51.35E6, 51.3E6, 50.52E6]: # GB3AM, GB3CT, GB3ZY, GB3WX
             self.set_ctcss(77.0)
         elif self.m_tx_freq in [51.23E6]: # GB3XD
             self.set_ctcss(71.9)
-        elif self.m_tx_freq in [51.31E6, 50.52E6]: # GB3FX, GB3WX
+        elif self.m_tx_freq in [51.31E6]: # GB3FX
             self.set_ctcss(82.5)
         elif self.m_tx_freq==51.27E6: # GB3DB
             self.set_ctcss(110.9)
@@ -136,6 +137,8 @@ class McMicro:
         elif self.m_tx_freq in [145.075E6, 145.1625E6, 145.050E6, 145.1E6]: # RD, NE, WH, VA
             self.set_ctcss(118.8)
 #            self.set_ctcss(110.9)
+        elif self.m_tx_freq in [145.1125E6]: # KY
+            self.set_ctcss(94.8)
         elif self.m_tx_freq in [145.125E6]: # SN
             self.set_ctcss(71.9)
 #            self.set_ctcss(110.9)           #DA
@@ -143,9 +146,11 @@ class McMicro:
 #        elif self.m_tx_freq in [145.1375E6]: # AL
             self.set_ctcss(77)
 #        elif self.m_tx_freq in [145.1875E6]: # JB
-#            self.set_ctcss(103.5)
+            self.set_ctcss(103.5)
         elif self.m_tx_freq in [145.0E6]: # 
-            self.set_ctcss(88.5)
+#            self.set_ctcss(88.5)
+            self.set_ctcss(94.8) # WR
+            self.set_ctcss(77.0) # CF
         elif self.m_tx_freq in [145.175E6]: # GB3FR
             self.set_ctcss(71.9)
         else:
@@ -194,8 +199,11 @@ class McMicro:
 
         return
 
+    def inhibit_audio_pa(self):
+        return os.path.exists("/tmp/inhibit_audio_pa") or self.m_inhibit_audio_pa
+
     def enable_audio_pa(self):
-        if not self.m_inhibit_audio_pa:
+        if not self.inhibit_audio_pa():
             self.m_shiftreg.setbit(self.SR_AUDIO_PA)
 
             self.m_shiftreg.latch()
