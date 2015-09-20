@@ -321,7 +321,7 @@ class StatusLEDtimer(wx.Timer):
             if sopen:
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
-                    if not self.target.m_stay_muted:
+                    if not (self.target.m_stay_muted or self.target.m_transmitting):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
 
@@ -337,7 +337,12 @@ class StatusLEDtimer(wx.Timer):
                     self.target.m_rig.disable_audio_pa()
         else:
             lastopen = True
-            samples_to_check = 2
+
+            if twometres():
+                samples_to_check = 2
+            else:
+                samples_to_check = 2
+
             for i in range(samples_to_check):
                 if self.target.m_sopen_last_time.has_key(i):
                     lastopen  = lastopen and self.target.m_sopen_last_time[i]
@@ -349,7 +354,7 @@ class StatusLEDtimer(wx.Timer):
             if sopen and lastopen:
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
-                    if not self.target.m_stay_muted:
+                    if not (self.target.m_stay_muted or self.target.m_transmitting):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
 
@@ -507,6 +512,8 @@ class MyFrame(wx.Frame):
 
         #self.__set_properties()
 
+        self.m_tx = False
+
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_RX,self.onButtonTx)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_PA,self.onButtonPA)
@@ -556,6 +563,8 @@ class MyFrame(wx.Frame):
 
         self.m_stay_muted = False
 
+        self.m_transmitting = False
+
         self.m_squelch_refresh = 500
 
         self.m_cur_squelch_refresh = self.m_squelch_refresh
@@ -563,8 +572,6 @@ class MyFrame(wx.Frame):
         self.m_tx_timer=TxTimer(self)
 
         self.m_tx_safety_timer=TxSafetyTimer(self)
-
-        self.m_tx = False
 
         self.m_txlockdir="/var/run/mui/txlock"
 
@@ -588,7 +595,7 @@ class MyFrame(wx.Frame):
         if not os.path.exists("/tmp/silent"):
             hour = int(time.strftime("%H"))
 
-            result = (hour > 7) and (hour < 22)
+            result = (hour > 7) and (hour < 23)
         
         return result
 
@@ -697,6 +704,16 @@ class MyFrame(wx.Frame):
         return
 
     def onButtonExtAlarm(self,event):
+
+        #
+        # remove drive to linear while
+        # we switch it on to save the
+        # changeover relay
+        #
+        if self.m_tx:
+            self.m_rig.disable_tx()
+            time.sleep(0.1)
+
         if self.m_ext_alarm_button.GetValue():
             #if self.m_aux_linear:
             #    self.m_button_tx_power_level.SetValue(False)
@@ -704,6 +721,10 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_ext_alarm()
         else:
             self.m_rig.disable_ext_alarm()
+
+        if self.m_tx:
+            time.sleep(0.1)
+            self.m_rig.enable_tx()
 
         return
 
@@ -739,7 +760,7 @@ class MyFrame(wx.Frame):
                     self.m_button_pa.SetValue(True)
             mute(self.m_audioserver)
             sdrmute()
-            self.m_stay_muted=True
+            self.m_transmitting = True
             self.m_tx_timer.Start(1000*60*7)
         else:
             self.free_tx_lock()
@@ -749,9 +770,10 @@ class MyFrame(wx.Frame):
             self.m_tx_rx.SetValue(False)
             self.m_button_pa.SetValue(False)
 
+            self.m_transmitting = False
             if not self.m_monitor_button.GetValue():
-                self.m_stay_muted=False
-                unmute(self.m_audioserver)
+                if not self.m_stay_muted:
+                    unmute(self.m_audioserver)
             sdrunmute()
 
         self.onButtonTx(event)
