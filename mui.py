@@ -513,6 +513,7 @@ class MyFrame(wx.Frame):
         #self.__set_properties()
 
         self.m_tx = False
+        self.m_tx_pa = False
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_RX,self.onButtonTx)
 
@@ -639,8 +640,10 @@ class MyFrame(wx.Frame):
     def onButtonPA(self,event):
         if self.m_button_pa.GetValue():
             self.m_rig.enable_pa()
+            self.m_tx_pa = True
         else:
             self.m_rig.disable_pa()
+            self.m_tx_pa = False
 
         return
 
@@ -704,14 +707,18 @@ class MyFrame(wx.Frame):
         return
 
     def onButtonExtAlarm(self,event):
-
         #
-        # remove drive to linear while
-        # we switch it on to save the
-        # changeover relay
+        # Remove drive to linear while
+        # we switch it on or off to save the
+        # linear in/out changeover relay.
         #
+        if self.m_tx_pa:
+            self.m_rig.disable_pa()
+            
         if self.m_tx:
             self.m_rig.disable_tx()
+
+        if self.m_tx_pa or self.m_tx:
             time.sleep(0.1)
 
         if self.m_ext_alarm_button.GetValue():
@@ -722,9 +729,14 @@ class MyFrame(wx.Frame):
         else:
             self.m_rig.disable_ext_alarm()
 
-        if self.m_tx:
+        if self.m_tx_pa or self.m_tx:
             time.sleep(0.1)
+
+        if self.m_tx:
             self.m_rig.enable_tx()
+
+        if self.m_tx_pa:
+            self.m_rig.enable_pa()
 
         return
 
