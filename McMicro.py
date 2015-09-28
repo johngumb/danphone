@@ -114,6 +114,7 @@ class McMicro:
 
         return
 
+#        elif self.m_tx_freq in [145.1375E6]: # AL
     def enable_tx(self):
         if self.m_tx_freq in [50.05E6, 50.016E6]:
             return
@@ -126,7 +127,7 @@ class McMicro:
 
         if self.m_tx_freq in [51.34E6, 51.35E6, 51.3E6, 50.52E6]: # GB3AM, GB3CT, GB3ZY, GB3WX
             self.set_ctcss(77.0)
-        elif self.m_tx_freq in [51.23E6]: # GB3XD
+        elif self.m_tx_freq in [51.32E6]: # GB3XD
             self.set_ctcss(71.9)
         elif self.m_tx_freq in [51.31E6]: # GB3FX
             self.set_ctcss(82.5)
@@ -137,20 +138,26 @@ class McMicro:
         elif self.m_tx_freq in [145.075E6, 145.1625E6, 145.050E6, 145.1E6]: # RD, NE, WH, VA
             self.set_ctcss(118.8)
 #            self.set_ctcss(110.9)
+        elif self.m_tx_freq in [145.0875E6]: # EA
+            #self.set_ctcss(110.9)
+            #self.set_ctcss(71.9)
+            self.set_ctcss(82.5)
         elif self.m_tx_freq in [145.1125E6]: # KY
             self.set_ctcss(94.8)
         elif self.m_tx_freq in [145.125E6]: # SN
             self.set_ctcss(71.9)
 #            self.set_ctcss(110.9)           #DA
-        elif self.m_tx_freq in [145.1375E6, 145.1875E6]: # AL,BF
-#        elif self.m_tx_freq in [145.1375E6]: # AL
-            self.set_ctcss(77)
-#        elif self.m_tx_freq in [145.1875E6]: # JB
+        elif self.m_tx_freq in [145.1375E6]: # AL
+            self.set_ctcss(77.0)
+        elif self.m_tx_freq in [145.1875E6]: # JB, BF
+#            self.set_ctcss(77.0)
             self.set_ctcss(103.5)
         elif self.m_tx_freq in [145.0E6]: # 
 #            self.set_ctcss(88.5)
             self.set_ctcss(94.8) # WR
-            self.set_ctcss(77.0) # CF
+#            self.set_ctcss(77.0) # CF
+        elif self.m_tx_freq in [145.150E6]: # GB3WS
+            self.set_ctcss(88.5)
         elif self.m_tx_freq in [145.175E6]: # GB3FR
             self.set_ctcss(71.9)
         else:
