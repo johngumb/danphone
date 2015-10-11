@@ -206,7 +206,6 @@ class TxTimer(wx.Timer):
 
             if self.m_tx_timeout_count == self.m_tx_timeout_threshold:
                 self.target.m_tx_button.SetValue(False)
-                self.target.onButtonTransmit(None)
 
         wx.WakeUpIdle()
 
@@ -795,7 +794,10 @@ class MyFrame(wx.Frame):
 
     def onButtonTransmit(self,event):
 
-        if not self.m_tx_safety_button.GetValue():
+        #
+        # unconditionally allow de-key
+        #
+        if not self.m_tx_safety_button.GetValue() and self.m_tx_button.GetValue():
             print "Tx safety catch on"
             self.m_tx_button.SetValue(False)
             return
