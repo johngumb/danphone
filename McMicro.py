@@ -139,11 +139,12 @@ class McMicro:
             self.set_ctcss(118.8)
 #            self.set_ctcss(110.9)
         elif self.m_tx_freq in [145.0875E6]: # EA
-            #self.set_ctcss(110.9)
+            self.set_ctcss(110.9)
             #self.set_ctcss(71.9)
-            self.set_ctcss(82.5)
-        elif self.m_tx_freq in [145.1125E6]: # KY
+            #self.set_ctcss(82.5)
+        elif self.m_tx_freq in [145.1125E6]: # KY, LA
             self.set_ctcss(94.8)
+#            self.set_ctcss(103.5)
         elif self.m_tx_freq in [145.125E6]: # SN
             self.set_ctcss(71.9)
 #            self.set_ctcss(110.9)           #DA
@@ -154,8 +155,8 @@ class McMicro:
             self.set_ctcss(103.5)
         elif self.m_tx_freq in [145.0E6]: # 
 #            self.set_ctcss(88.5)
-            self.set_ctcss(94.8) # WR
-#            self.set_ctcss(77.0) # CF
+#            self.set_ctcss(94.8) # WR
+            self.set_ctcss(77.0) # CF
         elif self.m_tx_freq in [145.150E6]: # GB3WS
             self.set_ctcss(88.5)
         elif self.m_tx_freq in [145.175E6]: # GB3FR
