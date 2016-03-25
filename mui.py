@@ -2,7 +2,7 @@
 #
 # OpenPMR - tools to make old PMR radios useful.
 #
-# Copyright (C) 2013,2014  John Gumb, G4RDC
+# Copyright (C) 2013-2016  John Gumb, G4RDC
 #
 # This file is part of OpenPMR.
 
@@ -28,6 +28,7 @@
 
 import sys
 import os
+import subprocess
 import time
 import tempfile
 
@@ -37,7 +38,6 @@ import ledthing
 import wx.lib.agw.floatspin as FS
 
 import McMicro
-
 
 ID_SPIN_1=wx.NewId()
 ID_SPIN_2=wx.NewId()
@@ -63,6 +63,8 @@ MUTED = False
 
 g_audioserver=""
 g_rig = None
+
+g_recordvec={}
 
 def writefreq(rig):
     global MUTED
@@ -93,6 +95,25 @@ def sdrunmute():
     return
     if not (twometres() or sixmetres()):
         os.system("/home/john/sdr on")
+
+def start_record(audioserver):
+    global g_recordvec
+    if not g_recordvec.has_key(audioserver):
+        p = subprocess.Popen(['jack_capture','-s','--port',audioserver+":from_slave_2","/home/john/recordings/"+audioserver+".wav"])
+        g_recordvec[audioserver]=p
+
+def stop_record(audioserver):
+    global g_recordvec
+    if g_recordvec.has_key(audioserver):
+        p = g_recordvec[audioserver]
+
+        del g_recordvec[audioserver]
+        
+        p.terminate()
+
+        status = p.communicate()
+
+        retcode = p.wait()
 
 def mic_connect():
     # connect mic from laptop to audio server
@@ -323,6 +344,7 @@ class StatusLEDtimer(wx.Timer):
                     if not (self.target.m_stay_muted or self.target.m_transmitting):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
+                        start_record(self.target.m_audioserver)
 
                     if self.target.use_audio_pa():
                         self.target.m_rig.enable_audio_pa()
@@ -332,6 +354,7 @@ class StatusLEDtimer(wx.Timer):
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
 
+                stop_record(self.target.m_audioserver)
                 if not self.target.m_audio_pa_button.GetValue():
                     self.target.m_rig.disable_audio_pa()
         else:
@@ -356,12 +379,14 @@ class StatusLEDtimer(wx.Timer):
                     if not (self.target.m_stay_muted or self.target.m_transmitting):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
+                        start_record(self.target.m_audioserver)
 
                         if self.target.use_audio_pa():
                             self.target.m_rig.enable_audio_pa()
 
             if (not sopen) and lastclosed:
                 self.target.m_squelch_led.SetState(0)
+                stop_record(self.target.m_audioserver)
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
                 if not self.target.m_audio_pa_button.GetValue():
@@ -598,6 +623,7 @@ class MyFrame(wx.Frame):
             result = (hour > 7) and (hour < 23)
         
         return result
+        #return True
 
     def get_tx_lock(self):
         self.m_tx_lockfile = None
@@ -959,6 +985,13 @@ class MyFrame(wx.Frame):
         sizer_1.SetSizeHints(self)
         self.Layout()
 
+def closedown():
+        g_rig.m_request_thread_exit=True
+        mute(g_audioserver)
+        mic_disconnect()
+        for audioserver in g_recordvec.keys():
+            stop_record(audioserver)
+
 class MyApp(wx.App):
     def OnInit(self):
 
@@ -972,14 +1005,9 @@ if __name__=="__main__":
         os.system("lsmod | grep -q ftdi_sio && while ! rmmod ftdi_sio; do sleep 1; done")
         app = MyApp(clearSigInt=True)
         app.MainLoop()
-        g_rig.m_request_thread_exit=True
-        mute(g_audioserver)
-        mic_disconnect()
+        closedown()
 
     except KeyboardInterrupt:
-        g_rig.m_request_thread_exit=True
-        mute(g_audioserver)
-        mic_disconnect()
-
+        closedown()
         sys.exit(1)
 
