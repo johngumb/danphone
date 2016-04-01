@@ -99,8 +99,9 @@ def sdrunmute():
 def start_record(audioserver):
     global g_recordvec
     recdir = "/home/john/recordings"
-    if not g_recordvec.has_key(audioserver) and os.path.exists(recdir):
-        p = subprocess.Popen(['jack_capture','-s','--port',audioserver+":from_slave_2",os.path.join(recdir,audioserver+".wav")])
+    inhibit = os.path.exists("/tmp/inhibit-recordings")
+    if not g_recordvec.has_key(audioserver) and os.path.exists(recdir) and not inhibit:
+        p = subprocess.Popen(['jack_capture','-as','--port',audioserver+":from_slave_2",os.path.join(recdir,audioserver+".wav")])
         g_recordvec[audioserver]=p
 
 def stop_record(audioserver):
