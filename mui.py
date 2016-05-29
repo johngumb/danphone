@@ -65,6 +65,7 @@ g_audioserver=""
 g_rig = None
 
 g_recordvec={}
+g_recdir = "/home/john/recordings"
 
 def writefreq(rig):
     global MUTED
@@ -98,14 +99,17 @@ def sdrunmute():
 
 def start_record(audioserver):
     global g_recordvec
-    recdir = "/home/john/recordings"
+    global g_recdir
+
     inhibit = os.path.exists("/tmp/inhibit-recordings")
-    if not g_recordvec.has_key(audioserver) and os.path.exists(recdir) and not inhibit:
-        p = subprocess.Popen(['jack_capture','-as','--port',audioserver+":from_slave_2",os.path.join(recdir,audioserver+".wav")])
+    if not g_recordvec.has_key(audioserver) and os.path.exists(g_recdir) and not inhibit:
+        p = subprocess.Popen(['jack_capture','-as','--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav")])
         g_recordvec[audioserver]=p
 
 def stop_record(audioserver):
     global g_recordvec
+    global g_recdir
+
     if g_recordvec.has_key(audioserver):
         p = g_recordvec[audioserver]
 
@@ -116,6 +120,22 @@ def stop_record(audioserver):
         status = p.communicate()
 
         retcode = p.wait()
+
+        fname=os.path.join(g_recdir,audioserver+".wav")
+
+        fname1=os.path.join(g_recdir,audioserver+".1.wav")
+        fname2=os.path.join(g_recdir,audioserver+".2.wav")
+        fname3=os.path.join(g_recdir,audioserver+".3.wav")
+
+        if os.path.exists(fname3):
+            os.system("rm %s" % fname3)
+        if os.path.exists(fname2):
+            os.system("mv %s %s" % (fname2, fname3))
+        if os.path.exists(fname1):
+            os.system("mv %s %s" % (fname1, fname2))
+
+        os.system("mv %s %s" % (fname, fname1))
+                      
 
 def mic_connect():
     # connect mic from laptop to audio server
