@@ -240,7 +240,7 @@ class TxTimer(wx.Timer):
             # longer timeout in QRP mode
             #
             print "tx timeout",
-            if self.m_button_tx_power_level.GetValue():
+            if self.target.m_button_tx_power_level.GetValue():
                 print
                 self.m_tx_timeout_count = self.m_tx_timeout_threshold
             else:
@@ -634,6 +634,8 @@ class MyFrame(wx.Frame):
         # lock stays off for 16 minutes
         self.m_tx_safety_timeout=16*60*1000
 
+        self.m_no_tx_lock = True
+
         return
 
     def use_audio_pa(self):
@@ -648,6 +650,9 @@ class MyFrame(wx.Frame):
         #return True
 
     def get_tx_lock(self):
+        if self.m_no_tx_lock:
+            return True
+
         self.m_tx_lockfile = None
 
         if len(os.listdir(self.m_txlockdir)) > 0:
@@ -658,6 +663,8 @@ class MyFrame(wx.Frame):
         return True
 
     def free_tx_lock(self):
+        if self.m_no_tx_lock:
+            return
 
         if self.m_tx_lockfile and os.path.exists(self.m_tx_lockfile):
             os.unlink(self.m_tx_lockfile)
