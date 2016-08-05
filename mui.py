@@ -101,11 +101,36 @@ def start_record(audioserver):
     global g_recordvec
     global g_recdir
 
+    news = False
     inhibit = os.path.exists("/tmp/inhibit-recordings")
-    if not g_recordvec.has_key(audioserver) and os.path.exists(g_recdir) and not inhibit:
+    if not g_recordvec.has_key(audioserver) and os.path.exists(g_recdir) and not inhibit and not news:
         p = subprocess.Popen(['jack_capture','-as','--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav")])
         g_recordvec[audioserver]=p
 
+def recfname(audioserver,n):
+    global g_recdir
+    return os.path.join(g_recdir,"%s.%d.wav" % (audioserver, n))
+
+def rotaterecs(audioserver):
+    limit=11
+
+    deletef=recfname(audioserver,limit)
+
+    if os.path.exists(deletef):
+        print "rm %s"  % deletef
+        os.system("rm %s"  % deletef)
+
+    for i in range(limit,1,-1):
+        oldest=recfname(audioserver,i)
+        nextoldest=recfname(audioserver,i-1)
+        if os.path.exists(nextoldest):
+            os.system("mv %s %s" % (nextoldest, oldest))
+            print "mv %s %s" % (nextoldest, oldest)
+
+    fname=os.path.join(g_recdir,audioserver+".wav")
+
+    os.system("mv %s %s" % (fname, recfname(audioserver,1)))
+                      
 def stop_record(audioserver):
     global g_recordvec
     global g_recdir
@@ -121,21 +146,7 @@ def stop_record(audioserver):
 
         retcode = p.wait()
 
-        fname=os.path.join(g_recdir,audioserver+".wav")
-
-        fname1=os.path.join(g_recdir,audioserver+".1.wav")
-        fname2=os.path.join(g_recdir,audioserver+".2.wav")
-        fname3=os.path.join(g_recdir,audioserver+".3.wav")
-
-        if os.path.exists(fname3):
-            os.system("rm %s" % fname3)
-        if os.path.exists(fname2):
-            os.system("mv %s %s" % (fname2, fname3))
-        if os.path.exists(fname1):
-            os.system("mv %s %s" % (fname1, fname2))
-
-        os.system("mv %s %s" % (fname, fname1))
-                      
+        rotaterecs(audioserver)
 
 def mic_connect():
     # connect mic from laptop to audio server
