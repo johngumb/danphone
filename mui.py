@@ -704,8 +704,10 @@ class MyFrame(wx.Frame):
 
     def onButtonPA(self,event):
         if self.m_button_pa.GetValue():
-            self.m_rig.enable_pa()
-            self.m_tx_pa = True
+            if not self.m_rig.enable_pa():
+                self.m_button_pa.SetValue(False)
+            else:
+                self.m_tx_pa = True
         else:
             self.m_rig.disable_pa()
             self.m_tx_pa = False

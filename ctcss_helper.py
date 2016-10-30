@@ -9,6 +9,8 @@ def get_ctcss(tx_freq):
             result = 110.9
         elif tx_freq in [145.025E6]: # MH
             result = 88.5
+        elif tx_freq in [145.0625E6]: # CO
+            result = 77.0
         elif tx_freq in [145.075E6, 145.1625E6, 145.050E6, 145.1E6]: # RD, NE, WH, VA
             result = 118.8
 #            result = 110.9

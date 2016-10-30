@@ -22,6 +22,8 @@ import telnetlib
 import serial
 import time
 
+import radiosim
+
 class SerialCLI:
     def __init__(self):
         return

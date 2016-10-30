@@ -16,11 +16,12 @@
 # GNU General Public License for more details.
 
 # You should have received a copy of the GNU General Public License
-
+import time
 import ft232r
+
+import radiosim
 import TC9181F
 import D74174
-import time
 
 
 class DanPhone:
