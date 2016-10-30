@@ -149,7 +149,8 @@ class McMicro:
     def enable_pa(self):
         result = False
 
-        if self.getlock():
+#        if self.getlock():
+        if True:
             
             self.m_shiftreg.setbit(self.SR_TX_PA)
 
