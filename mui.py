@@ -52,7 +52,7 @@ ID_BUTTON_MONITOR=wx.NewId()
 ID_BUTTON_TX=wx.NewId()
 ID_SPIN_SQUELCH_LEVEL=wx.NewId()
 ID_BUTTON_MUTE=wx.NewId()
-ID_BUTTON_MUTE_SKYPE=wx.NewId()
+#ID_BUTTON_MUTE_SKYPE=wx.NewId()
 ID_BUTTON_ON_OFF=wx.NewId()
 ID_BUTTON_AUDIO_PA=wx.NewId()
 ID_BUTTON_EXT_ALARM=wx.NewId()
@@ -486,7 +486,7 @@ class MyFrame(wx.Frame):
         # serial controlled rigs.
         mic_connect()
 
-        self.m_spin_ctrl_1 = FS.FloatSpin(self, ID_SPIN_1)
+        #self.m_spin_ctrl_1 = FS.FloatSpin(self, ID_SPIN_1)
         
         self.m_spin_ctrl_2 = FS.FloatSpin(self, ID_SPIN_2)
 
@@ -505,19 +505,20 @@ class MyFrame(wx.Frame):
 
         self.m_rig.set_step(self.m_step)
 
-        self.m_spin_ctrl_squelch_level = FS.FloatSpin(self, ID_SPIN_2)
+#        self.m_spin_ctrl_squelch_level = FS.FloatSpin(self, ID_SPIN_2)
 
         self.m_step_combo = wx.ComboBox(self, -1, self.m_step_selected, choices=steps)
 
         self.m_digits = 5
 #        print dir(self.m_spin_ctrl_2 )
-        for f in [self.m_spin_ctrl_1, self.m_spin_ctrl_2]:
+#        for f in [self.m_spin_ctrl_1, self.m_spin_ctrl_2]:
+        for f in [self.m_spin_ctrl_2]:
             f.SetFormat("%F")
             f.SetDigits(self.m_digits)
             if sixmetres():
-                self.m_freq=50.840E6
+                self.m_freq=51.51E6
             elif twometres():
-                self.m_freq=145.675E6
+                self.m_freq=145.5E6
             else:
                 self.m_freq=70.45E6
             f.SetDefaultValue( self.m_freq /1E6)
@@ -530,14 +531,14 @@ class MyFrame(wx.Frame):
             f._increment=self.m_step/1E6
             f.SetRange(self.m_min_freq/1E6,self.m_max_freq/1E6)
 
-        self.m_squelch_level_value = 500
-        self.m_spin_ctrl_squelch_level.SetFormat("%F")
-        self.m_spin_ctrl_squelch_level.SetDigits(0)
-        self.m_spin_ctrl_squelch_level.SetDefaultValue(5)
-        self.m_spin_ctrl_squelch_level.SetToDefaultValue()
-        self.m_spin_ctrl_squelch_level.SetRange(1,2000)
-        self.m_spin_ctrl_squelch_level.SetValue(self.m_squelch_level_value)
-        self.m_spin_ctrl_squelch_level.Bind(FS.EVT_FLOATSPIN, self.OnSquelchFloatSpin)
+        # self.m_squelch_level_value = 500
+        # self.m_spin_ctrl_squelch_level.SetFormat("%F")
+        # self.m_spin_ctrl_squelch_level.SetDigits(0)
+        # self.m_spin_ctrl_squelch_level.SetDefaultValue(5)
+        # self.m_spin_ctrl_squelch_level.SetToDefaultValue()
+        # self.m_spin_ctrl_squelch_level.SetRange(1,2000)
+        # self.m_spin_ctrl_squelch_level.SetValue(self.m_squelch_level_value)
+        # self.m_spin_ctrl_squelch_level.Bind(FS.EVT_FLOATSPIN, self.OnSquelchFloatSpin)
         self.m_rig.set_rx_freq(self.m_spin_ctrl_2.GetDefaultValue()*1E6)
         self.m_rig.set_tx_freq(self.m_spin_ctrl_2.GetDefaultValue()*1E6)
 
@@ -553,7 +554,7 @@ class MyFrame(wx.Frame):
 
         self.m_mute_button = wx.ToggleButton(self, ID_BUTTON_MUTE, "Mute")
 
-        self.m_mute_button_skype = wx.ToggleButton(self, ID_BUTTON_MUTE_SKYPE, "MuteSkype")
+#        self.m_mute_button_skype = wx.ToggleButton(self, ID_BUTTON_MUTE_SKYPE, "MuteSkype")
 
         self.m_on_off_button = wx.ToggleButton(self, ID_BUTTON_ON_OFF, "On/Off")
 
@@ -584,7 +585,7 @@ class MyFrame(wx.Frame):
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE,self.onButtonMute)
 
-        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE_SKYPE,self.onButtonMuteSkype)
+#        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE_SKYPE,self.onButtonMuteSkype)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_ON_OFF,self.onButtonOnOff)
 
@@ -704,10 +705,8 @@ class MyFrame(wx.Frame):
 
     def onButtonPA(self,event):
         if self.m_button_pa.GetValue():
-            if not self.m_rig.enable_pa():
-                self.m_button_pa.SetValue(False)
-            else:
-                self.m_tx_pa = True
+            self.m_rig.enable_pa()
+            self.m_tx_pa = True
         else:
             self.m_rig.disable_pa()
             self.m_tx_pa = False
@@ -964,7 +963,7 @@ class MyFrame(wx.Frame):
 
         nv = round(x) * self.m_step
 
-        self.m_spin_ctrl_1.SetValue(round(nv/1E6,self.m_digits))
+        #self.m_spin_ctrl_1.SetValue(round(nv/1E6,self.m_digits))
 
         self.m_spin_ctrl_2.SetValue(round(nv/1E6,self.m_digits))
 
@@ -975,7 +974,7 @@ class MyFrame(wx.Frame):
         self.m_rig.set_rx_freq(self.m_freq)
         self.m_rig.set_tx_freq(self.m_freq)
 
-        self.m_spin_ctrl_1._increment=self.m_step/1E6
+        #self.m_spin_ctrl_1._increment=self.m_step/1E6
         self.m_spin_ctrl_2._increment=self.m_step/1E6
 
         return
@@ -983,7 +982,7 @@ class MyFrame(wx.Frame):
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
 
-        sizer_1.Add(self.m_spin_ctrl_1 , 0, wx.ADJUST_MINSIZE, 0)
+#        sizer_1.Add(self.m_spin_ctrl_1 , 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_mute_button, 0, wx.ADJUST_MINSIZE, 0)
 
@@ -1016,7 +1015,7 @@ class MyFrame(wx.Frame):
 
         sizer_1.Add(self.m_step_combo, 0, wx.ADJUST_MINSIZE, 0)
 
-        sizer_1.Add(self.m_spin_ctrl_squelch_level, 0, wx.ADJUST_MINSIZE, 0)
+#        sizer_1.Add(self.m_spin_ctrl_squelch_level, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_squelch_led, 0, wx.ADJUST_MINSIZE, 0)
 
