@@ -147,20 +147,12 @@ class McMicro:
         return
 
     def enable_pa(self):
-        result = False
 
-#        if self.getlock():
-        if True:
-            
-            self.m_shiftreg.setbit(self.SR_TX_PA)
+        self.m_shiftreg.setbit(self.SR_TX_PA)
 
-            self.m_shiftreg.latch()
+        self.m_shiftreg.latch()
 
-            result = True
-        else:
-            print "Cannot enable PA: synth not locked"
-
-        return result
+        return
 
     def disable_pa(self):
         self.m_shiftreg.clearbit(self.SR_TX_PA)
