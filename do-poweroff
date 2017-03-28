@@ -1,0 +1,20 @@
+#!/bin/bash
+
+ssh root@tang "sync; sync"
+
+sh /home/john/sys x
+
+machines="$(cat machines)"
+
+killall jackd
+
+sudo usbip -d 0
+
+for mc in ${machines}; do
+	if ping -c1 -w1 ${mc} > /dev/null; then
+                echo "powering off ${mc}...."
+		ssh root@${mc} "poweroff &"
+        else
+                echo "powering off ${mc}....unreachable"
+        fi
+done
