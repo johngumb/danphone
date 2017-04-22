@@ -143,7 +143,7 @@ class TelnetCLI:
             #print rxs,chr(synchar)
 
             if ord(rxs)<synchar:
-                self.expect('Y', 0.1)
+                self.expect('Y')
                 syncount = 0
             else:
                 if rxs == chr(synchar):
