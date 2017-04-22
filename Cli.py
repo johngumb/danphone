@@ -33,7 +33,10 @@ class TelnetCLI:
 
 #        self.m_tn = telnetlib.Telnet("skate",2217)
 
-        self.m_serial = serial.serial_for_url("rfc2217://%s:%d" % server_transport_addr, 115200)
+        self.m_serial = serial.serial_for_url("rfc2217://%s:%d" % server_transport_addr, 115200, timeout=0.5)
+
+        # needed to detect whether the radio has volts attatched
+        self.m_serial.setDTR(False)
 
         self.m_mcmicro = mcmicro
 
@@ -46,7 +49,19 @@ class TelnetCLI:
 
         self.m_last_msg = None
 
+        (self.m_server, _) = server_transport_addr
+
         return
+
+    def update_power_present(self):
+        power_present = self.m_serial.getDSR()
+
+        if self.m_server == "xrudd":
+            self.m_mcmicro.set_power_supply_state(power_present)
+        else:
+            power_present = True
+
+        return power_present
 
     def enqueue(self, msg):
 
@@ -67,14 +82,16 @@ class TelnetCLI:
             self.m_cmd_in_progress=True
             self.send(msg)
 
-    def expect(self, char, timeout=0.1):
+    def expect(self, char):
 
         """ simplified expect-like interface """
 
         chbuf = ""
 
         while True:
-            ch = self.m_serial.read(timeout)
+            ch = self.m_serial.read()
+
+#            print "got", ch
 
             if not ch:
                 return (-1, None, None)
@@ -97,15 +114,21 @@ class TelnetCLI:
 
         while syncount < 5:
 
+            time.sleep(0.05)
+
+            power_present = self.update_power_present()
+
+            if not power_present:
+                print "-"
+                continue
+
             ts = 'R'+chr(synchar)+"\n"
 
             #print ts
 
-            time.sleep(0.05)
-
             self.m_serial.write(ts)
             
-            (idx, mo, txt) = self.expect("Y",0.05)
+            (idx, mo, txt) = self.expect("Y")
 
             if idx == -1 and mo == None:
                 print "."
@@ -145,7 +168,7 @@ class TelnetCLI:
 
             self.m_serial.write(msg+"\n")
 
-            (idx, mo, txt) = self.expect("K",0.1)
+            (idx, mo, txt) = self.expect("K")
 
             #
             # timeout?
