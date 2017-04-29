@@ -2326,13 +2326,13 @@ Vendor=0
 [WorkState_v1_1.HITECHPRO]
 HITECHPRO=0
 [WorkState_v1_1.Assembler]
-Assembler=C:\Keil\C51\BIN\a51.exe
+Assembler=C:\Keil_v5\C51\BIN\a51.exe
 [WorkState_v1_1.AssFlag]
 AssFlag=XR GEN DB EP NOMOD51 INCDIR(C:\SiLabs\MCU\Inc)
 [WorkState_v1_1.AssFormat]
 AssFormat=<Executable Name> <Input File(s)> <Flags> 
 [WorkState_v1_1.Compiler]
-Compiler=C:\Keil\C51\BIN\C51.exe
+Compiler=C:\Keil_v5\C51\BIN\C51.exe
 [WorkState_v1_1.CompFlag]
 CompFlag=DB OE BR INCDIR(C:\SiLabs\MCU\Inc)
 [WorkState_v1_1.CompFormat]
@@ -2340,7 +2340,7 @@ CompFormat=<Executable Name> <Input File(s)> <Flags>
 [WorkState_v1_1.RunOptimizer]
 RunOptimizer=0
 [WorkState_v1_1.Linker]
-Linker=C:\Keil\C51\BIN\bl51.exe
+Linker=C:\Keil_v5\C51\BIN\bl51.exe
 [WorkState_v1_1.LinkFlag]
 LinkFlag=RS(256) PL(68) PW(78)
 [WorkState_v1_1.LinkFormat]
