@@ -62,7 +62,10 @@ sbit synth_latch_bit=P0^3;
 sbit shift_reg_latch_bit=P0^7;
 sbit squelch_bit=P1^0;
 sbit locked_bit=P1^1;
-sbit rts_bit=P1^3;
+sbit rts_bit=P1^3; /* goes back to RS232 as CTS */
+sbit cts_bit=P1^4; /* comes from RS232 as RTS */
+sbit pin15_open_drain=P1^5;
+sbit pin1_open_collector=P1^6;
 
 #define SYNTH_LATCH_ID 1
 #define SHIFT_REG_LATCH_ID 2
@@ -514,6 +517,22 @@ void set_rts(int state)
     rts_bit = state;
 }
 
+void get_cts()
+{
+    char cts_val = cts_bit;
+    putchar('0'+cts_val);
+}
+
+void set_pin15_open_drain(int state)
+{
+    pin15_open_drain = state;
+}
+
+void set_pin1_open_collector(int state)
+{
+   pin1_open_collector = state;
+}
+
 void act_test(int tv)
 {
     unsigned int w[2];
@@ -752,6 +771,16 @@ void main (void)
 
             cmd("rtsoff", set_rts(0))
 
+            cmd("getcts", get_cts())
+
+            cmd("pin15on", set_pin15_open_drain(1))
+
+            cmd("pin15off", set_pin15_open_drain(0))
+
+            cmd("pin1on", set_pin1_open_collector(1))
+
+            cmd("pin1off", set_pin1_open_collector(0))
+
 #if REPORTING
             if (g_reporting) {
                 char cstat=stval();
@@ -815,6 +844,10 @@ void main (void)
 // P1.0 - status - lock bit
 // P1.1 - status - squelch open
 // P1.2 - status - power on
+// P1.3 - output - CTS as seen by host
+// P1.4 - status - RTS from host as seen by us
+// P1.5 - output - Pin 12 on CPU to drive pin 15 on 'D' type (MOSFET)
+// P1.6 - output - Pin 11 on CPU to drive pin 1 on 'D' type (transistor)
 //
 #define UART_TX_OPEN_DRAIN
 void PORT_Init (void)
