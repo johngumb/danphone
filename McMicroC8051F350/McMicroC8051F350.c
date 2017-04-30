@@ -66,7 +66,7 @@ sbit locked_bit=P1^1;
 sbit rts_bit=P1^3; /* goes back to RS232 as CTS */
 sbit cts_bit=P1^4; /* comes from RS232 as RTS */
 sbit pin15_open_drain=P1^5;
-sbit pin1_open_collector=P1^6;
+sbit pin1_open_drain=P1^6;
 sbit pin2_input_bit=P1^7; /* pin 2 off DB15 connector */
 
 #define SYNTH_LATCH_ID 1
@@ -538,9 +538,9 @@ void get_pin2()
     putchar('0'+ pin2_val);
 }
 
-void set_pin1_open_collector(int state)
+void set_pin1_open_drain(int state)
 {
-   pin1_open_collector = state;
+   pin1_open_drain = state;
 }
 
 void act_test(int tv)
@@ -793,9 +793,9 @@ void main (void)
 
             cmd("pin15off", set_pin15_open_drain(0))
 
-            cmd("pin1on", set_pin1_open_collector(1))
+            cmd("pin1on", set_pin1_open_drain(1))
 
-            cmd("pin1off", set_pin1_open_collector(0))
+            cmd("pin1off", set_pin1_open_drain(0))
 #endif
 
 #if REPORTING
@@ -864,7 +864,8 @@ void main (void)
 // P1.3 - output - CTS as seen by host
 // P1.4 - status - RTS from host as seen by us
 // P1.5 - output - Pin 12 on CPU to drive pin 15 on 'D' type (MOSFET)
-// P1.6 - output - Pin 11 on CPU to drive pin 1 on 'D' type (transistor)
+// P1.6 - output - Pin 11 on CPU to drive pin 1 on 'D' type (MOSFET)
+// P1.7 - input  - Pin 15 on CPU from pin 2 on 'D' type ground for logic 1
 //
 #define UART_TX_OPEN_DRAIN
 void PORT_Init (void)
