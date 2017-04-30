@@ -41,6 +41,7 @@
 #define SR_TX_AUDIO_ENABLE 0x40
 #define SR_RX_AUDIO_ENABLE 0x80
 
+#define TESTING
 //#define OOBAND
 //-----------------------------------------------------------------------------
 // Global CONSTANTS
@@ -66,6 +67,7 @@ sbit rts_bit=P1^3; /* goes back to RS232 as CTS */
 sbit cts_bit=P1^4; /* comes from RS232 as RTS */
 sbit pin15_open_drain=P1^5;
 sbit pin1_open_collector=P1^6;
+sbit pin2_input_bit=P1^7; /* pin 2 off DB15 connector */
 
 #define SYNTH_LATCH_ID 1
 #define SHIFT_REG_LATCH_ID 2
@@ -512,9 +514,16 @@ void act_report(char startstop)
 }
 #endif
 
+#ifdef TESTING
 void set_rts(int state)
 {
     rts_bit = state;
+}
+
+
+void set_pin15_open_drain(int state)
+{
+    pin15_open_drain = state;
 }
 
 void get_cts()
@@ -523,9 +532,10 @@ void get_cts()
     putchar('0'+cts_val);
 }
 
-void set_pin15_open_drain(int state)
+void get_pin2()
 {
-    pin15_open_drain = state;
+    char pin2_val = pin2_input_bit;
+    putchar('0'+ pin2_val);
 }
 
 void set_pin1_open_collector(int state)
@@ -659,6 +669,7 @@ void act_test(int tv)
 
     write_synth_spi(&w);
 }
+#endif
 
 void act_hostsync()
 {
@@ -717,6 +728,7 @@ void main (void)
 
             cmd("Z", act_stbyte());
 
+#ifdef TESTING
             cmd("50",act_test(50))
 
             cmd("505",act_test(505))
@@ -744,6 +756,7 @@ void main (void)
 
 			cmd("58",act_test(58))
 #endif
+#endif
 
             cmd("n", act_set_synth())
 
@@ -759,19 +772,22 @@ void main (void)
 
             cmd("baa",baa())
 
-            cmd("fx", act_test(5081));
-
-            cmd("am", act_test(5084));
-
             cmd("paon",set_pa_state(1))
 
             cmd("paoff",set_pa_state(0))
+
+#ifdef TESTING
+            cmd("fx", act_test(5081));
+
+            cmd("am", act_test(5084));
 
             cmd("rtson", set_rts(1))
 
             cmd("rtsoff", set_rts(0))
 
             cmd("getcts", get_cts())
+
+            cmd("getpin2", get_pin2())
 
             cmd("pin15on", set_pin15_open_drain(1))
 
@@ -780,6 +796,7 @@ void main (void)
             cmd("pin1on", set_pin1_open_collector(1))
 
             cmd("pin1off", set_pin1_open_collector(0))
+#endif
 
 #if REPORTING
             if (g_reporting) {
