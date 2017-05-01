@@ -614,6 +614,12 @@ void act_test(int tv)
 		}
 		break;
 
+		case 7045:
+		{
+			w[1]=35912;
+
+		}
+		break;
 #ifdef OOBAND
 		case 53:
 		{
@@ -706,7 +712,10 @@ void main (void)
     act_set_power(0);
 
     // default freq of 51.53
-    g_last_tx=26372;
+    //g_last_tx=26372;
+
+    // default freq of 70.45
+    g_last_tx=35912;
 
     while (1)
     {
