@@ -47,6 +47,8 @@ class StatusMonitor(threading.Thread):
         while not mcmicro.m_request_thread_exit:
             time.sleep(0.3)
 
+            mcmicro.m_hwif.update_power_present()
+
             #
             # no need to queue a status command
             # if there is already one in progress
@@ -90,6 +92,9 @@ class McMicro:
         self.m_inhibit_audio_pa = False
 
         self.m_ctcss_fudge = 1.0
+
+        # consider what the default should be
+        self.m_power_supply_present = True
 
         return
 
@@ -229,6 +234,9 @@ class McMicro:
         if statstr.strip():
             self.m_last_status = int(statstr)
 
+    def set_power_supply_state(self, power_supply_state):
+        self.m_power_supply_present = power_supply_state
+        
     def initialise(self, device_id):
 
         (devtype, devaddr) = device_id
@@ -430,6 +438,9 @@ class McMicro:
 
         return result
 
+    def power_supply_present(self):
+
+        return self.m_power_supply_present
 
 def test():
     mc = McMicro()

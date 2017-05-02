@@ -353,6 +353,11 @@ class StatusLEDtimer(wx.Timer):
 
         self.m_power_count = self.m_power_count + 1
 
+        if not self.target.m_power_supply_present:
+            self.target.m_led2.SetState(4)
+            self.target.m_squelch_led.SetState(4)
+            return
+
         if not self.target.m_powered_on:
             self.target.m_led2.SetState(3)
             self.target.m_squelch_led.SetState(3)
@@ -612,6 +617,8 @@ class MyFrame(wx.Frame):
 
         self.m_last_powered_on = False
 
+        self.m_power_supply_present = False
+
         init_power_state=True
 #        self.m_rig.setpower(init_power_state)
         self.m_on_off_button.SetValue(init_power_state)
@@ -659,7 +666,6 @@ class MyFrame(wx.Frame):
             result = (hour > 7) and (hour < 23)
         
         return result
-        #return True
 
     def get_tx_lock(self):
         if self.m_no_tx_lock:
@@ -717,8 +723,9 @@ class MyFrame(wx.Frame):
         if self.m_button_tx_power_level.GetValue():
             #if self.m_aux_linear:
             #    self.m_ext_alarm_button.SetValue(False)
-            #    self.onButtonExtAlarm(event)  
-            self.m_rig.set_tx_power_high()
+            #    self.onButtonExtAlarm(event)
+            if not sixmetres():
+                self.m_rig.set_tx_power_high()
         else:
             self.m_rig.set_tx_power_low()
 
@@ -750,6 +757,8 @@ class MyFrame(wx.Frame):
             print "rig just powered off"
 
         self.m_last_powered_on = self.m_powered_on
+
+        self.m_power_supply_present = self.m_rig.power_supply_present()
 
         return
 

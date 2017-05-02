@@ -56,7 +56,7 @@ class TelnetCLI:
     def update_power_present(self):
         power_present = self.m_serial.getDSR()
 
-        if self.m_server == "xrudd":
+        if self.m_server == "dab":
             self.m_mcmicro.set_power_supply_state(power_present)
         else:
             power_present = True
@@ -119,8 +119,7 @@ class TelnetCLI:
             power_present = self.update_power_present()
 
             if not power_present:
-                print "-"
-                continue
+                break
 
             ts = 'R'+chr(synchar)+"\n"
 
