@@ -1,5 +1,5 @@
 def get_ctcss(tx_freq):
-        if tx_freq in [51.34E6, 51.35E6, 51.3E6, 50.52E6]: # GB3AM, GB3CT, GB3ZY, GB3WX
+        if tx_freq in [51.34E6, 51.35E6, 51.3E6, 50.52E6, 70.4375E6]: # GB3AM, GB3CT, GB3ZY, GB3WX, MB7FM
             result = 77.0
         elif tx_freq in [51.32E6]: # GB3XD
             result = 71.9
@@ -11,7 +11,7 @@ def get_ctcss(tx_freq):
             result = 88.5
         elif tx_freq in [145.0625E6]: # CO
             result = 77.0
-        elif tx_freq in [145.075E6, 145.1625E6, 145.050E6, 145.1E6]: # RD, NE, WH, VA
+        elif tx_freq in [145.075E6, 145.1625E6, 145.050E6, 145.1E6, 70.3625E6]: # RD, NE, WH, VA, FLY
             result = 118.8
 #            result = 110.9
         elif tx_freq in [145.0875E6]: # EA
