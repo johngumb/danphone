@@ -442,6 +442,12 @@ class McMicro:
 
         return self.m_power_supply_present
 
+    def set_pin1(self, val):
+        if val:
+            self.m_hwif.enqueue("pin1on")
+        else:
+            self.m_hwif.enqueue("pin1off")
+
 def test():
     mc = McMicro()
 

@@ -58,6 +58,7 @@ ID_BUTTON_AUDIO_PA=wx.NewId()
 ID_BUTTON_EXT_ALARM=wx.NewId()
 ID_BUTTON_AUDIO_DISABLE=wx.NewId()
 ID_BUTTON_TX_SAFETY=wx.NewId()
+ID_BUTTON_PIN1=wx.NewId()
 
 MUTED = False
 
@@ -499,7 +500,7 @@ class MyFrame(wx.Frame):
 
         self.m_squelch_led=ledthing.LED(self,ID_LED_SQUELCH)
 
-        steps=["Auto","4","5","6.25","8","10","12.5"]
+        steps=["4","5","6.25","8","10","12.5"]
 
         if sixmetres():
             self.m_step_selected = "10"
@@ -512,7 +513,7 @@ class MyFrame(wx.Frame):
 
 #        self.m_spin_ctrl_squelch_level = FS.FloatSpin(self, ID_SPIN_2)
 
-        self.m_step_combo = wx.ComboBox(self, -1, self.m_step_selected, choices=steps)
+        self.m_step_combo = wx.ComboBox(self, -1, self.m_step_selected, choices=steps,size=(120, 27) )
 
         self.m_digits = 5
 #        print dir(self.m_spin_ctrl_2 )
@@ -571,6 +572,8 @@ class MyFrame(wx.Frame):
 
         self.m_tx_safety_button = wx.ToggleButton(self, ID_BUTTON_TX_SAFETY, "TxSafety")
 
+        self.m_pin1_control = wx.ToggleButton(self, ID_BUTTON_PIN1, "Pin1")
+
         self.status_led_timer=StatusLEDtimer(self,400)
 
         #self.__set_properties()
@@ -599,7 +602,10 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_EXT_ALARM,self.onButtonExtAlarm)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_AUDIO_DISABLE,self.onButtonAudioDisable)
+
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_SAFETY,self.onButtonTxSafety)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_PIN1,self.onButtonPin1)
 
         # watch freq step here
 
@@ -837,6 +843,9 @@ class MyFrame(wx.Frame):
             self.m_tx_button.SetValue(False)
             self.onButtonTransmitAction(event)
 
+    def onButtonPin1(self,event):
+        self.m_rig.set_pin1(self.m_pin1_control.GetValue())
+
     def onButtonTransmitAction(self,event):
         if self.m_tx_button.GetValue() and self.get_tx_lock():
             self.m_tx_rx.SetValue(True)
@@ -1013,6 +1022,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_ext_alarm_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_disable_audio_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_tx_safety_button, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_pin1_control, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
 

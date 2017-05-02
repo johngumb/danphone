@@ -167,6 +167,10 @@ class TelnetCLI:
 
             self.m_serial.write(msg+"\n")
 
+            if msg.find("pin1")==0:
+                (idx, mo, txt) = (0, None, '')
+                break
+
             (idx, mo, txt) = self.expect("K")
 
             #
