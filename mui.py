@@ -661,6 +661,9 @@ class MyFrame(wx.Frame):
 
         self.m_no_tx_lock = True
 
+        # relay control - off initially
+        self.m_rig.set_pin1(False)
+
         return
 
     def use_audio_pa(self):
