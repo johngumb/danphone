@@ -39,6 +39,50 @@ import wx.lib.agw.floatspin as FS
 
 import McMicro
 
+import wx.lib.newevent
+import threading
+import socket
+
+DataEvent, EVT_DATA = wx.lib.newevent.NewEvent() 
+
+ExtSocket = "/tmp/mui-ext.s."
+
+def stop_extthread(Socket):
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server_address = Socket
+    print >>sys.stderr, 'connecting to %s' % server_address
+    try:
+        sock.connect(server_address)
+
+    except socket.error, msg:
+        print >>sys.stderr, msg
+        sys.exit(1)
+
+    sock.sendall("exit")
+
+def socket_thread(window,Socket):
+    #got some data
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    if os.path.exists(Socket):
+        os.remove(Socket)
+
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind(Socket)
+    while True:
+        server.listen(1)
+        conn, addr = server.accept()
+        datagram = conn.recv(1024)
+        print "got datagram",datagram
+        if datagram=="exit":
+            os.unlink(Socket)
+            break;
+
+        if os.path.exists("/tmp/inhibit-tx"):
+            print "tx inhibited"
+        else:
+            wx.PostEvent(window, DataEvent(data=datagram)) 
+
+
 ID_SPIN_1=wx.NewId()
 ID_SPIN_2=wx.NewId()
 ID_LED_2=wx.NewId()
@@ -452,6 +496,7 @@ class MyFrame(wx.Frame):
     def __init__(self, *args, **kwds):
         global g_audioserver
         global g_rig
+        global ExtSocket
 
         # begin wxGlade: MyFrame.__init__
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
@@ -472,13 +517,16 @@ class MyFrame(wx.Frame):
             self.m_devid=("cli",("tang",2217))
             self.m_rig.set_ctcss_fudge(0.988)
             self.m_audioserver="tang"
+            socketext="6m"
         elif twometres():
             self.m_devid=("cli",("rudd",2217))
             self.m_rig.set_ctcss_fudge(0.9812)
             self.m_audioserver="rudd"
+            socketext="2m"
         elif fourmetres():
             self.m_devid=("cli",("dab",2217))
             self.m_audioserver="dab"
+            socketext="4m"
         else:
             self.m_devid=("ft232r","MCVEC40K")
             self.m_audioserver="dab"
@@ -664,6 +712,11 @@ class MyFrame(wx.Frame):
         # relay control - off initially
         self.m_rig.set_pin1(False)
 
+        self.Bind(EVT_DATA, self.OnData)
+
+        ExtSocket+=socketext
+        threading.Thread(target=socket_thread, args=(self,ExtSocket,)).start() 
+
         return
 
     def use_audio_pa(self):
@@ -699,6 +752,26 @@ class MyFrame(wx.Frame):
         self.m_tx_lockfile = None
 
         return
+
+    def OnData(self, event):
+        data = event.data
+        print "Got data",data
+
+        if data=="txon":
+            mute(self.m_audioserver)
+            sdrmute()
+            self.m_transmitting = True
+            self.m_rig.enable_tx()
+            self.m_rig.disable_audio()
+            self.m_rig.enable_pa()
+        else:
+            self.m_rig.disable_tx()
+            self.m_rig.disable_pa()
+            self.m_rig.enable_audio()
+            self.m_transmitting = False
+            if not self.m_stay_muted:
+                sdrunmute()
+                unmute(self.m_audioserver)
 
     def onButtonTx(self,event):
         if self.m_tx_rx.GetValue():
@@ -1049,6 +1122,7 @@ class MyFrame(wx.Frame):
         self.Layout()
 
 def closedown():
+        stop_extthread(ExtSocket)
         g_rig.m_request_thread_exit=True
         mute(g_audioserver)
         mic_disconnect()
