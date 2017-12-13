@@ -49,7 +49,7 @@ class jag_top_block(gr.top_block):
 #        self.fcdproplus_fcdproplus_0.set_if_gain(38) # old board
         self.fcdproplus_fcdproplus_0.set_freq_corr(0)
         #delta=180
-        delta=275
+        delta=255
         self.fcdproplus_fcdproplus_0.set_freq(21406000+delta)
 #        self.fcdproplus_fcdproplus_0.set_freq(21400000)
 #        self.fcdproplus_fcdproplus_0.set_freq(29210000)
