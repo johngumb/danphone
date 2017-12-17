@@ -45,7 +45,9 @@ class jag_top_block(gr.top_block):
         self.fcdproplus_fcdproplus_0 = fcdproplus.fcdproplus("",1)
         self.fcdproplus_fcdproplus_0.set_lna(0)
         self.fcdproplus_fcdproplus_0.set_mixer_gain(0)
-        self.fcdproplus_fcdproplus_0.set_if_gain(47) # new board
+        self.fcdproplus_fcdproplus_0.set_if_gain(30) # new board, cal 17/12/17
+        #self.fcdproplus_fcdproplus_0.set_if_gain(38) # new board, cal 17/12/17
+        #self.fcdproplus_fcdproplus_0.set_if_gain(47) # new board
 #        self.fcdproplus_fcdproplus_0.set_if_gain(38) # old board
         self.fcdproplus_fcdproplus_0.set_freq_corr(0)
         #delta=180
