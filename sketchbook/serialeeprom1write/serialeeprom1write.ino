@@ -209,9 +209,16 @@ void writeeprom()
 
 void loop()
 {
-
+  bool written=false;
+  
   readeprom();
-  //writeeprom();
+  
+  if (!written)
+  {
+    writeeprom();
+    written=true;
+  }
+  
   //checkeprom();
   //checkeprom();
   //readeprom();
