@@ -1,5 +1,5 @@
 /*
-  *  Use the I2C bus with EEPROM 24LC64
+  *  Use the I2C bus with EEPROM 24LC64 adapted for PCD8572/McMicro
   *  Sketch:    eeprom.ino
   *
   *  Author: hkhijhe
