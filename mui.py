@@ -806,8 +806,7 @@ class MyFrame(wx.Frame):
             #if self.m_aux_linear:
             #    self.m_ext_alarm_button.SetValue(False)
             #    self.onButtonExtAlarm(event)
-            if not sixmetres():
-                self.m_rig.set_tx_power_high()
+            self.m_rig.set_tx_power_high()
         else:
             self.m_rig.set_tx_power_low()
 
