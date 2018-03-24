@@ -193,14 +193,18 @@ def stop_record(audioserver):
 
         rotaterecs(audioserver)
 
+def jack_cmd(cmd):
+    os.system(cmd)
+    return
+
 def mic_connect():
     # connect mic from laptop to audio server
-    os.system("jack_connect system:capture_1 %s:to_slave_1" % g_audioserver)
+    jack_cmd("jack_connect system:capture_1 %s:to_slave_1" % g_audioserver)
     return
 
 def mic_disconnect():
     # disconnect mic from laptop to audio server
-    os.system("jack_disconnect system:capture_1 %s:to_slave_1" % g_audioserver)
+    jack_cmd("jack_disconnect system:capture_1 %s:to_slave_1" % g_audioserver)
     return
 
 # TODO fix initial mute state
@@ -992,11 +996,11 @@ class MyFrame(wx.Frame):
         skype_left_connection='%s:"%s" system:playback_1'%(skype_playback_jack_port,skype_left)
         skype_right_connection='%s:"%s" system:playback_2'%(skype_playback_jack_port,skype_right)
         if self.m_mute_button_skype.GetValue():
-            os.system("jack_disconnect %s" % skype_left_connection)
-            os.system("jack_disconnect %s" % skype_right_connection)
+            jack_cmd("jack_disconnect %s" % skype_left_connection)
+            jack_cmd("jack_disconnect %s" % skype_right_connection)
         else:
-            os.system("jack_connect %s" % skype_left_connection)
-            os.system("jack_connect %s" % skype_right_connection)
+            jack_cmd("jack_connect %s" % skype_left_connection)
+            jack_cmd("jack_connect %s" % skype_right_connection)
 
         return
 
