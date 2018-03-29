@@ -840,7 +840,7 @@ void main (void)
 
 #define P00 1<<0
 #define P01 1<<1
-#define P02 2<<2
+#define P02 1<<2
 #define P03 1<<3
 #define P04 1<<4
 #define P05 1<<5
@@ -849,7 +849,7 @@ void main (void)
 
 #define P10 1<<0
 #define P11 1<<1
-#define P12 2<<2
+#define P12 1<<2
 #define P13 1<<3
 #define P14 1<<4
 #define P15 1<<5
@@ -889,11 +889,17 @@ void PORT_Init (void)
 #else
    P0MDOUT = (P04|P06|P07);    // Enable UTX (P04) as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
 #endif
-   P1MDOUT = 0;
+
+   P1MDIN = (P10|P11|P12|P13|P14|P15|P16|P17); // All digital
+
+   P1MDOUT = (P13|P15|P16);
 
    XBR0     = 0x03;                    // Enable UART on P0.4(TX) and P0.5(RX), SPI also
    XBR1    = 0x41;                     // Route CEX0 to a port pin
                                        // Enable crossbar and weak pull-ups
+
+   pin1_open_drain=0;   // MOSFET outputs disabled
+   pin15_open_drain=0;  // MOSFET outputs disabled
 }
 
 //-----------------------------------------------------------------------------
