@@ -58,11 +58,11 @@
 
 
 /* sbit unused_input=P0^1; look to re-use this; was used for 9.6V status */
-sbit power_on_bit=P1^2;
 sbit synth_latch_bit=P0^3;
 sbit shift_reg_latch_bit=P0^7;
 sbit squelch_bit=P1^0;
 sbit locked_bit=P1^1;
+sbit power_on_bit=P1^2;
 sbit rts_bit=P1^3; /* goes back to RS232 as CTS */
 sbit cts_bit=P1^4; /* comes from RS232 as RTS */
 sbit pin15_open_drain=P1^5;
@@ -698,8 +698,7 @@ void main (void)
     g_reporting = 0;
 #endif
 
-    PCA0MD &= ~0x40;                    // WDTE = 0 (clear watchdog timer 
-    // enable)
+    PCA0MD &= ~0x40;                    // WDTE = 0 (clear watchdog timer enable)
     SYSCLK_Init ();                     // Initialize Oscillator
     UART0_Init();
     SPI0_Init();
@@ -860,7 +859,7 @@ void main (void)
 #define SR_LATCH P07
 //
 // P0.0 - SPI SCK    (digital output, push-pull)
-// P0.1 - SPI MISO   (digital input, open-drain)
+// P0.1 - SPI MISO   (digital input, open-drain) -- look to re-use
 // P0.2 - SPI MOSI   (digital output, push-pull)
 // P0.3 - SPI NSS    (digital output, push-pull) -- look to re-use
 // P0.4   digital   push-pull    UART TX
@@ -877,20 +876,26 @@ void main (void)
 // P1.7 - input  - Pin 15 on CPU from pin 2 on 'D' type ground for logic 1
 //
 #define UART_TX_OPEN_DRAIN
+#undef OVERRIDE_RESET_STATE
 void PORT_Init (void)
 {
-   //P0MDOUT |= 0x15;                    // Enable UTX as push-pull output, SPI
-
    // NSS gets used as a GPIO pin
    P0SKIP = P03;
 
-#ifdef UART_TX_OPEN_DRAIN
-   P0MDOUT = (P06|P07);    // Enable UTX (P04) as open drain out, SCK, MOSI and SYNTH_LATCH are open drain
-#else
-   P0MDOUT = (P04|P06|P07);    // Enable UTX (P04) as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
+    // Default CPU reset state of P0MDIN and P1MDIN is 0xFF so no need to set it
+#ifdef OVERRIDE_RESET_STATE
+   P0MDIN = (P00|P01|P02|P03|P04|P05|P06|P07); // All digital see F35x_Ports_SwitchLEDs.c
 #endif
 
-   P1MDIN = (P10|P11|P12|P13|P14|P15|P16|P17); // All digital
+#ifdef UART_TX_OPEN_DRAIN
+   P0MDOUT = (P06|P07);     // Enable UTX (P04) as open drain out, SCK, MOSI and SYNTH_LATCH are open drain
+#else
+   P0MDOUT = (P04|P06|P07); // Enable UTX (P04) as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
+#endif
+
+#ifdef OVERRIDE_RESET_STATE
+   P1MDIN = (P10|P11|P12|P13|P14|P15|P16|P17); // All digital see F35x_Ports_SwitchLEDs.c
+#endif
 
    P1MDOUT = (P13|P15|P16);
 
