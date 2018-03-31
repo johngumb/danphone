@@ -514,9 +514,9 @@ class MyFrame(wx.Frame):
         #self.m_aux_linear=True
 
         if sixmetres():
-            self.m_devid=("cli",("tang",2217))
+            self.m_devid=("cli",("skate",2217))
             self.m_rig.set_ctcss_fudge(0.988)
-            self.m_audioserver="tang"
+            self.m_audioserver="skate"
             socketext="6m"
         elif twometres():
             self.m_devid=("cli",("rudd",2217))
