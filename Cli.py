@@ -35,7 +35,10 @@ class TelnetCLI:
 
         self.m_serial = serial.serial_for_url("rfc2217://%s:%d" % server_transport_addr, 115200, timeout=0.5)
 
+        #
         # needed to detect whether the radio has volts attatched
+        # - drive DTR to -9V. Radio will pull this up if there is power
+        #
         self.m_serial.setDTR(False)
 
         self.m_mcmicro = mcmicro
@@ -56,7 +59,7 @@ class TelnetCLI:
     def update_power_present(self):
         power_present = self.m_serial.getDSR()
 
-        if self.m_server == "dab":
+        if self.m_server in ["dab", "skate", "tang"]:
             self.m_mcmicro.set_power_supply_state(power_present)
         else:
             power_present = True
