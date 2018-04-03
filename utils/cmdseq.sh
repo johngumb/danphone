@@ -1,12 +1,47 @@
 #!/bin/bash
 
 CMDFIFO=/tmp/danphone-cmdseq
+PIDFILE=/tmp/cmdseq.pid
 
 MAXCHAR=100
 
-if [ ! -p ${CMDFIFO} ]; then
-   mkfifo ${CMDFIFO}
-fi
+start()
+{
+    if [ -f ${PIDFILE} ]; then
+        if kill -0 $(cat ${PIDFILE}); then
+            echo "already running"
+            exit 1
+        else
+            rm -f ${PIDFILE}
+        fi
+    fi
+          
+    if [ ! -p ${CMDFIFO} ]; then
+        mkfifo ${CMDFIFO}
+    fi
+
+    $(pwd)/$0 &
+    echo $! > ${PIDFILE}
+    exit $?
+}
+
+stop()
+{
+    pid=$(cat ${PIDFILE})
+
+    if kill ${pid}; then
+        rm -f ${PIDFILE}
+    fi
+    exit $?
+}
+
+case $1 in
+    start) start
+        ;;
+    stop) stop
+        ;;
+esac
+
 
 execute_cmd()
 {
