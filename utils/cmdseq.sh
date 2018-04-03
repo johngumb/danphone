@@ -27,11 +27,16 @@ start()
 
 stop()
 {
-    pid=$(cat ${PIDFILE})
+    if [ -f ${PIDFILE} ]; then
+        pid=$(cat ${PIDFILE})
 
-    if kill ${pid}; then
-        rm -f ${PIDFILE}
+        if kill ${pid}; then
+            rm -f ${PIDFILE}
+        fi
     fi
+
+    rm -f ${CMDFIFO}
+
     exit $?
 }
 

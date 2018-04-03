@@ -3,6 +3,12 @@ node=$1
 shift
 post=$1
 
+if [ "${node}" = "stop" ]; then
+	killall jackd
+	sh cmdseq.sh stop
+	exit $?
+fi
+
 if [ -z "${post}" ]; then
 	if [ -z "${node}" ]; then
    		node=cod.gumb.private
@@ -11,6 +17,7 @@ if [ -z "${post}" ]; then
 	jack_load netmanager
 	sleep 5
 fi
+sh cmdseq.sh start
 
 jack_disconnect ${node}:from_slave_1 system:playback_1
 jack_disconnect ${node}:from_slave_2 system:playback_2
