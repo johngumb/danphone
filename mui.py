@@ -831,12 +831,6 @@ class MyFrame(wx.Frame):
         return
 
     def init_rig(self):
-        # give the synth time to come up
-        time.sleep(0.19)
-        self.m_rig.set_step(self.m_step)
-        self.m_rig.set_rx_freq(self.m_freq)
-        self.m_rig.set_tx_freq(self.m_freq)
-
         # start off in low power mode
         self.m_button_tx_power_level.SetValue(False)
         self.onButtonTxPowerLevel(None)
@@ -844,6 +838,12 @@ class MyFrame(wx.Frame):
         # start off with ext alarm disabled
         self.m_ext_alarm_button.SetValue(False)
         self.onButtonExtAlarm(None)
+
+        # do this last in order to give the synth time to come up
+        # - seems to be set_step that fails
+        self.m_rig.set_step(self.m_step)
+        self.m_rig.set_rx_freq(self.m_freq)
+        self.m_rig.set_tx_freq(self.m_freq)
 
         return
 
