@@ -831,6 +831,8 @@ class MyFrame(wx.Frame):
         return
 
     def init_rig(self):
+        # give the synth time to come up
+        time.sleep(0.19)
         self.m_rig.set_step(self.m_step)
         self.m_rig.set_rx_freq(self.m_freq)
         self.m_rig.set_tx_freq(self.m_freq)
