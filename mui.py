@@ -112,6 +112,8 @@ g_rig = None
 g_recordvec={}
 g_recdir = "/home/john/recordings"
 
+g_pipe = None
+
 def writefreq(rig):
     global MUTED
 
@@ -194,7 +196,19 @@ def stop_record(audioserver):
         rotaterecs(audioserver)
 
 def jack_cmd(cmd):
-    os.system(cmd)
+    global g_pipe
+
+    #os.system(cmd)
+    fifo="/tmp/danphone-cmdseq"
+    if not os.path.exists(fifo):
+        print >> sys.stderr,"%s must exist" % fifo
+        sys.exit(1)
+    else:
+        g_pipe=open(fifo, 'w')
+    
+    g_pipe.write("%s %s\n" % (g_audioserver,cmd))
+    g_pipe.flush()
+
     return
 
 def mic_connect():
@@ -212,16 +226,16 @@ def mic_disconnect():
 def mute(audioserver):
     global MUTED
     if not MUTED:
-        os.system("jack_disconnect %s:from_slave_2 system:playback_1" % audioserver)
-        os.system("jack_disconnect %s:from_slave_2 system:playback_2" % audioserver)
+        jack_cmd("jack_disconnect %s:from_slave_2 system:playback_1" % audioserver)
+        jack_cmd("jack_disconnect %s:from_slave_2 system:playback_2" % audioserver)
         MUTED = True
     return
 
 def unmute(audioserver):
     global MUTED
     if MUTED:
-        os.system("jack_connect %s:from_slave_2 system:playback_1" % audioserver)
-        os.system("jack_connect %s:from_slave_2 system:playback_2" % audioserver)
+        jack_cmd("jack_connect %s:from_slave_2 system:playback_1" % audioserver)
+        jack_cmd("jack_connect %s:from_slave_2 system:playback_2" % audioserver)
         MUTED = False
     return
 
