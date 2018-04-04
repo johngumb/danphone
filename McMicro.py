@@ -71,6 +71,7 @@ class McMicro:
 
         # Tx/Rx brought out on pin 1 of 15 way d type
 
+        # MC14094 shift register pin usage
         #0x80 pin 4
         #0x10 pin 7 hi/lo power ??
 
