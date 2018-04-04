@@ -50,10 +50,20 @@ esac
 
 execute_cmd()
 {
+    expect_success=$1
+    shift
     CMD="$1"
+    let attempts=0
+    let maxattempts=1
 
-    echo ${CMD}
-    ${CMD}
+    while [ ${attempts} -lt ${maxattempts} ]; do
+        echo ${CMD}
+        if ${CMD}; then
+            break
+        fi
+        sleep 0.1
+        let attempts=${attempts}+1
+    done
 }
 
 waitpid()
@@ -65,7 +75,7 @@ waitpid()
 
 while true; do
       if read -n ${MAXCHAR} FULLCMD < ${CMDFIFO}; then
-          echo FULLCMD $FULLCMD
+#          echo FULLCMD $FULLCMD
           fromnode=$(echo ${FULLCMD} | awk '{print $1}')
           CMD=$(echo ${FULLCMD} | awk '{$1=""; print $0}')
           first=$(echo ${CMD} | awk '{print $1}')
@@ -76,7 +86,7 @@ while true; do
               echo $! > ${pernode_fifo}
           elif [ "${first}" == "kill" ]; then
               pid=$(echo ${CMD} | awk '{print $NF}')
-              execute_cmd "${CMD}"
+              execute_cmd true "${CMD}"
 
               # need to wait for process to die
               waitpid ${pid}
@@ -84,7 +94,7 @@ while true; do
               # let requesting process know recording has stopped
               echo ${pid} > ${pernode_fifo}
           else
-              execute_cmd "${CMD}"
+              execute_cmd true "${CMD}"
           fi
       fi
       # readstat=$?
