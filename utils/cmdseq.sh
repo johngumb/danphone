@@ -22,7 +22,6 @@ start()
 
     $(pwd)/$0 &
     echo $! > ${PIDFILE}
-    exit $?
 }
 
 stop()
@@ -36,14 +35,21 @@ stop()
     fi
 
     rm -f ${CMDFIFO}
-
-    exit $?
 }
 
 case $1 in
-    start) start
+    start) 
+        start
+        exit $?
         ;;
-    stop) stop
+    stop) 
+        stop
+        exit $?
+        ;;
+    restart) 
+        stop
+        start
+        exit $?
         ;;
 esac
 
@@ -54,7 +60,7 @@ execute_cmd()
     shift
     CMD="$1"
     let attempts=0
-    let maxattempts=1
+    let maxattempts=2
 
     while [ ${attempts} -lt ${maxattempts} ]; do
         echo ${CMD}
@@ -75,9 +81,10 @@ waitpid()
 
 while true; do
       if read -n ${MAXCHAR} FULLCMD < ${CMDFIFO}; then
-#          echo FULLCMD $FULLCMD
+          #echo FULLCMD $FULLCMD
           fromnode=$(echo ${FULLCMD} | awk '{print $1}')
-          CMD=$(echo ${FULLCMD} | awk '{$1=""; print $0}')
+          expect_success=$(echo ${FULLCMD} | awk '{print $2}')
+          CMD=$(echo ${FULLCMD} | awk '{$1=""; $2=""; print $0}')
           first=$(echo ${CMD} | awk '{print $1}')
           pernode_fifo="/tmp/${fromnode}_recfifo"
 
@@ -94,7 +101,7 @@ while true; do
               # let requesting process know recording has stopped
               echo ${pid} > ${pernode_fifo}
           else
-              execute_cmd true "${CMD}"
+              execute_cmd ${expect_success} "${CMD}"
           fi
       fi
       # readstat=$?

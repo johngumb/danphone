@@ -195,7 +195,7 @@ def stop_record(audioserver):
 
         rotaterecs(audioserver)
 
-def jack_cmd(cmd):
+def jack_cmd(cmd, expect_success=True):
     global g_pipe
 
     #os.system(cmd)
@@ -206,7 +206,7 @@ def jack_cmd(cmd):
     else:
         g_pipe=open(fifo, 'w')
     
-    g_pipe.write("%s %s\n" % (g_audioserver,cmd))
+    g_pipe.write("%s %s %s\n" % (g_audioserver, repr(expect_success).lower(), cmd))
     g_pipe.flush()
 
     return
@@ -223,11 +223,11 @@ def mic_disconnect():
 
 # TODO fix initial mute state
 # TODO radio might start with signal present.
-def mute(audioserver):
+def mute(audioserver, expect_success=True):
     global MUTED
     if not MUTED:
-        jack_cmd("jack_disconnect %s:from_slave_2 system:playback_1" % audioserver)
-        jack_cmd("jack_disconnect %s:from_slave_2 system:playback_2" % audioserver)
+        jack_cmd("jack_disconnect %s:from_slave_2 system:playback_1" % audioserver, expect_success)
+        jack_cmd("jack_disconnect %s:from_slave_2 system:playback_2" % audioserver, expect_success)
         MUTED = True
     return
 
@@ -1143,7 +1143,7 @@ class MyFrame(wx.Frame):
 def closedown():
         stop_extthread(ExtSocket)
         g_rig.m_request_thread_exit=True
-        mute(g_audioserver)
+        mute(g_audioserver, False)
         mic_disconnect()
         for audioserver in g_recordvec.keys():
             stop_record(audioserver)
