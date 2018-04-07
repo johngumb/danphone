@@ -19,10 +19,10 @@ if [ -z "${post}" ]; then
 fi
 sh cmdseq.sh start
 
-jack_disconnect ${node}:from_slave_1 system:playback_1
-jack_disconnect ${node}:from_slave_2 system:playback_2
+##jack_disconnect ${node}:from_slave_1 system:playback_1
+##jack_disconnect ${node}:from_slave_2 system:playback_2
 #jack_connect ${node}:from_slave_1 system:playback_1
 #jack_connect ${node}:from_slave_2 system:playback_1
 #jack_connect ${node}:from_slave_2 system:playback_2
-jack_connect system:capture_1 ${node}:to_slave_1
+##jack_connect system:capture_1 ${node}:to_slave_1
 #jack_connect system:capture_2 ${node}:to_slave_2
