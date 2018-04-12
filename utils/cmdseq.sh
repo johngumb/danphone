@@ -62,6 +62,12 @@ execute_cmd()
     let attempts=0
     let maxattempts=2
 
+    if ${expect_success}; then
+        let maxattempts=3
+    else
+        let maxattempts=2
+    fi
+
     while [ ${attempts} -lt ${maxattempts} ]; do
         echo ${CMD}
         if ${CMD}; then
@@ -74,23 +80,42 @@ execute_cmd()
 
 waitpid()
 {
-    while kill -0 $1; do
+    while kill -0 $1 2>/dev/null; do
         sleep 0.1
     done
+}
+
+execute_backgrounded()
+{
+    CMD="$1"
+    ${CMD} &
+    echo $!
 }
 
 while true; do
       if read -n ${MAXCHAR} FULLCMD < ${CMDFIFO}; then
           #echo FULLCMD $FULLCMD
-          fromnode=$(echo ${FULLCMD} | awk '{print $1}')
+          jacknode=$(echo ${FULLCMD} | awk '{print $1}')
           expect_success=$(echo ${FULLCMD} | awk '{print $2}')
           CMD=$(echo ${FULLCMD} | awk '{$1=""; $2=""; print $0}')
           first=$(echo ${CMD} | awk '{print $1}')
-          pernode_fifo="/tmp/${fromnode}_recfifo"
+          pernode_fifo="/tmp/${jacknode}_recfifo"
 
           if [ "${first}" == "jack_capture" ]; then
-              ${CMD} &
-              echo $! > ${pernode_fifo}
+              echo $CMD
+              let attempts=0
+              while [ ${attempts} -lt 10 ]; do
+                  ${CMD} &
+                  newproc=$!
+                  if kill -0 ${newproc}; then
+                      echo "newproc" ${newproc}
+                      echo ${newproc} > ${pernode_fifo}
+                      break
+                  fi
+                  sleep 0.1
+                  echo ${CMD} "failed..retrying"
+                  let attempts=${attempts}+1
+              done
           elif [ "${first}" == "kill" ]; then
               pid=$(echo ${CMD} | awk '{print $NF}')
               execute_cmd true "${CMD}"

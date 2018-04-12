@@ -42,6 +42,7 @@ import McMicro
 import wx.lib.newevent
 import threading
 import socket
+import string
 
 DataEvent, EVT_DATA = wx.lib.newevent.NewEvent() 
 
@@ -112,6 +113,7 @@ g_rig = None
 g_recordvec={}
 g_recdir = "/home/john/recordings"
 
+# to cmdseq
 g_pipe = None
 
 def writefreq(rig):
@@ -151,7 +153,13 @@ def start_record(audioserver):
     news = False
     inhibit = os.path.exists("/tmp/inhibit-recordings")
     if not g_recordvec.has_key(audioserver) and os.path.exists(g_recdir) and not inhibit and not news:
-        p = subprocess.Popen(['jack_capture','-as','--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav")])
+        rec_cmd=['jack_capture','--no-stdin','-as','--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav")]
+        #p = subprocess.Popen(rec_cmd)
+        jack_cmd(string.join(rec_cmd), True)
+        jr = open(jack_recfifo())
+        p = jr.read()
+        jr.close()
+        g_pipe.flush()
         g_recordvec[audioserver]=p
 
 def recfname(audioserver,n):
@@ -186,12 +194,22 @@ def stop_record(audioserver):
         p = g_recordvec[audioserver]
 
         del g_recordvec[audioserver]
-        
-        p.terminate()
 
-        status = p.communicate()
+        print "prekill", p
 
-        retcode = p.wait()
+        jack_cmd('kill %s' % p)
+
+        jr = open(jack_recfifo())
+        q=jr.read()
+        jr.close()
+
+        print "postkill",q
+
+#        p.terminate()
+
+        #status = p.communicate()
+
+        #retcode = p.wait()
 
         rotaterecs(audioserver)
 
@@ -550,6 +568,10 @@ class MyFrame(wx.Frame):
             self.m_audioserver="dab"
 
         g_audioserver=self.m_audioserver
+
+        if os.path.exists(jack_recfifo()):
+            os.unlink(jack_recfifo())
+        os.mkfifo(jack_recfifo())
 
         self.m_rig.initialise(device_id=self.m_devid)
 
@@ -1140,6 +1162,11 @@ class MyFrame(wx.Frame):
         sizer_1.SetSizeHints(self)
         self.Layout()
 
+def jack_recfifo():
+    global g_audioserver
+    assert(g_audioserver)
+    return "/tmp/%s_recfifo" % g_audioserver
+
 def closedown():
         stop_extthread(ExtSocket)
         g_rig.m_request_thread_exit=True
@@ -1147,6 +1174,7 @@ def closedown():
         mic_disconnect()
         for audioserver in g_recordvec.keys():
             stop_record(audioserver)
+        os.unlink(jack_recfifo())
 
 class MyApp(wx.App):
     def OnInit(self):
