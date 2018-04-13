@@ -155,13 +155,10 @@ def start_record(audioserver):
     if not g_recordvec.has_key(audioserver) and os.path.exists(g_recdir) and not inhibit and not news:
         rec_cmd=['jack_capture','--no-stdin','-as','--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav")]
 
-        jack_cmd(string.join(rec_cmd), True)
+        jack_cmd(string.join(rec_cmd), True, True)
 
-        jr = open(jack_recfifo())
-        p = jr.read().strip()
-        jr.close()
-
-        g_recordvec[audioserver]=p
+        with open(jack_recfifo()) as jr:
+            g_recordvec[audioserver] = jr.read().strip()
 
 def recfname(audioserver,n):
     global g_recdir
@@ -208,7 +205,7 @@ def stop_record(audioserver):
 
         rotaterecs(audioserver)
 
-def jack_cmd(cmd, expect_success=True):
+def jack_cmd(cmd, expect_success=True, background=False):
     global g_pipe
 
     #os.system(cmd)
@@ -218,9 +215,14 @@ def jack_cmd(cmd, expect_success=True):
         sys.exit(1)
     else:
         g_pipe=open(fifo, 'w')
-    
+
     g_pipe.write("%s %s %s\n" % (g_audioserver, repr(expect_success).lower(), cmd))
     g_pipe.flush()
+
+    if not background:
+        with open(jack_recfifo(),"r") as r:
+            r = r.read().strip() 
+            assert( r == "done")
 
     return
 

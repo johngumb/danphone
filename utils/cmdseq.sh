@@ -55,12 +55,14 @@ esac
 
 locdate()
 {
-    date +%H:%M:%S
+    date +%H:%M:%S:%N
 }
 
 execute_cmd()
 {
     expect_success=$1
+    shift
+    pernode_fifo=$1
     shift
     CMD="$1"
     let attempts=0
@@ -80,6 +82,12 @@ execute_cmd()
         sleep 0.1
         let attempts=${attempts}+1
     done
+
+    rc=$?
+
+    echo done > ${pernode_fifo}
+
+    return ${rc}
 }
 
 waitpid()
@@ -122,7 +130,7 @@ while true; do
               done
           elif [ "${first}" == "kill" ]; then
               pid=$(echo ${CMD} | awk '{print $NF}')
-              execute_cmd true "${CMD}"
+              execute_cmd true ${pernode_fifo} "${CMD}"
 
               # need to wait for process to die
               waitpid ${pid}
@@ -130,7 +138,7 @@ while true; do
               # let requesting process know recording has stopped
               echo ${pid} > ${pernode_fifo}
           else
-              execute_cmd ${expect_success} "${CMD}"
+              execute_cmd ${expect_success} ${pernode_fifo} "${CMD}"
           fi
       else
           read_rc=$?
