@@ -128,6 +128,9 @@ while true; do
           else
               execute_cmd ${expect_success} "${CMD}"
           fi
+      else
+          read_rc=$?
+          echo "read failed rc ${read_rc}"
       fi
       # readstat=$?
       # if [ ${readstat} -ne 0 ]; then

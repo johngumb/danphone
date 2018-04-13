@@ -157,7 +157,7 @@ def start_record(audioserver):
         #p = subprocess.Popen(rec_cmd)
         jack_cmd(string.join(rec_cmd), True)
         jr = open(jack_recfifo())
-        p = jr.read()
+        p = jr.read().strip()
         jr.close()
         g_pipe.flush()
         g_recordvec[audioserver]=p
@@ -200,16 +200,10 @@ def stop_record(audioserver):
         jack_cmd('kill %s' % p)
 
         jr = open(jack_recfifo())
-        q=jr.read()
+        q=jr.read().strip()
         jr.close()
 
         print "postkill",q
-
-#        p.terminate()
-
-        #status = p.communicate()
-
-        #retcode = p.wait()
 
         rotaterecs(audioserver)
 
@@ -1168,13 +1162,16 @@ def jack_recfifo():
     return "/tmp/%s_recfifo" % g_audioserver
 
 def closedown():
-        stop_extthread(ExtSocket)
-        g_rig.m_request_thread_exit=True
-        mute(g_audioserver, False)
-        mic_disconnect()
-        for audioserver in g_recordvec.keys():
-            stop_record(audioserver)
-        os.unlink(jack_recfifo())
+    global g_pipe
+
+    stop_extthread(ExtSocket)
+    g_rig.m_request_thread_exit=True
+    mute(g_audioserver, False)
+    mic_disconnect()
+    for audioserver in g_recordvec.keys():
+        stop_record(audioserver)
+    os.unlink(jack_recfifo())
+    g_pipe.close()
 
 class MyApp(wx.App):
     def OnInit(self):
