@@ -53,6 +53,10 @@ case $1 in
         ;;
 esac
 
+locdate()
+{
+    date +%H:%M:%S
+}
 
 execute_cmd()
 {
@@ -69,7 +73,7 @@ execute_cmd()
     fi
 
     while [ ${attempts} -lt ${maxattempts} ]; do
-        echo ${CMD}
+        echo $(locdate) ${CMD}
         if ${CMD}; then
             break
         fi
@@ -102,7 +106,7 @@ while true; do
           pernode_fifo="/tmp/${jacknode}_recfifo"
 
           if [ "${first}" == "jack_capture" ]; then
-              echo $CMD
+              echo $(locdate) $CMD
               let attempts=0
               while [ ${attempts} -lt 10 ]; do
                   ${CMD} &
