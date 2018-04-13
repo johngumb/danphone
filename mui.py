@@ -154,12 +154,13 @@ def start_record(audioserver):
     inhibit = os.path.exists("/tmp/inhibit-recordings")
     if not g_recordvec.has_key(audioserver) and os.path.exists(g_recdir) and not inhibit and not news:
         rec_cmd=['jack_capture','--no-stdin','-as','--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav")]
-        #p = subprocess.Popen(rec_cmd)
+
         jack_cmd(string.join(rec_cmd), True)
+
         jr = open(jack_recfifo())
         p = jr.read().strip()
         jr.close()
-        g_pipe.flush()
+
         g_recordvec[audioserver]=p
 
 def recfname(audioserver,n):
@@ -499,9 +500,12 @@ class StatusLEDtimer(wx.Timer):
 
             if (not sopen) and lastclosed:
                 self.target.m_squelch_led.SetState(0)
-                stop_record(self.target.m_audioserver)
+
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
+
+                stop_record(self.target.m_audioserver)
+
                 if not self.target.m_audio_pa_button.GetValue():
                     self.target.m_rig.disable_audio_pa()
 
