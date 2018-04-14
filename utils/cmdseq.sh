@@ -99,53 +99,49 @@ execute_backgrounded()
 }
 
 while true; do
-      if read -n ${MAXCHAR} ALLFULLCMD < ${CMDFIFO}; then
-          jacknode=$(echo ${ALLFULLCMD} | awk '{print $1}')
-          expect_success=$(echo ${ALLFULLCMD} | awk '{print $2}')
-          FULLCMDSTR=$(echo ${ALLFULLCMD} | awk '{$1=""; $2=""; print $0}')
-          echo FULLCMDSTR $FULLCMDSTR
-          IFS=";" FULLCMDARR=(${FULLCMDSTR}); unset IFS
-          for CMD in "${FULLCMDARR[@]}"; do
+    if read -n ${MAXCHAR} ALLFULLCMD < ${CMDFIFO}; then
+        jacknode=$(echo ${ALLFULLCMD} | awk '{print $1}')
+        expect_success=$(echo ${ALLFULLCMD} | awk '{print $2}')
+        FULLCMDSTR=$(echo ${ALLFULLCMD} | awk '{$1=""; $2=""; print $0}')
+        echo FULLCMDSTR $FULLCMDSTR
+        IFS=";" FULLCMDARR=(${FULLCMDSTR}); unset IFS
+        for CMD in "${FULLCMDARR[@]}"; do
 
-          first=$(echo ${CMD} | awk '{print $1}')
-          pernode_fifo="/tmp/${jacknode}_recfifo"
+            first=$(echo ${CMD} | awk '{print $1}')
+            pernode_fifo="/tmp/${jacknode}_recfifo"
 
-          if [ "${first}" == "jack_capture" ]; then
-              echo $(locdate) $CMD
-              let attempts=0
-              while [ ${attempts} -lt 10 ]; do
-                  ${CMD} &
-                  newproc=$!
-                  if kill -0 ${newproc}; then
-                      echo "newproc" ${newproc}
-                      echo ${newproc} > ${pernode_fifo}
-                      break
-                  fi
-                  sleep 0.1
-                  echo ${CMD} "failed..retrying"
-                  let attempts=${attempts}+1
-              done
-          elif [ "${first}" == "kill" ]; then
-              pid=$(echo ${CMD} | awk '{print $NF}')
-              execute_cmd true ${pernode_fifo} "${CMD}"
+            if [ "${first}" == "jack_capture" ]; then
+                echo $(locdate) $CMD
+                let attempts=0
+                while [ ${attempts} -lt 10 ]; do
+                    ${CMD} &
+                    newproc=$!
+                    if kill -0 ${newproc}; then
+                        echo "newproc" ${newproc}
+                        echo ${newproc} > ${pernode_fifo}
+                        break
+                    fi
+                    sleep 0.1
+                    echo ${CMD} "failed..retrying"
+                    let attempts=${attempts}+1
+                done
+            elif [ "${first}" == "kill" ]; then
+                pid=$(echo ${CMD} | awk '{print $NF}')
+                execute_cmd true ${pernode_fifo} "${CMD}"
 
-              # need to wait for process to die
-              waitpid ${pid}
+                # need to wait for process to die
+                waitpid ${pid}
 
-              # let requesting process know recording has stopped
-              echo ${pid} > ${pernode_fifo}
-          else
-              execute_cmd ${expect_success} ${pernode_fifo} "${CMD}"
-          fi
-      done
-      else
-          read_rc=$?
-          echo "read failed rc ${read_rc}"
-      fi
-      # readstat=$?
-      # if [ ${readstat} -ne 0 ]; then
-      #     echo "$0: read failed"
-      #     sleep 0.1
-      # fi
+                # let requesting process know recording has stopped
+                echo ${pid} > ${pernode_fifo}
+            else
+                execute_cmd ${expect_success} ${pernode_fifo} "${CMD}"
+            fi
+        done
+    else
+        read_rc=$?
+        echo "$0: read failed rc ${read_rc}"
+        sleep 0.1
+    fi
 done
 
