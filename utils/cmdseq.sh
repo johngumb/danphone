@@ -3,7 +3,7 @@
 CMDFIFO=/tmp/danphone-cmdseq
 PIDFILE=/tmp/cmdseq.pid
 
-MAXCHAR=100
+MAXCHAR=300
 
 start()
 {
@@ -82,12 +82,6 @@ execute_cmd()
         sleep 0.1
         let attempts=${attempts}+1
     done
-
-    rc=$?
-
-    echo done > ${pernode_fifo}
-
-    return ${rc}
 }
 
 waitpid()
@@ -105,11 +99,14 @@ execute_backgrounded()
 }
 
 while true; do
-      if read -n ${MAXCHAR} FULLCMD < ${CMDFIFO}; then
-          #echo FULLCMD $FULLCMD
-          jacknode=$(echo ${FULLCMD} | awk '{print $1}')
-          expect_success=$(echo ${FULLCMD} | awk '{print $2}')
-          CMD=$(echo ${FULLCMD} | awk '{$1=""; $2=""; print $0}')
+      if read -n ${MAXCHAR} ALLFULLCMD < ${CMDFIFO}; then
+          jacknode=$(echo ${ALLFULLCMD} | awk '{print $1}')
+          expect_success=$(echo ${ALLFULLCMD} | awk '{print $2}')
+          FULLCMDSTR=$(echo ${ALLFULLCMD} | awk '{$1=""; $2=""; print $0}')
+          echo FULLCMDSTR $FULLCMDSTR
+          IFS=";" FULLCMDARR=(${FULLCMDSTR}); unset IFS
+          for CMD in "${FULLCMDARR[@]}"; do
+
           first=$(echo ${CMD} | awk '{print $1}')
           pernode_fifo="/tmp/${jacknode}_recfifo"
 
@@ -140,6 +137,7 @@ while true; do
           else
               execute_cmd ${expect_success} ${pernode_fifo} "${CMD}"
           fi
+      done
       else
           read_rc=$?
           echo "read failed rc ${read_rc}"

@@ -155,7 +155,7 @@ def start_record(audioserver):
     if not g_recordvec.has_key(audioserver) and os.path.exists(g_recdir) and not inhibit and not news:
         rec_cmd=['jack_capture','--no-stdin','-as','--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav")]
 
-        jack_cmd(string.join(rec_cmd), True, True)
+        jack_cmd(string.join(rec_cmd))
 
         with open(jack_recfifo()) as jr:
             g_recordvec[audioserver] = jr.read().strip()
@@ -205,7 +205,7 @@ def stop_record(audioserver):
 
         rotaterecs(audioserver)
 
-def jack_cmd(cmd, expect_success=True, background=False):
+def jack_cmd(cmd, expect_success=True):
     global g_pipe
 
     #os.system(cmd)
@@ -218,11 +218,6 @@ def jack_cmd(cmd, expect_success=True, background=False):
 
     g_pipe.write("%s %s %s\n" % (g_audioserver, repr(expect_success).lower(), cmd))
     g_pipe.flush()
-
-    if not background:
-        with open(jack_recfifo(),"r") as r:
-            r = r.read().strip() 
-            assert( r == "done")
 
     return
 
@@ -241,16 +236,16 @@ def mic_disconnect():
 def mute(audioserver, expect_success=True):
     global MUTED
     if not MUTED:
-        jack_cmd("jack_disconnect %s:from_slave_2 system:playback_1" % audioserver, expect_success)
-        jack_cmd("jack_disconnect %s:from_slave_2 system:playback_2" % audioserver, expect_success)
+        cmd=string.join(["jack_disconnect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
+        jack_cmd(cmd)
         MUTED = True
     return
 
 def unmute(audioserver):
     global MUTED
     if MUTED:
-        jack_cmd("jack_connect %s:from_slave_2 system:playback_1" % audioserver)
-        jack_cmd("jack_connect %s:from_slave_2 system:playback_2" % audioserver)
+        cmd=string.join(["jack_connect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
+        jack_cmd(cmd)
         MUTED = False
     return
 
