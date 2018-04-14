@@ -237,7 +237,7 @@ def mute(audioserver, expect_success=True):
     global MUTED
     if not MUTED:
         cmd=string.join(["jack_disconnect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
-        jack_cmd(cmd)
+        jack_cmd(cmd, expect_success)
         MUTED = True
     return
 
@@ -1167,11 +1167,17 @@ def closedown():
 
     stop_extthread(ExtSocket)
     g_rig.m_request_thread_exit=True
+
+    # may already be muted hence expect success False
     mute(g_audioserver, False)
     mic_disconnect()
     for audioserver in g_recordvec.keys():
         stop_record(audioserver)
+
+    # we have responsibility for inbound fifo
     os.unlink(jack_recfifo())
+
+    # cmdseq.sh has responsibility for deleting /tmp/danphone-cmdseq
     g_pipe.close()
 
 class MyApp(wx.App):
