@@ -91,13 +91,6 @@ waitpid()
     done
 }
 
-execute_backgrounded()
-{
-    CMD="$1"
-    ${CMD} &
-    echo $!
-}
-
 while true; do
     if read -n ${MAXCHAR} ALLFULLCMD < ${CMDFIFO}; then
         jacknode=$(echo ${ALLFULLCMD} | awk '{print $1}')
