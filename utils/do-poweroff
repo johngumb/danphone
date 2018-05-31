@@ -1,10 +1,20 @@
 #!/bin/bash
 
+#ssh root@tang "sync; sync"
+
 sh /home/john/sys x
 
 machines="$(cat machines)"
 
+killall sdr-core
+
+sh audiogo stop
+
 for mc in ${machines}; do
-        echo "powering off ${mc}...."
-	ssh root@${mc} "poweroff &"
+	if ping -c1 -w1 ${mc} > /dev/null; then
+                echo "powering off ${mc}...."
+		ssh root@${mc} "poweroff &"
+        else
+                echo "powering off ${mc}....unreachable"
+        fi
 done
