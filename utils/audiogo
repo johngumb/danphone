@@ -1,7 +1,6 @@
 #!/bin/bash
 node=$1
-shift
-post=$1
+post=$2
 
 if [ "${node}" = "stop" ]; then
 	killall jackd

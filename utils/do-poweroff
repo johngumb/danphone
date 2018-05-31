@@ -18,3 +18,4 @@ for mc in ${machines}; do
                 echo "powering off ${mc}....unreachable"
         fi
 done
+killall firefox
