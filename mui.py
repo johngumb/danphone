@@ -256,7 +256,7 @@ class ScanTimer(wx.Timer):
         self.m_idx=0
 
         if sixmetres():
-            self.m_freqs = (51.51, 50.84, 51.51, 50.81,)
+            self.m_freqs = (51.51, 50.315, 51.51, 50.315,)
             if False:
                 freqs = [50.53]
                 f = 50.75
@@ -275,15 +275,16 @@ class ScanTimer(wx.Timer):
             freqs = [145.5]
             f = 145.6
             i = 0
-            while f < 145.79:
-                if i != 3: # avoid 146.6375 DMR
-                    freqs.append(f)
-                    freqs.append(145.5)
-                f += 0.0125
-                i += 1
+            if False:
+                while f < 145.79:
+                    if i != 3: # avoid 146.6375 DMR
+                        freqs.append(f)
+                        freqs.append(145.5)
+                    f += 0.0125
+                    i += 1
             self.m_freqs = freqs
         else:
-            self.m_freqs = (70.45, 70.2)
+            self.m_freqs = (70.45)
 
         return
 
@@ -354,6 +355,12 @@ class TxSafetyTimer(wx.Timer):
         wx.WakeUpIdle()
 
         return
+
+def is_ft8(freq):
+    for f in ["50315","70155","144175"]:
+        if string.find(repr(freq),f)==0:
+            return True
+    return False
 
 class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
@@ -452,7 +459,9 @@ class StatusLEDtimer(wx.Timer):
             if sopen:
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
-                    if not (self.target.m_stay_muted or self.target.m_transmitting):
+                    curfreq = self.target.m_rig.get_rx_freq()
+                    ft8 = is_ft8(curfreq)
+                    if not (self.target.m_stay_muted or self.target.m_transmitting or ft8):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
                         start_record(self.target.m_audioserver)
@@ -487,7 +496,10 @@ class StatusLEDtimer(wx.Timer):
             if sopen and lastopen:
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
-                    if not (self.target.m_stay_muted or self.target.m_transmitting):
+                    curfreq = self.target.m_rig.get_rx_freq()
+                    ft8 = is_ft8(curfreq)
+                    print curfreq,ft8
+                    if not (self.target.m_stay_muted or self.target.m_transmitting or ft8):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
                         start_record(self.target.m_audioserver)
@@ -586,7 +598,7 @@ class MyFrame(wx.Frame):
         steps=["Auto","4","5","6.25","8","10","12.5"]
 
         if sixmetres():
-            self.m_step_selected = "10"
+            self.m_step_selected = "5"
         else:
             self.m_step_selected = "12.5"
 
@@ -728,12 +740,12 @@ class MyFrame(wx.Frame):
 
         self.m_tx_safety_timer=TxSafetyTimer(self)
 
-        self.m_txlockdir="/var/run/mui/txlock"
+        self.m_txlockdir="/tmp/txlock"
 
         if not os.path.exists(self.m_txlockdir):
             os.makedirs(self.m_txlockdir)
 
-        self.m_scan_period=5000
+        self.m_scan_period=35000
         self.m_scan_timer=ScanTimer(self)
         self.m_scan_timer.Start(self.m_scan_period)
         
@@ -944,6 +956,9 @@ class MyFrame(wx.Frame):
     def onButtonMonitor(self,event):
         if self.m_monitor_button.GetValue():
             unmute(self.m_audioserver)
+            self.m_monitor_button.SetBackgroundColour("#0x111111")
+        else:
+            self.m_monitor_button.SetBackgroundColour(wx.NullColour)
 
         return
 
@@ -972,7 +987,7 @@ class MyFrame(wx.Frame):
             self.m_tx_timer.Start(1000*60*7)
         else:
             self.free_tx_lock()
-            time.sleep(0.3)
+            time.sleep(0.5)
             self.m_tx_timer.Stop()
 
             self.m_tx_rx.SetValue(False)
