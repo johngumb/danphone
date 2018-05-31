@@ -498,7 +498,6 @@ class StatusLEDtimer(wx.Timer):
                 if not self.target.m_monitor_button.GetValue():
                     curfreq = self.target.m_rig.get_rx_freq()
                     ft8 = is_ft8(curfreq)
-                    print curfreq,ft8
                     if not (self.target.m_stay_muted or self.target.m_transmitting or ft8):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
