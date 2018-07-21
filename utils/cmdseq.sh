@@ -9,7 +9,7 @@ start()
 {
     if [ -f ${PIDFILE} ]; then
         if kill -0 $(cat ${PIDFILE}); then
-            echo "already running"
+            echo "$0: already running"
             exit 1
         else
             rm -f ${PIDFILE}
@@ -110,7 +110,7 @@ while true; do
                     ${CMD} &
                     newproc=$!
                     if kill -0 ${newproc}; then
-                        echo "newproc" ${newproc}
+                        echo "$0: newproc" ${newproc}
                         echo ${newproc} > ${pernode_fifo}
                         break
                     fi
