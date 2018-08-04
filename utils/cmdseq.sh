@@ -71,7 +71,7 @@ execute_cmd()
     if ${expect_success}; then
         let maxattempts=3
     else
-        let maxattempts=2
+        let maxattempts=1
     fi
 
     while [ ${attempts} -lt ${maxattempts} ]; do
@@ -79,7 +79,6 @@ execute_cmd()
         if ${CMD}; then
             break
         fi
-        sleep 0.1
         let attempts=${attempts}+1
     done
 }
