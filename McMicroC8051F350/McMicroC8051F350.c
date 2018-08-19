@@ -60,8 +60,7 @@
 /* sbit unused_input=P0^1; look to re-use this; was used for 9.6V status */
 sbit synth_latch_bit=P0^3;
 sbit shift_reg_latch_bit=P0^7;
-sbit dac_select_bit=P0^7;
-sbit dac_latch_pin=P1^6;
+sbit dac_select_bit=P2^0;
 sbit squelch_bit=P1^0;
 sbit locked_bit=P1^1;
 sbit power_on_bit=P1^2;
@@ -412,9 +411,6 @@ void act_synth(void)
 
 void write_dac(unsigned char cmd, unsigned char d_hi, unsigned char d_lo)
 {
-
-	printf("cmd %02X\n",cmd);
-
 	dac_select_bit=0;
 
 	SPI_Byte_Write(cmd);
@@ -423,75 +419,65 @@ void write_dac(unsigned char cmd, unsigned char d_hi, unsigned char d_lo)
 
 	SPI_Byte_Write(d_lo);
 
-	delay(10);
-
 	dac_select_bit=1;
 }
 
+// write to MCP48FEB22 12 bit DAC
 void act_dac(void)
 {
 	unsigned char offset=1; // skip first command string byte
 
-	unsigned char cmd=0,data_high=0,data_low=0;
-
-	//printf("jag %d\n",xcmd);
-
-	dac_latch_pin=0;
+	unsigned char data_high,data_low, refval, dacno;
 
 #define ADDR_SHIFT 3
 #define CMD_SHIFT 1
-#define CMD_WRITE 0
-	// use internal reference
-	cmd = (8 << ADDR_SHIFT); // using register 8, VREF reg
-	data_high = 0;
-	data_low = 5; //0101
 
-	write_dac(cmd, data_high, data_low);
+    // format of DAC command
+    // DINABC
+    // D: Dac command (that's how we got here so skip it)
+    // I: 0: internal ref
+    //    1: KXN1123AA ref
+    // N: Dac number
+    //    0: DAC 0
+    //    1: DAC 1
+    //    2: Both
+    // A: top 4 bits of DAC value 0-F
+    // B: middle 4 bits of DAC value 0-F
+    // C: bottom 4 bits of DAC value 0-F
+
+    refval = hexdigittobyte(str[offset++]);
+
+    if (refval)
+	    data_low = 5; //0101 internal
+    else
+        data_low = 10; //1010, external, unbuffered
+
+	// use specifed reference - internal or external
+	write_dac(8 << ADDR_SHIFT, 0, data_low);  // using register 8, VREF reg
 
 	// enable
-	cmd = (9 << ADDR_SHIFT); // using register 9, power down reg
-	data_high = 0;
-	data_low = 0;
+	write_dac(9 << ADDR_SHIFT, 0, 0); // using register 9, power down reg
 
-	write_dac(cmd, data_high, data_low);
+    dacno = hexdigittobyte(str[offset++]);
 
-	cmd = 0;
-	// write a value
-	data_low=250;
-	data_high=15;
+    data_high = hexdigittobyte(str[offset++]);
 
-	write_dac(cmd, data_high, data_low);
+    // must be 2 characters remaining
+    data_low = strtohex(&str[offset]);
 
-#if 0
-	for (i=0;i<1000;i++)
-	{
-	dac_select_bit=0;
+    printf("refval %x\n",refval);
+    printf("dacno %x\n",dacno);
+    printf("data_high %x\n",data_high);
+    printf("data_low %x\n",data_low);
 
-	delay(100000);
-
-	// deal with, for example "DD9C" or "D09C"
-	if ((strlen(str)%2)==0)
-	{
-		unsigned char fval=0;
-
-		fval+=hexdigittobyte(str[offset]);
-
-		SPI_Byte_Write(fval);
-
-		offset++;
-	}
-
-	// at this point,remaining
-	// hex string is always of form
-	// 11223344 i.e. even number of chars
-	while (str[offset]!=0)
-	{
-		SPI_Byte_Write(strtohex(&str[offset]));
-		//printf("%02x",strtohex(&str[offset]));
-		offset+=2;
-	}
-
-#endif
+    if (dacno == 2)
+    {
+        write_dac(0 << ADDR_SHIFT, data_high, data_low);
+        write_dac(1 << ADDR_SHIFT, data_high, data_low); 
+    }
+    else
+	    // using register "dacno", write a value to DAC specified
+        write_dac(dacno << ADDR_SHIFT, data_high, data_low);
 
     act_stbyte();
 }
@@ -798,10 +784,10 @@ void main (void)
     act_set_power(0);
 
     // default freq of 51.53
-    //g_last_tx=26372;
+    g_last_tx=26372;
 
     // default freq of 70.45
-    g_last_tx=35912;
+    //g_last_tx=35912;
 
     while (1)
     {
@@ -944,6 +930,8 @@ void main (void)
 #define P16 1<<6
 #define P17 1<<7
 
+#define P20 1<<0
+
 #define SYNTH_LATCH P03
 #define SR_LATCH P07
 //
@@ -988,6 +976,8 @@ void PORT_Init (void)
 #endif
 
    P1MDOUT = (P13|P15|P16);
+
+   P2MDOUT = P20;
 
    XBR0     = 0x03;                    // Enable UART on P0.4(TX) and P0.5(RX), SPI also
    XBR1    = 0x41;                     // Route CEX0 to a port pin
