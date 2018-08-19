@@ -42,6 +42,7 @@ import McMicro
 import wx.lib.newevent
 import threading
 import socket
+import string
 
 DataEvent, EVT_DATA = wx.lib.newevent.NewEvent() 
 
@@ -112,6 +113,9 @@ g_rig = None
 g_recordvec={}
 g_recdir = "/home/john/recordings"
 
+# to cmdseq
+g_pipe = None
+
 def writefreq(rig):
     global MUTED
 
@@ -149,8 +153,12 @@ def start_record(audioserver):
     news = False
     inhibit = os.path.exists("/tmp/inhibit-recordings")
     if not g_recordvec.has_key(audioserver) and os.path.exists(g_recdir) and not inhibit and not news:
-        p = subprocess.Popen(['jack_capture','-as','--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav")])
-        g_recordvec[audioserver]=p
+        rec_cmd=['jack_capture','--no-stdin','-as','--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav")]
+
+        jack_cmd(string.join(rec_cmd))
+
+        with open(jack_recfifo()) as jr:
+            g_recordvec[audioserver] = jr.read().strip()
 
 def recfname(audioserver,n):
     global g_recdir
@@ -184,40 +192,60 @@ def stop_record(audioserver):
         p = g_recordvec[audioserver]
 
         del g_recordvec[audioserver]
-        
-        p.terminate()
 
-        status = p.communicate()
+        print "prekill", p
 
-        retcode = p.wait()
+        jack_cmd('kill %s' % p)
+
+        jr = open(jack_recfifo())
+        q=jr.read().strip()
+        jr.close()
+
+        print "postkill",q
 
         rotaterecs(audioserver)
 
+def jack_cmd(cmd, expect_success=True):
+    global g_pipe
+
+    #os.system(cmd)
+    fifo="/tmp/danphone-cmdseq"
+    if not os.path.exists(fifo):
+        print >> sys.stderr,"%s must exist" % fifo
+        sys.exit(1)
+    else:
+        g_pipe=open(fifo, 'w')
+
+    g_pipe.write("%s %s %s\n" % (g_audioserver, repr(expect_success).lower(), cmd))
+    g_pipe.flush()
+
+    return
+
 def mic_connect():
     # connect mic from laptop to audio server
-    os.system("jack_connect system:capture_1 %s:to_slave_1" % g_audioserver)
+    jack_cmd("jack_connect system:capture_1 %s:to_slave_1" % g_audioserver)
     return
 
 def mic_disconnect():
     # disconnect mic from laptop to audio server
-    os.system("jack_disconnect system:capture_1 %s:to_slave_1" % g_audioserver)
+    jack_cmd("jack_disconnect system:capture_1 %s:to_slave_1" % g_audioserver)
     return
 
 # TODO fix initial mute state
 # TODO radio might start with signal present.
-def mute(audioserver):
+def mute(audioserver, expect_success=True):
     global MUTED
     if not MUTED:
-        os.system("jack_disconnect %s:from_slave_2 system:playback_1" % audioserver)
-        os.system("jack_disconnect %s:from_slave_2 system:playback_2" % audioserver)
+        cmd=string.join(["jack_disconnect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
+        jack_cmd(cmd, expect_success)
         MUTED = True
     return
 
 def unmute(audioserver):
     global MUTED
     if MUTED:
-        os.system("jack_connect %s:from_slave_2 system:playback_1" % audioserver)
-        os.system("jack_connect %s:from_slave_2 system:playback_2" % audioserver)
+        cmd=string.join(["jack_connect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
+        jack_cmd(cmd)
         MUTED = False
     return
 
@@ -228,7 +256,7 @@ class ScanTimer(wx.Timer):
         self.m_idx=0
 
         if sixmetres():
-            self.m_freqs = (51.51, 50.84, 51.51, 50.81,)
+            self.m_freqs = (51.51, 50.315, 51.51, 50.315,)
             if False:
                 freqs = [50.53]
                 f = 50.75
@@ -247,15 +275,16 @@ class ScanTimer(wx.Timer):
             freqs = [145.5]
             f = 145.6
             i = 0
-            while f < 145.79:
-                if i != 3: # avoid 146.6375 DMR
-                    freqs.append(f)
-                    freqs.append(145.5)
-                f += 0.0125
-                i += 1
+            if False:
+                while f < 145.79:
+                    if i != 3: # avoid 146.6375 DMR
+                        freqs.append(f)
+                        freqs.append(145.5)
+                    f += 0.0125
+                    i += 1
             self.m_freqs = freqs
         else:
-            self.m_freqs = (70.45, 70.2)
+            self.m_freqs = (70.45)
 
         return
 
@@ -326,6 +355,12 @@ class TxSafetyTimer(wx.Timer):
         wx.WakeUpIdle()
 
         return
+
+def is_ft8(freq):
+    for f in ["50315","70155","144175"]:
+        if string.find(repr(freq),f)==0:
+            return True
+    return False
 
 class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
@@ -424,7 +459,9 @@ class StatusLEDtimer(wx.Timer):
             if sopen:
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
-                    if not (self.target.m_stay_muted or self.target.m_transmitting):
+                    curfreq = self.target.m_rig.get_rx_freq()
+                    ft8 = is_ft8(curfreq)
+                    if not (self.target.m_stay_muted or self.target.m_transmitting or ft8):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
                         start_record(self.target.m_audioserver)
@@ -459,7 +496,9 @@ class StatusLEDtimer(wx.Timer):
             if sopen and lastopen:
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
-                    if not (self.target.m_stay_muted or self.target.m_transmitting):
+                    curfreq = self.target.m_rig.get_rx_freq()
+                    ft8 = is_ft8(curfreq)
+                    if not (self.target.m_stay_muted or self.target.m_transmitting or ft8):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
                         start_record(self.target.m_audioserver)
@@ -469,9 +508,12 @@ class StatusLEDtimer(wx.Timer):
 
             if (not sopen) and lastclosed:
                 self.target.m_squelch_led.SetState(0)
-                stop_record(self.target.m_audioserver)
+
                 if not self.target.m_monitor_button.GetValue():
                     mute(self.target.m_audioserver)
+
+                stop_record(self.target.m_audioserver)
+
                 if not self.target.m_audio_pa_button.GetValue():
                     self.target.m_rig.disable_audio_pa()
 
@@ -533,6 +575,10 @@ class MyFrame(wx.Frame):
 
         g_audioserver=self.m_audioserver
 
+        if os.path.exists(jack_recfifo()):
+            os.unlink(jack_recfifo())
+        os.mkfifo(jack_recfifo())
+
         self.m_rig.initialise(device_id=self.m_devid)
 
         # connect mic from laptop to audio server
@@ -551,7 +597,7 @@ class MyFrame(wx.Frame):
         steps=["Auto","4","5","6.25","8","10","12.5"]
 
         if sixmetres():
-            self.m_step_selected = "10"
+            self.m_step_selected = "5"
         else:
             self.m_step_selected = "12.5"
 
@@ -693,12 +739,12 @@ class MyFrame(wx.Frame):
 
         self.m_tx_safety_timer=TxSafetyTimer(self)
 
-        self.m_txlockdir="/var/run/mui/txlock"
+        self.m_txlockdir="/tmp/txlock"
 
         if not os.path.exists(self.m_txlockdir):
             os.makedirs(self.m_txlockdir)
 
-        self.m_scan_period=5000
+        self.m_scan_period=35000
         self.m_scan_timer=ScanTimer(self)
         self.m_scan_timer.Start(self.m_scan_period)
         
@@ -813,10 +859,6 @@ class MyFrame(wx.Frame):
         return
 
     def init_rig(self):
-        self.m_rig.set_step(self.m_step)
-        self.m_rig.set_rx_freq(self.m_freq)
-        self.m_rig.set_tx_freq(self.m_freq)
-
         # start off in low power mode
         self.m_button_tx_power_level.SetValue(False)
         self.onButtonTxPowerLevel(None)
@@ -824,6 +866,12 @@ class MyFrame(wx.Frame):
         # start off with ext alarm disabled
         self.m_ext_alarm_button.SetValue(False)
         self.onButtonExtAlarm(None)
+
+        # do this last in order to give the synth time to come up
+        # - seems to be set_step that fails
+        self.m_rig.set_step(self.m_step)
+        self.m_rig.set_rx_freq(self.m_freq)
+        self.m_rig.set_tx_freq(self.m_freq)
 
         return
 
@@ -907,6 +955,9 @@ class MyFrame(wx.Frame):
     def onButtonMonitor(self,event):
         if self.m_monitor_button.GetValue():
             unmute(self.m_audioserver)
+            self.m_monitor_button.SetBackgroundColour("#0x111111")
+        else:
+            self.m_monitor_button.SetBackgroundColour(wx.NullColour)
 
         return
 
@@ -935,7 +986,7 @@ class MyFrame(wx.Frame):
             self.m_tx_timer.Start(1000*60*7)
         else:
             self.free_tx_lock()
-            time.sleep(0.3)
+            time.sleep(0.5)
             self.m_tx_timer.Stop()
 
             self.m_tx_rx.SetValue(False)
@@ -992,11 +1043,11 @@ class MyFrame(wx.Frame):
         skype_left_connection='%s:"%s" system:playback_1'%(skype_playback_jack_port,skype_left)
         skype_right_connection='%s:"%s" system:playback_2'%(skype_playback_jack_port,skype_right)
         if self.m_mute_button_skype.GetValue():
-            os.system("jack_disconnect %s" % skype_left_connection)
-            os.system("jack_disconnect %s" % skype_right_connection)
+            jack_cmd("jack_disconnect %s" % skype_left_connection)
+            jack_cmd("jack_disconnect %s" % skype_right_connection)
         else:
-            os.system("jack_connect %s" % skype_left_connection)
-            os.system("jack_connect %s" % skype_right_connection)
+            jack_cmd("jack_connect %s" % skype_left_connection)
+            jack_cmd("jack_connect %s" % skype_right_connection)
 
         return
 
@@ -1120,13 +1171,28 @@ class MyFrame(wx.Frame):
         sizer_1.SetSizeHints(self)
         self.Layout()
 
+def jack_recfifo():
+    global g_audioserver
+    assert(g_audioserver)
+    return "/tmp/%s_recfifo" % g_audioserver
+
 def closedown():
-        stop_extthread(ExtSocket)
-        g_rig.m_request_thread_exit=True
-        mute(g_audioserver)
-        mic_disconnect()
-        for audioserver in g_recordvec.keys():
-            stop_record(audioserver)
+    global g_pipe
+
+    stop_extthread(ExtSocket)
+    g_rig.m_request_thread_exit=True
+
+    # may already be muted hence expect success False
+    mute(g_audioserver, False)
+    mic_disconnect()
+    for audioserver in g_recordvec.keys():
+        stop_record(audioserver)
+
+    # we have responsibility for inbound fifo
+    os.unlink(jack_recfifo())
+
+    # cmdseq.sh has responsibility for deleting /tmp/danphone-cmdseq
+    g_pipe.close()
 
 class MyApp(wx.App):
     def OnInit(self):

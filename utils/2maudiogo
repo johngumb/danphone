@@ -1,0 +1,11 @@
+PATH=/usr/local/bin:/usr/local/sbin:$PATH
+export LD_LIBRARY_PATH=/usr/local/lib
+
+if [ -z "$1" ]; then
+jackd -R -d net &
+sleep 2
+/usr/local/bin/jack_load audioadapter -i"-g16384"
+#/usr/local/bin/jack_load audioadapter -i"-d hw:1"
+fi
+/usr/local/bin/jack_connect audioadapter:capture_2 system:playback_2
+/usr/local/bin/jack_connect system:capture_1 audioadapter:playback_1

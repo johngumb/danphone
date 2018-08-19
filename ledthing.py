@@ -8,7 +8,7 @@ def change_intensity(color, fac):
     for i, intensity in enumerate(rgb):
         rgb[i] = min(int(round(intensity*fac, 0)), 255)
         
-    return wx.Color(*rgb)    
+    return wx.Colour(*rgb)
 
 class LED(wx.Control):
     def __init__(self, parent, id=-1, colors=[wx.Colour(220, 10, 10), wx.Colour(250, 200, 0), wx.Colour(10, 220, 10), wx.Colour(170, 170, 170),wx.Colour(0, 0, 0) ],

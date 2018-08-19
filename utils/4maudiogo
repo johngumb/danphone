@@ -1,0 +1,16 @@
+PATH=/usr/local/bin:/usr/local/sbin:$PATH
+export LD_LIBRARY_PATH=/usr/local/lib
+
+#
+# HACK HACK
+#
+#killall rsyslogd
+
+if [ -z "$1" ]; then
+/usr/local/bin/jackd -R -d net &
+sleep 2
+#/usr/local/bin/jack_load audioadapter -i"-d hw:1 -r32000"
+/usr/local/bin/jack_load audioadapter -i"-d hw:0 -g16384"
+fi
+/usr/local/bin/jack_connect audioadapter:capture_2 system:playback_2
+/usr/local/bin/jack_connect system:capture_1 audioadapter:playback_1
