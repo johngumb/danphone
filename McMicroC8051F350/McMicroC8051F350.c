@@ -60,6 +60,8 @@
 /* sbit unused_input=P0^1; look to re-use this; was used for 9.6V status */
 sbit synth_latch_bit=P0^3;
 sbit shift_reg_latch_bit=P0^7;
+sbit dac_select_bit=P0^7;
+sbit dac_latch_pin=P1^6;
 sbit squelch_bit=P1^0;
 sbit locked_bit=P1^1;
 sbit power_on_bit=P1^2;
@@ -408,6 +410,91 @@ void act_synth(void)
     act_stbyte();
 }
 
+void write_dac(unsigned char cmd, unsigned char d_hi, unsigned char d_lo)
+{
+
+	printf("cmd %02X\n",cmd);
+
+	dac_select_bit=0;
+
+	SPI_Byte_Write(cmd);
+
+	SPI_Byte_Write(d_hi);
+
+	SPI_Byte_Write(d_lo);
+
+	delay(10);
+
+	dac_select_bit=1;
+}
+
+void act_dac(void)
+{
+	unsigned char offset=1; // skip first command string byte
+
+	unsigned char cmd=0,data_high=0,data_low=0;
+
+	//printf("jag %d\n",xcmd);
+
+	dac_latch_pin=0;
+
+#define ADDR_SHIFT 3
+#define CMD_SHIFT 1
+#define CMD_WRITE 0
+	// use internal reference
+	cmd = (8 << ADDR_SHIFT); // using register 8, VREF reg
+	data_high = 0;
+	data_low = 5; //0101
+
+	write_dac(cmd, data_high, data_low);
+
+	// enable
+	cmd = (9 << ADDR_SHIFT); // using register 9, power down reg
+	data_high = 0;
+	data_low = 0;
+
+	write_dac(cmd, data_high, data_low);
+
+	cmd = 0;
+	// write a value
+	data_low=250;
+	data_high=15;
+
+	write_dac(cmd, data_high, data_low);
+
+#if 0
+	for (i=0;i<1000;i++)
+	{
+	dac_select_bit=0;
+
+	delay(100000);
+
+	// deal with, for example "DD9C" or "D09C"
+	if ((strlen(str)%2)==0)
+	{
+		unsigned char fval=0;
+
+		fval+=hexdigittobyte(str[offset]);
+
+		SPI_Byte_Write(fval);
+
+		offset++;
+	}
+
+	// at this point,remaining
+	// hex string is always of form
+	// 11223344 i.e. even number of chars
+	while (str[offset]!=0)
+	{
+		SPI_Byte_Write(strtohex(&str[offset]));
+		//printf("%02x",strtohex(&str[offset]));
+		offset+=2;
+	}
+
+#endif
+
+    act_stbyte();
+}
 void act_ctcss(void)
 {
 	unsigned char toneval;
@@ -727,6 +814,8 @@ void main (void)
 
 			partcmd('T', act_ctcss());
 
+			partcmd('D', act_dac());
+
 #if REPORTING
             cmd("X", act_report(0))
 
@@ -875,6 +964,7 @@ void main (void)
 // P1.6 - output - Pin 11 on CPU to drive pin 1 on 'D' type (MOSFET)
 // P1.7 - input  - Pin 15 on CPU from pin 2 on 'D' type ground for logic 1
 //
+// must be push-pull for ft232 test lead
 #define UART_TX_OPEN_DRAIN
 #undef OVERRIDE_RESET_STATE
 void PORT_Init (void)
@@ -890,7 +980,7 @@ void PORT_Init (void)
 #ifdef UART_TX_OPEN_DRAIN
    P0MDOUT = (P06|P07);     // Enable UTX (P04) as open drain out, SCK, MOSI and SYNTH_LATCH are open drain
 #else
-   P0MDOUT = (P04|P06|P07); // Enable UTX (P04) as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
+   P0MDOUT = (P00|P02|P04|P06|P07); // Enable UTX (P04) as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
 #endif
 
 #ifdef OVERRIDE_RESET_STATE
