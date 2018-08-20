@@ -97,6 +97,8 @@ class McMicro:
         # consider what the default should be
         self.m_power_supply_present = True
 
+        self.m_refosc_count = 0
+
         return
 
     def __del__(self):
@@ -436,6 +438,18 @@ class McMicro:
             result = ((self.m_hwif.bb.port & self.m_hwif.D3) == self.m_hwif.D3)
         else:
             result = self.m_last_status & 4
+
+        #
+        # hack - really need somewhere to initialise stuff when
+        # RF board comes up
+        # Initialise reference oscillator DAC
+        #
+        if self.m_refosc_count == 10 and result:
+            self.m_hwif.enqueue("D12635")
+            self.m_refosc_count += 1
+        else:
+            if self.m_refosc_count < 10:
+                self.m_refosc_count += 1
 
         return result
 
