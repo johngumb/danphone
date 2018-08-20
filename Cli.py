@@ -56,6 +56,9 @@ class TelnetCLI:
 
         return
 
+    def server(self):
+        return self.m_server
+
     def update_power_present(self):
         power_present = self.m_serial.getDSR()
 

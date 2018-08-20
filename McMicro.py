@@ -449,7 +449,8 @@ class McMicro:
             self.m_refosc_count = 0
 
         if self.m_refosc_count == 10 and result:
-            self.m_hwif.enqueue("D12635")
+            if not self.m_ftdi and self.m_hwif.server()=="skate":
+                self.m_hwif.enqueue("D12635")
             self.m_refosc_count += 1
         else:
             if self.m_refosc_count < 10:
