@@ -935,7 +935,7 @@ void main (void)
 // P0.0 - SPI SCK    (digital output, push-pull)
 // P0.1 - SPI MISO   (digital input, open-drain) -- look to re-use
 // P0.2 - SPI MOSI   (digital output, push-pull)
-// P0.3 - SPI NSS    (digital output, push-pull) -- look to re-use
+// P0.3 - SPI NSS    (digital output, push-pull) -- synth latch
 // P0.4   digital   push-pull    UART TX
 // P0.5   digital   open-drain   UART RX
 // P0.6 - CTCSS tone
