@@ -455,9 +455,6 @@ void act_dac(void)
 	// use specifed reference - internal or external
 	write_dac(8 << ADDR_SHIFT, 0, data_low);  // using register 8, VREF reg
 
-	// enable
-	write_dac(9 << ADDR_SHIFT, 0, 0); // using register 9, power down reg
-
     dacno = hexdigittobyte(str[offset++]);
 
     data_high = hexdigittobyte(str[offset++]);
