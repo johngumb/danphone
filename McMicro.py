@@ -444,6 +444,10 @@ class McMicro:
         # RF board comes up
         # Initialise reference oscillator DAC
         #
+        if self.m_refosc_count > 10 and not result:
+            # deal with power going away
+            self.m_refosc_count = 0
+
         if self.m_refosc_count == 10 and result:
             self.m_hwif.enqueue("D12635")
             self.m_refosc_count += 1
