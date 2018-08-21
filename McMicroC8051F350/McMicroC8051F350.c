@@ -464,7 +464,7 @@ void ref_dac_init(void)
 
 // Write to MCP48FEB22 12 bit DAC controlling 14.4MHz synth ref osc
 // 0x000 14.398925 MHz
-// 0xFFF 14.400251 MHz 4.19V
+// 0xFFF 14.400251 MHz 4.2031V as measured on KXN1123AA input pin
 void act_ref_dac(unsigned char init_required)
 {
 	unsigned char offset=1; // skip first command string byte
