@@ -41,6 +41,10 @@
 #define SR_TX_AUDIO_ENABLE 0x40
 #define SR_RX_AUDIO_ENABLE 0x80
 
+#define SIXMETRES
+//#define FOURMETRES
+//#define TWOMETRES
+
 #define TESTING
 //#define OOBAND
 //-----------------------------------------------------------------------------
@@ -409,7 +413,7 @@ void act_synth(void)
     act_stbyte();
 }
 
-void write_dac(unsigned char cmd, unsigned char d_hi, unsigned char d_lo)
+void write_ref_dac(unsigned char cmd, unsigned char d_hi, unsigned char d_lo)
 {
 	dac_select_bit=0;
 
@@ -422,21 +426,31 @@ void write_dac(unsigned char cmd, unsigned char d_hi, unsigned char d_lo)
 	dac_select_bit=1;
 }
 
+
+#define REF_DAC_CMD(rdcmd) ((rdcmd)<<3)
+
+void ref_dac_init(void)
+{
+	// use specifed external reference from KXN1123AA
+	write_ref_dac(REF_DAC_CMD(8), 0, 10);  // using register 8, VREF reg
+
+    // gain control register - 1x gain
+    write_ref_dac(REF_DAC_CMD(10), 0, 0);  // using register 10, gain control register
+}
+
 // write to MCP48FEB22 12 bit DAC
-void act_dac(void)
+void act_ref_dac(void)
 {
 	unsigned char offset=1; // skip first command string byte
 
-	unsigned char data_high,data_low, refval, dacno;
+	unsigned char dacno, data_high, data_low;
 
-#define ADDR_SHIFT 3
-#define CMD_SHIFT 1
+    // set up ref dac chip
+    ref_dac_init();
 
     // format of DAC command
-    // DINABC
+    // DNABC
     // D: Dac command (that's how we got here so skip it)
-    // I: 0: internal ref
-    //    1: KXN1123AA ref
     // N: Dac number
     //    0: DAC 0
     //    1: DAC 1
@@ -445,16 +459,6 @@ void act_dac(void)
     // B: middle 4 bits of DAC value 0-F
     // C: bottom 4 bits of DAC value 0-F
 
-    refval = hexdigittobyte(str[offset++]);
-
-    if (refval)
-	    data_low = 5; //0101 internal
-    else
-        data_low = 10; //1010, external, unbuffered
-
-	// use specifed reference - internal or external
-	write_dac(8 << ADDR_SHIFT, 0, data_low);  // using register 8, VREF reg
-
     dacno = hexdigittobyte(str[offset++]);
 
     data_high = hexdigittobyte(str[offset++]);
@@ -462,19 +466,18 @@ void act_dac(void)
     // must be 2 characters remaining
     data_low = strtohex(&str[offset]);
 
-    printf("refval %x\n",refval);
     printf("dacno %x\n",dacno);
     printf("data_high %x\n",data_high);
     printf("data_low %x\n",data_low);
 
     if (dacno == 2)
     {
-        write_dac(0 << ADDR_SHIFT, data_high, data_low);
-        write_dac(1 << ADDR_SHIFT, data_high, data_low); 
+        write_ref_dac(REF_DAC_CMD(0), data_high, data_low);
+        write_ref_dac(REF_DAC_CMD(1), data_high, data_low); 
     }
     else
 	    // using register "dacno", write a value to DAC specified
-        write_dac(dacno << ADDR_SHIFT, data_high, data_low);
+        write_ref_dac(REF_DAC_CMD(dacno), data_high, data_low);
 
     act_stbyte();
 }
@@ -517,6 +520,17 @@ void act_set_power(const int powerstate)
     if (powerstate)
     {
         delay(1000);
+
+#ifdef SIXMETRES
+#define REF_DAC_INIT_HI 0x0C
+#define REF_DAC_INIT_LO 0x56
+#endif
+
+        ref_dac_init();
+        write_ref_dac(REF_DAC_CMD(0), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
+
+        write_ref_dac(REF_DAC_CMD(1), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
+
         baa();
     }
 }
@@ -797,7 +811,7 @@ void main (void)
 
 			partcmd('T', act_ctcss());
 
-			partcmd('D', act_dac());
+			partcmd('D', act_ref_dac());
 
 #if REPORTING
             cmd("X", act_report(0))
