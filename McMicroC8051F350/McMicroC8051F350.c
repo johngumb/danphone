@@ -465,20 +465,21 @@ void ref_dac_init(void)
 // Write to MCP48FEB22 12 bit DAC controlling 14.4MHz synth ref osc
 // 0x000 14.398925 MHz
 // 0xFFF 14.400251 MHz 4.19V
-void act_ref_dac(void)
+void act_ref_dac(unsigned char init_required)
 {
 	unsigned char offset=1; // skip first command string byte
 
 	unsigned char dacno, data_high, data_low;
 
     // Set up ref osc dac chip.
-    // Can't really do this one time only as we're not aware here
-    // whether the radio is on or not - or has been powered off previously.
-    ref_dac_init();
+    if (init_required)
+        ref_dac_init();
 
     // format of DAC command
-    // DNABC
-    // D: Dac command (that's how we got here so skip it)
+    // <D|E>NABC
+    // <D|E>: Dac command (that's how we got here so skip it)
+    // D: Dac command without initialisation
+    // E: Dac command with initialisation
     // N: Dac number
     //    0: DAC 0
     //    1: DAC 1
@@ -509,6 +510,7 @@ void act_ref_dac(void)
 
     act_stbyte();
 }
+
 void act_ctcss(void)
 {
 	unsigned char toneval;
@@ -847,7 +849,9 @@ void main (void)
 
 			partcmd('T', act_ctcss());
 
-			partcmd('D', act_ref_dac());
+			partcmd('D', act_ref_dac(0));
+
+            partcmd('E', act_ref_dac(1));
 
 #if REPORTING
             cmd("X", act_report(0))
