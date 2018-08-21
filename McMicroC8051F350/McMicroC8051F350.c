@@ -404,18 +404,16 @@ void act_control(void)
 
 void act_synth(void)
 {
-	unsigned char offset=1; // skip first command string byte
+	unsigned char offset=1; // skip first command string byte "S"
 
 	// deal with, for example "SD9C" or "S09C"
 	if ((strlen(str)%2)==0)
 	{
-		unsigned char fval=0;
+		unsigned char fval;
 
-		fval+=hexdigittobyte(str[offset]);
+		fval=hexdigittobyte(str[offset++]);
 
 		SPI_Byte_Write(fval);
-
-		offset++;
 	}
 
 	// at this point,remaining
