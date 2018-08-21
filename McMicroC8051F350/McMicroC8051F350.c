@@ -1,7 +1,7 @@
 /*
 * OpenPMR - tools to make old PMR radios useful.
 *
-* Copyright (C) 2013  John Gumb, G4RDC
+* Copyright (C) 2013-2018  John Gumb, G4RDC
 *
 * This file is part of OpenPMR.
 
