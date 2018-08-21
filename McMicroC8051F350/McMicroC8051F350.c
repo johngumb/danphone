@@ -65,7 +65,11 @@
 /* sbit unused_input=P0^1; look to re-use this; was used for 9.6V status */
 sbit synth_latch_bit=P0^3;
 sbit shift_reg_latch_bit=P0^7;
-sbit dac_select_bit=P2^0;
+sbit dac_select_bit=P1^2;  /* also used as input for power-on indication for  */
+                           /* 9.6V i.e. RF board power. ~10K resistor divider */
+                           /* gives about 4.8V on this pin and also acts as a */
+                           /* pull-up for the ref osc dac ~SEL pin.           */
+
 sbit squelch_bit=P1^0;
 sbit locked_bit=P1^1;
 sbit power_on_bit=P1^2;
@@ -973,8 +977,6 @@ void main (void)
 #define P16 1<<6
 #define P17 1<<7
 
-#define P20 1<<0
-
 #define SYNTH_LATCH P03
 #define SR_LATCH P07
 //
@@ -989,6 +991,7 @@ void main (void)
 // P1.0 - status - lock bit
 // P1.1 - status - squelch open
 // P1.2 - status - power on
+// P1.2 - output - synth dac chip select
 // P1.3 - output - CTS as seen by host
 // P1.4 - status - RTS from host as seen by us
 // P1.5 - output - Pin 12 on CPU to drive pin 15 on 'D' type (MOSFET)
@@ -1020,9 +1023,7 @@ void PORT_Init (void)
 
    P1MDOUT = (P13|P15|P16);
 
-   P2MDOUT = P20;
-
-   XBR0     = 0x03;                    // Enable UART on P0.4(TX) and P0.5(RX), SPI also
+   XBR0    = 0x03;                     // Enable UART on P0.4(TX) and P0.5(RX), SPI also
    XBR1    = 0x41;                     // Route CEX0 to a port pin
                                        // Enable crossbar and weak pull-ups
 
