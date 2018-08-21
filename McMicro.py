@@ -450,7 +450,11 @@ class McMicro:
 
         if self.m_refosc_count == 10 and result:
             if not self.m_ftdi and self.m_hwif.server()=="skate":
-                self.m_hwif.enqueue("D12635")
+                # 14.4MHz on ref osc
+                #self.m_hwif.enqueue("D2C56")
+
+                # 50MHz reception measured at 71.4MHz LO
+                self.m_hwif.enqueue("D2C49")
             self.m_refosc_count += 1
         else:
             if self.m_refosc_count < 10:
