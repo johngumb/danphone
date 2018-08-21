@@ -41,6 +41,7 @@
 #define SR_TX_AUDIO_ENABLE 0x40
 #define SR_RX_AUDIO_ENABLE 0x80
 
+// uncomment one
 #define SIXMETRES
 //#define FOURMETRES
 //#define TWOMETRES
@@ -119,13 +120,32 @@ void latch_init()
 
 void baa()
 {
-    SPI_Byte_Write(0x1C);
-    SPI_Byte_Write(0x21);
+#ifdef SIXMETRES
+// 50.016 + 21.4
+#define SYN_REF1 0x1C
+#define SYN_REF2 0x21
+#define SYN_DIV1 0x01
+#define SYN_DIV2 0xBE
+#define SYN_DIV3 0x1C
+#endif
+
+#ifdef FOURMETRES
+// 70.45 + 21.4
+// GB3BAA is dead on 4
+#define SYN_REF1 0x09
+#define SYN_REF2 0x01
+#define SYN_DIV1 0x00
+#define SYN_DIV2 0xB7
+#define SYN_DIV3 0x38
+#endif
+
+    SPI_Byte_Write(SYN_REF1);
+    SPI_Byte_Write(SYN_REF2);
     pulsebithigh(SYNTH_LATCH_ID);
 
-    SPI_Byte_Write(0x01);
-    SPI_Byte_Write(0xbe);
-    SPI_Byte_Write(0x1c);
+    SPI_Byte_Write(SYN_DIV1);
+    SPI_Byte_Write(SYN_DIV2);
+    SPI_Byte_Write(SYN_DIV3);
     pulsebithigh(SYNTH_LATCH_ID);
 
 }
@@ -525,11 +545,19 @@ void act_set_power(const int powerstate)
     {
         delay(1000);
 
-#ifdef SIXMETRES
+#if defined(SIXMETRES)
 #define REF_DAC_INIT_HI 0x0C
 #define REF_DAC_INIT_LO 0x56
-#endif
 
+#elif defined(FOURMETRES)
+#define REF_DAC_INIT_HI 0x0C
+#define REF_DAC_INIT_LO 0x56
+
+#elif defined(TWOMETRES)
+#define REF_DAC_INIT_HI 0x0C
+#define REF_DAC_INIT_LO 0x56
+
+#endif
         ref_dac_init();
         write_ref_dac(REF_DAC_CMD(0), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
 
@@ -795,8 +823,8 @@ void main (void)
 
     latch_init();
 
-    // come up powered off
-    act_set_power(0);
+    // come up powered on to allow ref osc to stabilise
+    act_set_power(1);
 
     // default freq of 51.53
     g_last_tx=26372;
