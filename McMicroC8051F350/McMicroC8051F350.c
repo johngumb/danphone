@@ -192,7 +192,9 @@ void set_tx_state(const int txena)
     if (txena)
         w[1]=g_last_tx;
     else
-        w[1]=g_last_tx+10816; // 21.4 IF offset
+        // 34108 for 4KHz step
+        // 10816 for 12.5KHz step
+        w[1]=g_last_tx+34108; // 21.4 IF offset
 
     write_synth_spi(&w);
 }
