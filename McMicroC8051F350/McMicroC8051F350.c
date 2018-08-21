@@ -438,14 +438,18 @@ void ref_dac_init(void)
     write_ref_dac(REF_DAC_CMD(10), 0, 0);  // using register 10, gain control register
 }
 
-// write to MCP48FEB22 12 bit DAC
+// Write to MCP48FEB22 12 bit DAC controlling 14.4MHz synth ref osc
+// 0x000 14.398925 MHz
+// 0xFFF 14.400251 MHz 4.19V
 void act_ref_dac(void)
 {
 	unsigned char offset=1; // skip first command string byte
 
 	unsigned char dacno, data_high, data_low;
 
-    // set up ref dac chip
+    // Set up ref osc dac chip.
+    // Can't really do this one time only as we're not aware here
+    // whether the radio is on or not - or has been powered off previously.
     ref_dac_init();
 
     // format of DAC command
