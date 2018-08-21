@@ -119,13 +119,13 @@ void latch_init()
 
 void baa()
 {
-    SPI_Byte_Write(9);
-    SPI_Byte_Write(1);
+    SPI_Byte_Write(0x1C);
+    SPI_Byte_Write(0x21);
     pulsebithigh(SYNTH_LATCH_ID);
 
-    SPI_Byte_Write(0);
-    SPI_Byte_Write(0x8e);
-    SPI_Byte_Write(0x42);
+    SPI_Byte_Write(0x01);
+    SPI_Byte_Write(0xbe);
+    SPI_Byte_Write(0x1c);
     pulsebithigh(SYNTH_LATCH_ID);
 
 }
