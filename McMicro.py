@@ -451,10 +451,11 @@ class McMicro:
         if self.m_refosc_count == 10 and result:
             if not self.m_ftdi and self.m_hwif.server()=="skate":
                 # 14.4MHz on ref osc
-                #self.m_hwif.enqueue("D2C56")
+                #self.m_hwif.enqueue("E2C56")
 
                 # 50MHz reception measured at 71.4MHz LO
-                self.m_hwif.enqueue("D2C49")
+                # E == init DAC reference source and gain required
+                self.m_hwif.enqueue("E2C49")
             self.m_refosc_count += 1
         else:
             if self.m_refosc_count < 10:
