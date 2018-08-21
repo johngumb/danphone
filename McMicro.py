@@ -99,6 +99,8 @@ class McMicro:
 
         self.m_refosc_count = 0
 
+        self.m_refosc_init_boundary = 3
+
         return
 
     def __del__(self):
@@ -444,11 +446,11 @@ class McMicro:
         # RF board comes up
         # Initialise reference oscillator DAC
         #
-        if self.m_refosc_count > 10 and not result:
+        if self.m_refosc_count > self.m_refosc_init_boundary and not result:
             # deal with power going away
             self.m_refosc_count = 0
 
-        if self.m_refosc_count == 10 and result:
+        if self.m_refosc_count == self.m_refosc_init_boundary and result:
             if not self.m_ftdi and self.m_hwif.server()=="skate":
                 # 14.4MHz on ref osc
                 #self.m_hwif.enqueue("E2C56")
@@ -458,7 +460,7 @@ class McMicro:
                 self.m_hwif.enqueue("E2C49")
             self.m_refosc_count += 1
         else:
-            if self.m_refosc_count < 10:
+            if self.m_refosc_count < self.m_refosc_init_boundary:
                 self.m_refosc_count += 1
 
         return result
