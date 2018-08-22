@@ -41,6 +41,26 @@
 #define SR_TX_AUDIO_ENABLE 0x40
 #define SR_RX_AUDIO_ENABLE 0x80
 
+//-----------------------------------------------------------------------------
+// ADC stuff: 16-bit SFR Definitions for 'F35x
+//-----------------------------------------------------------------------------
+
+sfr16 ADC0DEC = 0x9A;                  // ADC0 Decimation Ratio Register
+
+typedef union LONGDATA{                // Access LONGDATA as an
+   unsigned long result;               // unsigned long variable or
+   unsigned char Byte[4];              // 4 unsigned byte variables
+}LONGDATA;
+
+// With the Keil compiler and union byte addressing:
+// [0] = bits 31-24, [1] =  bits 23-16, [2] = bits 15-8, [3] = bits 7-0
+#define Byte3 0
+#define Byte2 1
+#define Byte1 2
+#define Byte0 3
+
+LONGDATA rawValue;
+
 // uncomment one
 #define SIXMETRES
 //#define FOURMETRES
@@ -60,6 +80,8 @@
                                        // when this example is used with
                                        // the SPI0_Slave code example.
 
+#define MDCLK         2457600          // Modulator clock in Hz (ideal is
+                                       // (2.4576 MHz)
 
 
 /* sbit unused_input=P0^1; look to re-use this; was used for 9.6V status */
@@ -97,12 +119,13 @@ static char g_reporting;
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
 
-void SYSCLK_Init (void);
-void UART0_Init (void);
-void PORT_Init (void);
-void Timer2_Init (int);
-void SPI0_Init (void);
-void PCA0_Init (void);
+void SYSCLK_Init(void);
+void UART0_Init(void);
+void PORT_Init(void);
+void Timer2_Init(int);
+void SPI0_Init(void);
+void PCA0_Init(void);
+void ADC0_Init(void);
 
 void SPI_Byte_Write (const unsigned char);
 
@@ -808,6 +831,42 @@ void act_hostsync()
     putchar('\n');
 }
 
+void read_adc()
+{
+    unsigned long mV;
+
+   // Copy the output value of the ADC
+   rawValue.Byte[Byte3] = 0x00;
+   rawValue.Byte[Byte2] = (unsigned char)ADC0H;
+   rawValue.Byte[Byte1] = (unsigned char)ADC0M;
+   rawValue.Byte[Byte0] = (unsigned char)ADC0L;
+
+   //                           Vref (mV)
+   //   measurement (mV) =   --------------- * result (bits)
+   //                       (2^24)-1 (bits)
+   //
+   //   measurement (mV) =  result (bits) / ((2^24)-1 (bits) / Vref (mV))
+   //
+   //
+   //   With a Vref (mV) of 2500:
+   //
+   //   measurement (mV) =  result (bits) / ((2^24)-1 / 2500)
+   //
+   //   measurement (mV) =  result (bits) / ((2^24)-1 / 2500)
+   //
+   //   measurement (mV) =  result (bits) / (16777215 / 2500)
+   //
+   //   measurement (mV) =  result (bits) / (6710)
+
+   mV = rawValue.result / 6710;        // Because of bounds issues, this
+                                       // calculation has been manipulated as
+                                       // shown above
+                                       // (i.e. 2500 (VREF) * 2^24 (ADC result)
+                                       // is greater than 2^32)
+
+   //printf("AIN0.2 voltage: %4ld mV\n",mV);
+}
+
 #define cmd(_cmpstr,_rtn) if (strcmp(str, _cmpstr)==0) {_rtn; break;}
 
 #define partcmd(_cmpchar, _rtn) if (str[0]==_cmpchar) {_rtn; break; }
@@ -826,6 +885,7 @@ void main (void)
     SPI0_Init();
 	PCA0_Init();
     PORT_Init();                        // Initialize Port I/O
+    ADC0_Init();
 
     latch_init();
 
@@ -838,9 +898,18 @@ void main (void)
     // default freq of 70.45
     //g_last_tx=35912;
 
+    AD0INT = 0;                            // clear pending sample indication
+    ADC0MD = 0x83;                         // Start continuous conversions
+
     while (1)
     {
         getstr(&str);
+
+        if(AD0INT) // conversion complete?
+        {
+         read_adc();
+         AD0INT = 0;                         // clear AD0 interrupt flag
+        }
 
         do {
 			partcmd('C', act_control());
@@ -1225,5 +1294,101 @@ void SPI_Array_Write (void)
    NSSMD0 = 1;                         // Diable the Slave
 
    ESPI0 = 1;                          // Re-enable SPI interrupts
+}
+#endif
+
+//-----------------------------------------------------------------------------
+// ADC0_Init
+//-----------------------------------------------------------------------------
+//
+// Return Value : None
+// Parameters   : None
+//
+// Initialize the ADC to use the temperature sensor. (non-differential)
+//
+//-----------------------------------------------------------------------------
+void ADC0_Init (void)
+{
+   REF0CN |= 0x01;                     // Enable internal Vref
+   ADC0CN = 0x00;                      // Gain = 1, Unipolar mode
+   ADC0CF = 0x00;                      // Interrupts upon SINC3 filter output
+                                       // and uses internal VREF
+
+   ADC0CLK = (SYSCLK/MDCLK)-1;         // Generate MDCLK for modulator.
+                                       // Ideally MDCLK = 2.4576MHz
+
+#define OWR                1          // Desired Output Word Rate in Hz
+
+   // Program decimation rate for desired OWR
+   ADC0DEC = ((unsigned long) MDCLK / (unsigned long) OWR /
+              (unsigned long) 128) - 1;
+
+   ADC0BUF = 0x00;                     // Turn off Input Buffers
+   //ADC0MUX = 0x28;                     // Select AIN0.2
+   ADC0MUX = 0xF8;  // use '8' as an 'all other values' value
+
+   ADC0MD = 0x81;                      // Start internal calibration
+   while(AD0CALC != 1);                // Wait until calibration is complete
+
+#if 0
+   EIE1   |= 0x08;                     // Enable ADC0 Interrupts
+   ADC0MD  = 0x80;                     // Enable the ADC0 (IDLE Mode)
+
+   AD0INT = 0;
+   ADC0MD = 0x83;                      // Start continuous conversions
+   EA = 1;                             // Enable global interrupts
+#endif
+}
+
+#if 0
+//-----------------------------------------------------------------------------
+// Interrupt Service Routines
+//-----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+// ADC0_ISR
+//-----------------------------------------------------------------------------
+//
+// This ISR prints the result to the UART. The ISR is called after each ADC
+// conversion.
+//
+//-----------------------------------------------------------------------------
+void ADC0_ISR (void) interrupt 10
+{
+   unsigned long mV;
+
+   while(!AD0INT);                     // Wait till conversion complete
+   //AD0INT = 0;                         // Clear ADC0 conversion complete flag
+
+   // Copy the output value of the ADC
+   rawValue.Byte[Byte3] = 0x00;
+   rawValue.Byte[Byte2] = (unsigned char)ADC0H;
+   rawValue.Byte[Byte1] = (unsigned char)ADC0M;
+   rawValue.Byte[Byte0] = (unsigned char)ADC0L;
+
+   //                           Vref (mV)
+   //   measurement (mV) =   --------------- * result (bits)
+   //                       (2^24)-1 (bits)
+   //
+   //   measurement (mV) =  result (bits) / ((2^24)-1 (bits) / Vref (mV))
+   //
+   //
+   //   With a Vref (mV) of 2500:
+   //
+   //   measurement (mV) =  result (bits) / ((2^24)-1 / 2500)
+   //
+   //   measurement (mV) =  result (bits) / ((2^24)-1 / 2500)
+   //
+   //   measurement (mV) =  result (bits) / (16777215 / 2500)
+   //
+   //   measurement (mV) =  result (bits) / (6710)
+
+   mV = rawValue.result / 6710;        // Because of bounds issues, this
+                                       // calculation has been manipulated as
+                                       // shown above
+                                       // (i.e. 2500 (VREF) * 2^24 (ADC result)
+                                       // is greater than 2^32)
+
+   printf("AIN0.2 voltage: %4ld mV\n",mV);
 }
 #endif
