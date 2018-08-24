@@ -243,6 +243,9 @@ class McMicro:
         self.m_power_supply_present = power_supply_state
         
     def initialise(self, device_id):
+        '''
+        Initialisation which shouldn't touch the hardware, just setup software
+        '''
 
         (devtype, devaddr) = device_id
 
@@ -286,12 +289,6 @@ class McMicro:
         self.m_synth = MC145158.MC145158(prescale_divide = 40, serial_writer=self.m_synth_serial_stream_writer, getlock=self.getlock)
 
         self.m_synth.set_refclk(self.m_synth_refclk)
-
-        self.disable_tx()
-
-        self.m_shiftreg.clearbit(self.SR_TX_AUDIO_ENABLE)
-
-        self.enable_audio()
 
         return
 
@@ -451,13 +448,19 @@ class McMicro:
             self.m_refosc_count = 0
 
         if self.m_refosc_count == self.m_refosc_init_boundary and result:
+            # Need Rx audio
+            self.enable_audio()
+
+            # Don't come up in transmit mode
+            self.disable_tx()
+
             if not self.m_ftdi and self.m_hwif.server()=="skate":
                 # 14.4MHz on ref osc
                 #self.m_hwif.enqueue("E2C56")
 
                 # 50MHz reception measured at 71.4MHz LO
                 # E == init DAC reference source and gain required
-                self.m_hwif.enqueue("E2C49")
+                self.m_hwif.enqueue("E2C4B")
             self.m_refosc_count += 1
         else:
             if self.m_refosc_count < self.m_refosc_init_boundary:
