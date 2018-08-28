@@ -719,6 +719,8 @@ class MyFrame(wx.Frame):
 
         self.m_power_supply_present = False
 
+        self.m_last_power_supply_present = False
+
         init_power_state=True
 #        self.m_rig.setpower(init_power_state)
         self.m_on_off_button.SetValue(init_power_state)
@@ -876,11 +878,15 @@ class MyFrame(wx.Frame):
         return
 
     def check_for_power_event(self):
+        init_done = False
+
+        # should go within power supply present check
         self.m_powered_on = self.m_rig.powered_on()
 
         if self.m_powered_on and not self.m_last_powered_on:
             print "rig just powered on"
             self.init_rig()
+            init_done = True
 
         if not self.m_powered_on and self.m_last_powered_on:
             print "rig just powered off"
@@ -888,6 +894,16 @@ class MyFrame(wx.Frame):
         self.m_last_powered_on = self.m_powered_on
 
         self.m_power_supply_present = self.m_rig.power_supply_present()
+
+        if self.m_power_supply_present and not self.m_last_power_supply_present:
+            print "rig power supply turned on"
+            if not init_done:
+                self.init_rig()
+
+        if not self.m_power_supply_present and self.m_last_power_supply_present:
+            print "rig just lost power"
+
+        self.m_last_power_supply_present = self.m_power_supply_present
 
         return
 
