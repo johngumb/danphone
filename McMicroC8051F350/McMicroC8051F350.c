@@ -1073,25 +1073,15 @@ void main (void)
 //
 // must be push-pull for ft232 test lead
 #define UART_TX_OPEN_DRAIN
-#undef OVERRIDE_RESET_STATE
 void PORT_Init (void)
 {
    // NSS gets used as a GPIO pin
    P0SKIP = P03;
 
-    // Default CPU reset state of P0MDIN and P1MDIN is 0xFF so no need to set it
-#ifdef OVERRIDE_RESET_STATE
-   P0MDIN = (P00|P01|P02|P03|P04|P05|P06|P07); // All digital see F35x_Ports_SwitchLEDs.c
-#endif
-
 #ifdef UART_TX_OPEN_DRAIN
    P0MDOUT = (P06|P07);     // Enable UTX (P04) as open drain out, SCK, MOSI and SYNTH_LATCH are open drain
 #else
    P0MDOUT = (P00|P02|P04|P06|P07); // Enable UTX (P04) as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
-#endif
-
-#ifdef OVERRIDE_RESET_STATE
-   P1MDIN = (P10|P11|P12|P13|P14|P15|P16|P17); // All digital see F35x_Ports_SwitchLEDs.c
 #endif
 
    P1MDOUT = (P13|P15|P16);
