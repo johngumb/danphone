@@ -7,6 +7,8 @@ def get_ctcss(tx_freq):
             result = 82.5
         elif tx_freq==51.27E6: # GB3DB
             result = 110.9
+        elif tx_freq in [145.0125E6]: # TE
+            result = 67.0
         elif tx_freq in [145.025E6]: # MH
             result = 88.5
         elif tx_freq in [145.0625E6]: # CO
