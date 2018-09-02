@@ -13,7 +13,10 @@ if [ -z "${post}" ]; then
    		node=cod.gumb.private
 	fi
 
-	jack_load netmanager
+	if ! jack_load netmanager; then
+	    exit 1
+        fi
+
 	sleep 5
 fi
 sh cmdseq.sh start
