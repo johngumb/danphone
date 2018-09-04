@@ -212,6 +212,8 @@ def jack_cmd(cmd, expect_success=True):
     fifo="/tmp/danphone-cmdseq"
     if not os.path.exists(fifo):
         print >> sys.stderr,"%s must exist" % fifo
+        os.unlink(jack_recfifo())
+        g_rig.m_request_thread_exit=True
         sys.exit(1)
     else:
         g_pipe=open(fifo, 'w')
