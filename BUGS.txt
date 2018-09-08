@@ -1,0 +1,2 @@
+High current draw when switching off 50MHz set due to placement of new
+chip select wire. Worse next to VREF pins near JTAG connector.
