@@ -105,7 +105,9 @@ sbit pin2_input_bit=P1^7; /* pin 2 off DB15 connector */
 #define SHIFT_REG_LATCH_ID 2
 
 static char str[20];
-static unsigned int g_last_tx;
+
+// IF offset: 34108 for 4KHz step, 10816 for 12.5KHz step
+static unsigned int g_last_tx, g_if_offset=10816;
 
 #define REPORTING 0
 #if REPORTING
@@ -133,6 +135,8 @@ void pulsebithigh(const char latch_id);
 
 void write_synth_spi(const unsigned int *);
 
+void squelch_pot_init(void);
+
 void delay(unsigned int limit)
 {
     int i;
@@ -148,7 +152,7 @@ void latch_init()
 void baa()
 {
 #ifdef SIXMETRES
-// 50.016 + 21.4
+// 50.016 MHz + 21.4 MHz
 #define SYN_REF1 0x1C
 #define SYN_REF2 0x21
 #define SYN_DIV1 0x01
@@ -157,7 +161,7 @@ void baa()
 #endif
 
 #ifdef FOURMETRES
-// 70.45 + 21.4
+// 70.45 MHz + 21.4 MHz
 // GB3BAA is dead on 4
 #define SYN_REF1 0x09
 #define SYN_REF2 0x01
@@ -175,6 +179,8 @@ void baa()
     SPI_Byte_Write(SYN_DIV3);
     pulsebithigh(SYNTH_LATCH_ID);
 
+    // 34108 for 4KHz step
+    g_if_offset=34108;
 }
 
 void latch(const char latchval, const char latch_id)
@@ -221,7 +227,7 @@ void set_tx_state(const int txena)
     else
         // 34108 for 4KHz step
         // 10816 for 12.5KHz step
-        w[1]=g_last_tx+34108; // 21.4 IF offset
+        w[1]=g_last_tx + g_if_offset; // 21.4 MHz IF offset
 
     write_synth_spi(&w);
 }
@@ -490,13 +496,16 @@ void ref_dac_init(void)
 // 0xFFF 14.400251 MHz 4.2031V as measured on KXN1123AA input pin
 void act_ref_dac(unsigned char init_required)
 {
-	unsigned char offset=1; // skip first command string byte
-
 	unsigned char dacno, data_high, data_low;
 
     // Set up ref osc dac chip.
     if (init_required)
+    {
         ref_dac_init();
+
+        // HACK slave the digi pot init off this
+        squelch_pot_init();
+    }
 
     // format of DAC command
     // <D|E>NABC
@@ -511,16 +520,16 @@ void act_ref_dac(unsigned char init_required)
     // B: middle 4 bits of DAC value 0-F
     // C: bottom 4 bits of DAC value 0-F
 
-    dacno = hexdigittobyte(str[offset++]);
+    dacno = hexdigittobyte(str[1]);
 
-    data_high = hexdigittobyte(str[offset++]);
+    data_high = hexdigittobyte(str[2]);
 
     // must be 2 characters remaining
-    data_low = strtohex(&str[offset]);
+    data_low = strtohex(&str[3]);
 
-    printf("dacno %x\n",dacno);
-    printf("data_high %x\n",data_high);
-    printf("data_low %x\n",data_low);
+    //printf("dacno %x\n",dacno);
+    //printf("data_high %x\n",data_high);
+    //printf("data_low %x\n",data_low);
 
     if (dacno == 2)
     {
@@ -530,6 +539,57 @@ void act_ref_dac(unsigned char init_required)
     else
 	    // using register "dacno", write a value to DAC specified
         write_ref_dac(REF_DAC_CMD(dacno), data_high, data_low);
+
+    act_stbyte();
+}
+
+// delay() between dac_select_bit and synth_latch_bit so we are guaranteed
+// dac_select_bit effect has propogated through so we can safely set
+// synth_latch_bit
+
+#define SQUELCH_POT_SELECT  {dac_select_bit=0; delay(5); synth_latch_bit=1; delay(20);}
+#define SQUELCH_POT_DESELECT {dac_select_bit=1; synth_latch_bit=0;}
+
+void squelch_pot_init(void)
+{
+    SQUELCH_POT_SELECT;
+
+    // init TCON
+    SPI_Byte_Write(0x40);
+    SPI_Byte_Write(0x0F);
+
+    SQUELCH_POT_DESELECT;
+}
+
+void act_squelch_pot(void)
+{
+	unsigned char pot_data;
+
+    // format of POT command
+    // QAB
+    // Q: Pot command (that's how we got here so skip it)
+    // A: top 4 bits of pot value 0-F
+    // B: bottom 4 bits of pot value 0-F
+
+    // must be 2 characters remaining
+    pot_data = strtohex(&str[1]);
+
+    //printf("pot_data %x\n",pot_data);
+
+    SQUELCH_POT_SELECT;
+
+    SPI_Byte_Write(0);
+    SPI_Byte_Write(pot_data);
+
+    SQUELCH_POT_DESELECT;
+
+#if 0
+    // nvram
+    SQUELCH_POT_SELECT;
+    SPI_Byte_Write(0x20);
+    SPI_Byte_Write(pot_data);
+    SQUELCH_POT_DESELECT;
+#endif
 
     act_stbyte();
 }
@@ -572,25 +632,27 @@ void act_set_power(const int powerstate)
 
     if (powerstate)
     {
-        delay(1000);
+        delay(100000);
 
 #if defined(SIXMETRES)
 #define REF_DAC_INIT_HI 0x0C
-#define REF_DAC_INIT_LO 0x56
+#define REF_DAC_INIT_LO 0x3E
 
 #elif defined(FOURMETRES)
 #define REF_DAC_INIT_HI 0x0C
-#define REF_DAC_INIT_LO 0x56
+#define REF_DAC_INIT_LO 0x3E
 
 #elif defined(TWOMETRES)
 #define REF_DAC_INIT_HI 0x0C
-#define REF_DAC_INIT_LO 0x56
+#define REF_DAC_INIT_LO 0x3E
 
 #endif
         ref_dac_init();
         write_ref_dac(REF_DAC_CMD(0), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
 
         write_ref_dac(REF_DAC_CMD(1), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
+
+        squelch_pot_init();
 
         baa();
     }
@@ -818,6 +880,9 @@ void act_test(int tv)
 
     g_last_tx=w[1];
 
+    // 10816 for 12.5KHz step
+    g_if_offset=10816;
+
     write_synth_spi(&w);
 }
 #endif
@@ -921,6 +986,8 @@ void main (void)
 			partcmd('D', act_ref_dac(0));
 
             partcmd('E', act_ref_dac(1));
+
+            partcmd('Q', act_squelch_pot());
 
 #if REPORTING
             cmd("X", act_report(0))
