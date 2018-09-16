@@ -554,9 +554,9 @@ void squelch_pot_init(void)
 {
     SQUELCH_POT_SELECT;
 
-    // init TCON
-    SPI_Byte_Write(0x40);
-    SPI_Byte_Write(0x0F);
+    // init TCON (Terminal Control Register)
+    SPI_Byte_Write(0x40);    // TCON at address 4
+    SPI_Byte_Write(0x0F);    // Everything enabled/connected
 
     SQUELCH_POT_DESELECT;
 }
@@ -578,7 +578,7 @@ void act_squelch_pot(void)
 
     SQUELCH_POT_SELECT;
 
-    SPI_Byte_Write(0);
+    SPI_Byte_Write(0);     // volatile writes - address 0
     SPI_Byte_Write(pot_data);
 
     SQUELCH_POT_DESELECT;
