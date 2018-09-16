@@ -460,7 +460,10 @@ class McMicro:
 
                 # 50MHz reception measured at 71.4MHz LO
                 # E == init DAC reference source and gain required
-                self.m_hwif.enqueue("E2C4B")
+                self.m_hwif.enqueue("E2C3E")
+
+                # squelch pot
+                self.m_hwif.enqueue("Q4C")
             self.m_refosc_count += 1
         else:
             if self.m_refosc_count < self.m_refosc_init_boundary:
