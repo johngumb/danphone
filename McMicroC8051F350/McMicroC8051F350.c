@@ -436,7 +436,6 @@ void act_control(void)
     act_stbyte();
 }
 
-
 void act_synth(void)
 {
 	unsigned char offset=1; // skip first command string byte "S"
@@ -478,7 +477,6 @@ void write_ref_dac(unsigned char cmd, unsigned char d_hi, unsigned char d_lo)
 
 	dac_select_bit=1;
 }
-
 
 #define REF_DAC_CMD(rdcmd) ((rdcmd)<<3)
 
@@ -1124,8 +1122,8 @@ void main (void)
 // P0.1 - SPI MISO   (digital input, open-drain) -- look to re-use
 // P0.2 - SPI MOSI   (digital output, push-pull)
 // P0.3 - SPI NSS    (digital output, push-pull) -- synth latch
-// P0.4   digital   push-pull    UART TX
-// P0.5   digital   open-drain   UART RX
+// P0.4   UART TX
+// P0.5   UART RX
 // P0.6 - CTCSS tone
 // P0.7 - MC Micro shiftreg latch
 // P1.0 - status - lock bit
