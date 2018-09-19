@@ -463,7 +463,7 @@ class McMicro:
                 self.m_hwif.enqueue("E2C3E")
 
                 # squelch pot
-                self.m_hwif.enqueue("Q80")
+                self.m_hwif.enqueue("Q90")
             self.m_refosc_count += 1
         else:
             if self.m_refosc_count < self.m_refosc_init_boundary:
