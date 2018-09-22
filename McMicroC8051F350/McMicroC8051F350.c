@@ -514,6 +514,8 @@ void act_ref_dac(unsigned char init_required)
     //    0: DAC 0
     //    1: DAC 1
     //    2: Both
+    //    3: DAC 0 written with ABC, DAC 1 written with ABC-1
+    //    4: DAC 0 written with ABC, DAC 1 written with ABC+1
     // A: top 4 bits of DAC value 0-F
     // B: middle 4 bits of DAC value 0-F
     // C: bottom 4 bits of DAC value 0-F
@@ -529,9 +531,20 @@ void act_ref_dac(unsigned char init_required)
     //printf("data_high %x\n",data_high);
     //printf("data_low %x\n",data_low);
 
-    if (dacno == 2)
+    if (dacno >= 2)
     {
         write_ref_dac(REF_DAC_CMD(0), data_high, data_low);
+
+        switch(dacno)
+        {
+            case 3:
+                data_low-=1;
+            break;
+
+            case 4:
+                data_low+=1;
+            break;
+        }
         write_ref_dac(REF_DAC_CMD(1), data_high, data_low); 
     }
     else
