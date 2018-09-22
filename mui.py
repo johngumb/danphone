@@ -814,6 +814,9 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_tx()
             self.m_rig.disable_audio()
             self.m_rig.enable_pa()
+        elif data[0] in ['D','E','Q']:
+            self.m_rig.execute_rig_cmd(data)
+            print "cmd complete"
         else:
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()

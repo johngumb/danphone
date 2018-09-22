@@ -471,6 +471,10 @@ class McMicro:
 
         return result
 
+    def execute_rig_cmd(self, cmd):
+        print "execute_rig_cmd: Executing", cmd
+        self.m_hwif.enqueue(cmd)
+
     def power_supply_present(self):
 
         return self.m_power_supply_present
