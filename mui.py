@@ -806,7 +806,7 @@ class MyFrame(wx.Frame):
         data = event.data
         print "Got data",data
 
-        if data=="txon":
+        if False:
             mute(self.m_audioserver)
             sdrmute()
             self.m_transmitting = True
@@ -816,6 +816,10 @@ class MyFrame(wx.Frame):
         elif data[0] in ['D','E','Q']:
             self.m_rig.execute_rig_cmd(data)
             print "cmd complete"
+        elif data in "txon":
+            self.m_rig.enable_tx()            
+        elif data in "txoff":
+            self.m_rig.disable_tx()
         else:
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()
