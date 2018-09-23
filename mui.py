@@ -817,7 +817,7 @@ class MyFrame(wx.Frame):
             self.m_rig.execute_rig_cmd(data)
             print "cmd complete"
         elif data in "ft8-txon":
-            self.m_rig.enable_tx()            
+            self.m_rig.enable_tx(enable_tx_audio=False)
         elif data in "ft8-txoff":
             self.m_rig.disable_tx()
         else:

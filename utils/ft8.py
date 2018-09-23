@@ -113,9 +113,7 @@ if __name__ == "__main__":
     print retcode
 
     send_msg("ft8-txoff")
-    os.system(string.join(['sox', recfile, '-t wavpcm --rate 12k -c 1 -b 16', recfile_final]))
-    os.unlink(recfile)
-    
+    os.system(string.join(['sox', recfile, '-t wavpcm --rate 12k -c 1 -b 16', recfile_final, '&&', 'rm -f', recfile]))
 
     #send_msg("D2C2E")
     #send_msg("Q90")

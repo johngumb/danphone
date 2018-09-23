@@ -128,19 +128,23 @@ class McMicro:
         return
 
 #        elif self.m_tx_freq in [145.1375E6]: # AL
-    def enable_tx(self, ctcss = 0):
+    def enable_tx(self, ctcss = 0, enable_tx_audio = True):
         if self.m_tx_freq in [50.05E6, 50.016E6]:
             return
 
-        self.m_shiftreg.setbit(self.SR_TX_RX|self.SR_TX_AUDIO_ENABLE)
+        self.tune(self.m_tx_freq)
+
+        if enable_tx_audio:
+            self.m_shiftreg.setbit(self.SR_TX_RX|self.SR_TX_AUDIO_ENABLE)
+        else:
+            self.m_shiftreg.setbit(self.SR_TX_RX)
 
         self.m_shiftreg.latch()
 
-        self.tune(self.m_tx_freq)
+        if enable_tx_audio:
+            ctcss = ctcss_helper.get_ctcss(self.m_tx_freq)
 
-        ctcss = ctcss_helper.get_ctcss(self.m_tx_freq)
-
-        self.set_ctcss(ctcss)
+            self.set_ctcss(ctcss)
 
         return
 
