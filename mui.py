@@ -113,6 +113,7 @@ g_recordvec={}
 g_recdir = "/home/john/recordings"
 
 # to cmdseq
+g_fifo="/tmp/danphone-cmdseq"
 g_pipe = None
 
 def writefreq(rig):
@@ -208,17 +209,16 @@ def jack_cmd(cmd, expect_success=True):
     global g_pipe
 
     #os.system(cmd)
-    fifo="/tmp/danphone-cmdseq"
-    if not os.path.exists(fifo):
-        print >> sys.stderr,"%s must exist" % fifo
-        os.unlink(jack_recfifo())
-        g_rig.m_request_thread_exit=True
-        sys.exit(1)
+    if not os.path.exists(g_fifo):
+        print >> sys.stderr,"%s must exist, %s ignored" % (g_fifo, cmd)
+        #os.unlink(jack_recfifo())
+        #g_rig.m_request_thread_exit=True
+        #sys.exit(1)
     else:
-        g_pipe=open(fifo, 'w')
+        g_pipe=open(g_fifo, 'w')
 
-    g_pipe.write("%s %s %s\n" % (g_audioserver, repr(expect_success).lower(), cmd))
-    g_pipe.flush()
+        g_pipe.write("%s %s %s\n" % (g_audioserver, repr(expect_success).lower(), cmd))
+        g_pipe.flush()
 
     return
 
@@ -806,7 +806,7 @@ class MyFrame(wx.Frame):
         data = event.data
         print "Got data",data
 
-        if False:
+        if data=="txon":
             mute(self.m_audioserver)
             sdrmute()
             self.m_transmitting = True
@@ -816,9 +816,9 @@ class MyFrame(wx.Frame):
         elif data[0] in ['D','E','Q']:
             self.m_rig.execute_rig_cmd(data)
             print "cmd complete"
-        elif data in "txon":
+        elif data in "ft8-txon":
             self.m_rig.enable_tx()            
-        elif data in "txoff":
+        elif data in "ft8-txoff":
             self.m_rig.disable_tx()
         else:
             self.m_rig.disable_tx()
@@ -1216,7 +1216,8 @@ def closedown():
     os.unlink(jack_recfifo())
 
     # cmdseq.sh has responsibility for deleting /tmp/danphone-cmdseq
-    g_pipe.close()
+    if os.path.exists(g_fifo):
+        g_pipe.close()
 
 class MyApp(wx.App):
     def OnInit(self):

@@ -68,7 +68,7 @@ if __name__ == "__main__":
     init_tones(1500)
     print g_tones
 
-    send_msg("txon")
+    send_msg("ft8-txon")
     time.sleep(1)
     zero = "D2A26"
     send_msg(zero)
@@ -112,9 +112,9 @@ if __name__ == "__main__":
     retcode = p.wait()
     print retcode
 
-    send_msg("txoff")
+    send_msg("ft8-txoff")
     os.system(string.join(['sox', recfile, '-t wavpcm --rate 12k -c 1 -b 16', recfile_final]))
-#    os.unlink(recfile)
+    os.unlink(recfile)
     
 
     #send_msg("D2C2E")
