@@ -153,7 +153,9 @@ def start_record(audioserver):
     news = False
     inhibit = os.path.exists("/tmp/inhibit-recordings")
     if not g_recordvec.has_key(audioserver) and os.path.exists(g_recdir) and not inhibit and not news:
-        rec_cmd=['jack_capture','--no-stdin','-as','--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav")]
+
+        max_record_time = 300
+        rec_cmd=['jack_capture','--no-stdin','-as','--recording-time', repr(max_record_time), '--port',audioserver+":from_slave_2",os.path.join(g_recdir,audioserver+".wav") ]
 
         jack_cmd(string.join(rec_cmd))
 
