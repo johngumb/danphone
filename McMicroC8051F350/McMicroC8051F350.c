@@ -129,7 +129,7 @@ void SPI0_Init(void);
 void PCA0_Init(void);
 void ADC0_Init(void);
 
-void SPI_Byte_Write (const unsigned char);
+unsigned char SPI_Byte_Write (const unsigned char);
 
 void pulsebithigh(const char latch_id);
 
@@ -1260,31 +1260,17 @@ void SPI0_Init()
 }
 
 
-void SPI_Byte_Write (const unsigned char dat)
+unsigned char SPI_Byte_Write (const unsigned char dat)
 {
    //printf("writing %02X\n",(unsigned int) dat);
 
-#if 0
-   while (!NSSMD0);                    // Wait until the SPI is free, in case
-                                       // it's already busy
-
-   NSSMD0 = 0;
-#endif
-
-   SPIF=0; // may not be necessary
+   SPIF=0;
 
    SPI0DAT = dat;
 
-   while (TXBMT != 1);
-
    while (!SPIF);
 
-   SPIF=0;
-
-#if 0
-   NSSMD0 = 1;                         // Disable the Slave
-#endif
-
+   return SPI0DAT;
 }
 
 void PCA0_Init (void)
