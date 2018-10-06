@@ -94,6 +94,7 @@ sbit dac_select_bit=P1^2;  /* also used as input for power-on indication for  */
 
 sbit squelch_bit=P1^0;
 sbit locked_bit=P1^1;
+sbit rf_power_pot_select_bit=P1^1;
 sbit power_on_bit=P1^2;
 sbit rts_bit=P1^3; /* goes back to RS232 as CTS */
 sbit cts_bit=P1^4; /* comes from RS232 as RTS */
@@ -129,7 +130,7 @@ void SPI0_Init(void);
 void PCA0_Init(void);
 void ADC0_Init(void);
 
-void SPI_Byte_Write (const unsigned char);
+unsigned char SPI_Byte_Write (const unsigned char);
 
 void pulsebithigh(const char latch_id);
 
@@ -558,8 +559,11 @@ void act_ref_dac(unsigned char init_required)
 // dac_select_bit effect has propogated through so we can safely set
 // synth_latch_bit
 
-#define SQUELCH_POT_SELECT  {dac_select_bit=0; delay(5); synth_latch_bit=1; delay(20);}
-#define SQUELCH_POT_DESELECT {dac_select_bit=1; synth_latch_bit=0;}
+//#define SQUELCH_POT_SELECT  {dac_select_bit=0; delay(5); synth_latch_bit=1; delay(20);}
+//#define SQUELCH_POT_DESELECT {dac_select_bit=1; synth_latch_bit=0;}
+
+#define SQUELCH_POT_SELECT rf_power_pot_select_bit=0
+#define SQUELCH_POT_DESELECT rf_power_pot_select_bit=1
 
 void squelch_pot_init(void)
 {
@@ -574,7 +578,7 @@ void squelch_pot_init(void)
 
 void act_squelch_pot(void)
 {
-	unsigned char pot_data;
+	unsigned char pot_data, read_high, read_low;
 
     // format of POT command
     // QAB
@@ -602,7 +606,19 @@ void act_squelch_pot(void)
     SQUELCH_POT_DESELECT;
 #endif
 
-    act_stbyte();
+	SQUELCH_POT_SELECT;
+	// read back
+	//  send in the address and value via SPI:
+	
+	read_high = SPI_Byte_Write(0x0C); // high byte
+	read_low = SPI_Byte_Write(0xFF); // low byte
+
+	SQUELCH_POT_DESELECT;
+
+    printf("read_high %x\n",read_high);
+    printf("read_low %x\n",read_low);
+
+    //act_stbyte();
 }
 
 void act_ctcss(void)
@@ -1150,7 +1166,7 @@ void main (void)
 // P1.7 - input  - Pin 15 on CPU from pin 2 on 'D' type ground for logic 1
 //
 // must be push-pull for ft232 test lead
-#define UART_TX_OPEN_DRAIN
+//#define UART_TX_OPEN_DRAIN
 void PORT_Init (void)
 {
    // NSS gets used as a GPIO pin
@@ -1162,7 +1178,12 @@ void PORT_Init (void)
    P0MDOUT = (P00|P02|P04|P06|P07); // Enable UTX (P04) as push-pull out, SCK, MOSI and SYNTH_LATCH are open drain
 #endif
 
+#ifdef UART_TX_OPEN_DRAIN
    P1MDOUT = (P13|P15|P16);
+#else
+   // P11 for rf_power_pot_latch_bit
+   P1MDOUT = (P11|P13|P15|P16);
+#endif
 
    XBR0    = 0x03;                     // Enable UART on P0.4(TX) and P0.5(RX), SPI also
    XBR1    = 0x41;                     // Route CEX0 to a port pin
@@ -1170,6 +1191,8 @@ void PORT_Init (void)
 
    pin1_open_drain=0;   // MOSFET outputs disabled
    pin15_open_drain=0;  // MOSFET outputs disabled
+
+   rf_power_pot_select_bit=1;
 }
 
 //-----------------------------------------------------------------------------
@@ -1260,7 +1283,36 @@ void SPI0_Init()
 }
 
 
-void SPI_Byte_Write (const unsigned char dat)
+unsigned char SPI_Byte_Write (const unsigned char dat)
+{
+   //printf("writing %02X\n",(unsigned int) dat);
+
+#if 0
+   while (!NSSMD0);                    // Wait until the SPI is free, in case
+                                       // it's already busy
+
+   NSSMD0 = 0;
+#endif
+
+   SPIF=0; // may not be necessary
+
+   SPI0DAT = dat;
+
+   while (TXBMT != 1);
+
+   while (!SPIF);
+
+//   SPIF=0;
+
+   return SPI0DAT;
+#if 0
+   NSSMD0 = 1;                         // Disable the Slave
+#endif
+
+}
+
+#if 0
+unsigned char SPI_Byte_Transfer (const unsigned char dat)
 {
    //printf("writing %02X\n",(unsigned int) dat);
 
@@ -1285,7 +1337,32 @@ void SPI_Byte_Write (const unsigned char dat)
    NSSMD0 = 1;                         // Disable the Slave
 #endif
 
+   // Reading a byte from the EEPROM is a three-step operation.
+   
+   // Step1: Send the READ command
+   NSSMD0   = 0;                       // Activate Slave Select
+   SPI0DAT  = EEPROM_CMD_READ;
+   while (!SPIF);
+   SPIF     = 0;
+   
+   // Step2: Send the EEPROM source address (MSB first)
+   SPI0DAT  = (BYTE)((address >> 8) & 0x00FF);
+   while (!SPIF);
+   SPIF     = 0;
+   SPI0DAT  = (BYTE)(address & 0x00FF);
+   while (!SPIF);
+   SPIF     = 0;
+   
+   // Step3: Read the value returned
+   SPI0DAT  = 0;                       // Dummy write to output serial clock
+   while (!SPIF);                      // Wait for the value to be read
+   SPIF     = 0;
+   NSSMD0   = 1;                       // Deactivate Slave Select
+   Delay_us (1);
+   
+   return SPI0DAT;
 }
+#endif
 
 void PCA0_Init (void)
 {
