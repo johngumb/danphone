@@ -1287,28 +1287,13 @@ unsigned char SPI_Byte_Write (const unsigned char dat)
 {
    //printf("writing %02X\n",(unsigned int) dat);
 
-#if 0
-   while (!NSSMD0);                    // Wait until the SPI is free, in case
-                                       // it's already busy
-
-   NSSMD0 = 0;
-#endif
-
-   SPIF=0; // may not be necessary
+   SPIF=0;
 
    SPI0DAT = dat;
 
-   while (TXBMT != 1);
-
    while (!SPIF);
 
-//   SPIF=0;
-
    return SPI0DAT;
-#if 0
-   NSSMD0 = 1;                         // Disable the Slave
-#endif
-
 }
 
 #if 0
