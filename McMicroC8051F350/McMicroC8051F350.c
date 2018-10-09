@@ -1139,8 +1139,8 @@ void main (void)
 // P0.5   UART RX
 // P0.6 - CTCSS tone
 // P0.7 - MC Micro shiftreg latch
-// P1.0 - status - lock bit
-// P1.1 - status - squelch open
+// P1.0 - status - squelch open
+// P1.1 - status - synth lock bit
 // P1.2 - status - power on
 // P1.2 - output - synth dac chip select
 // P1.3 - output - CTS as seen by host
