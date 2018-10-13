@@ -93,6 +93,7 @@ sbit dac_select_bit=P1^2;  /* also used as input for power-on indication for  */
                            /* pull-up for the ref osc dac ~SEL pin.           */
 
 sbit squelch_bit=P1^0;
+sbit power_pot_select_bit=P1^0;
 sbit locked_bit=P1^1;
 sbit power_on_bit=P1^2;
 sbit rts_bit=P1^3; /* goes back to RS232 as CTS */
@@ -605,6 +606,48 @@ void act_squelch_pot(void)
     act_stbyte();
 }
 
+#define POWER_POT_SELECT  power_pot_select_bit=0
+#define POWER_POT_DESELECT power_pot_select_bit=1
+
+void act_power_pot(void)
+{
+	unsigned char pot_data;
+
+    // format of POT command
+    // PAB
+    // P: Pot command (that's how we got here so skip it)
+    // A: top 4 bits of pot value 0-F
+    // B: bottom 4 bits of pot value 0-F
+
+    // must be 2 characters remaining
+    pot_data = strtohex(&str[1]);
+
+    printf("pot_data %x\n",pot_data);
+
+    // testing
+    if (pot_data)
+        POWER_POT_SELECT;
+    else
+        POWER_POT_DESELECT;
+#if 0
+    POWER_POT_SELECT;
+
+    SPI_Byte_Write(0);     // volatile writes - address 0
+    SPI_Byte_Write(pot_data);
+
+    POWER_POT_DESELECT;
+
+
+    // nvram
+    POWER_POT_SELECT;
+    SPI_Byte_Write(0x20);
+    SPI_Byte_Write(pot_data);
+    POWER_POT_DESELECT;
+#endif
+
+    act_stbyte();
+}
+
 void act_ctcss(void)
 {
 	unsigned char toneval;
@@ -999,6 +1042,8 @@ void main (void)
             partcmd('E', act_ref_dac(1));
 
             partcmd('Q', act_squelch_pot());
+
+            partcmd('P', act_power_pot());
 
 #if REPORTING
             cmd("X", act_report(0))
