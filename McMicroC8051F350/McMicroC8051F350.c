@@ -93,7 +93,7 @@ sbit dac_select_bit=P1^2;  /* also used as input for power-on indication for  */
                            /* pull-up for the ref osc dac ~SEL pin.           */
 
 sbit squelch_bit=P1^0;
-sbit power_pot_select_bit=P1^0;
+sbit rf_power_pot_select_bit=P1^0;
 sbit locked_bit=P1^1;
 sbit power_on_bit=P1^2;
 sbit rts_bit=P1^3; /* goes back to RS232 as CTS */
@@ -136,7 +136,7 @@ void pulsebithigh(const char latch_id);
 
 void write_synth_spi(const unsigned int *);
 
-void squelch_pot_init(void);
+void init_potentiometers(void);
 
 void delay(unsigned int limit)
 {
@@ -503,7 +503,7 @@ void act_ref_dac(unsigned char init_required)
         ref_dac_init();
 
         // HACK slave the digi pot init off this
-        squelch_pot_init();
+        init_potentiometers();
     }
 
     // format of DAC command
@@ -562,10 +562,10 @@ void act_ref_dac(unsigned char init_required)
 #define SQUELCH_POT_SELECT  {dac_select_bit=0; delay(5); synth_latch_bit=1; delay(20);}
 #define SQUELCH_POT_DESELECT {dac_select_bit=1; synth_latch_bit=0;}
 
-#define POWER_POT_SELECT  power_pot_select_bit=0
-#define POWER_POT_DESELECT power_pot_select_bit=1
+#define POWER_POT_SELECT rf_power_pot_select_bit=0
+#define POWER_POT_DESELECT rf_power_pot_select_bit=1
 
-void squelch_pot_init(void)
+void init_potentiometers(void)
 {
     POWER_POT_SELECT;
     SQUELCH_POT_SELECT;
@@ -613,7 +613,7 @@ void act_squelch_pot(void)
 
 void act_power_pot(void)
 {
-	unsigned char pot_data;
+	unsigned char pot_data, read_high, read_low;
 
     // format of POT command
     // PAB
@@ -640,6 +640,17 @@ void act_power_pot(void)
     SPI_Byte_Write(pot_data);
     POWER_POT_DESELECT;
 #endif
+
+	// read back
+    POWER_POT_SELECT;
+
+    read_high = SPI_Byte_Write(0x0C); // high byte
+	read_low = SPI_Byte_Write(0xFF); // low byte
+
+	POWER_POT_DESELECT;
+
+    printf("read_high %x\n",read_high);
+    printf("read_low %x\n",read_low);
 
     act_stbyte();
 }
@@ -702,7 +713,7 @@ void act_set_power(const int powerstate)
 
         write_ref_dac(REF_DAC_CMD(1), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
 
-        squelch_pot_init();
+        init_potentiometers();
 
         baa();
     }
@@ -1211,6 +1222,9 @@ void PORT_Init (void)
 
    pin1_open_drain=0;   // MOSFET outputs disabled
    pin15_open_drain=0;  // MOSFET outputs disabled
+
+   // should by default come up high (open drain)
+   //rf_power_pot_select_bit=1;
 }
 
 //-----------------------------------------------------------------------------
