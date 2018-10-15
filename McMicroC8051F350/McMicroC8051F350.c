@@ -562,12 +562,13 @@ void act_ref_dac(unsigned char init_required)
 #define SQUELCH_POT_SELECT  {dac_select_bit=0; delay(5); synth_latch_bit=1; delay(20);}
 #define SQUELCH_POT_DESELECT {dac_select_bit=1; synth_latch_bit=0;}
 
-#define POWER_POT_SELECT rf_power_pot_select_bit=0
+#define POWER_POT_SELECT_NODELAY rf_power_pot_select_bit=0
+#define POWER_POT_SELECT  {POWER_POT_SELECT_NODELAY; delay(1);}
 #define POWER_POT_DESELECT rf_power_pot_select_bit=1
 
 void init_potentiometers(void)
 {
-    POWER_POT_SELECT;
+    POWER_POT_SELECT_NODELAY; // get delay from squelch pot select
     SQUELCH_POT_SELECT;
 
     // init TCON (Terminal Control Register)
@@ -611,9 +612,12 @@ void act_squelch_pot(void)
     act_stbyte();
 }
 
+#define BUGCHECK_PP 1
+#define crash(crashcode) {while(1) { printf("BUG %d\n",crashcode); delay(1000); }}
+
 void act_power_pot(void)
 {
-	unsigned char pot_data, read_high, read_low;
+	unsigned char pot_data, read_low;
 
     // format of POT command
     // PAB
@@ -623,8 +627,6 @@ void act_power_pot(void)
 
     // must be 2 characters remaining
     pot_data = strtohex(&str[1]);
-
-    printf("pot_data %x\n",pot_data);
 
     POWER_POT_SELECT;
 
@@ -644,13 +646,15 @@ void act_power_pot(void)
 	// read back
     POWER_POT_SELECT;
 
-    read_high = SPI_Byte_Write(0x0C); // high byte
+    SPI_Byte_Write(0x0C); // high byte
 	read_low = SPI_Byte_Write(0xFF); // low byte
 
 	POWER_POT_DESELECT;
 
-    printf("read_high %x\n",read_high);
-    printf("read_low %x\n",read_low);
+    if (pot_data != read_low)
+    {
+        crash(BUGCHECK_PP);
+    }
 
     act_stbyte();
 }
