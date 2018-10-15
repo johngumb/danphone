@@ -562,8 +562,12 @@ void act_ref_dac(unsigned char init_required)
 #define SQUELCH_POT_SELECT  {dac_select_bit=0; delay(5); synth_latch_bit=1; delay(20);}
 #define SQUELCH_POT_DESELECT {dac_select_bit=1; synth_latch_bit=0;}
 
+#define POWER_POT_SELECT  power_pot_select_bit=0
+#define POWER_POT_DESELECT power_pot_select_bit=1
+
 void squelch_pot_init(void)
 {
+    POWER_POT_SELECT;
     SQUELCH_POT_SELECT;
 
     // init TCON (Terminal Control Register)
@@ -571,6 +575,7 @@ void squelch_pot_init(void)
     SPI_Byte_Write(0x0F);    // Everything enabled/connected
 
     SQUELCH_POT_DESELECT;
+    POWER_POT_DESELECT;
 }
 
 void act_squelch_pot(void)
@@ -606,9 +611,6 @@ void act_squelch_pot(void)
     act_stbyte();
 }
 
-#define POWER_POT_SELECT  power_pot_select_bit=0
-#define POWER_POT_DESELECT power_pot_select_bit=1
-
 void act_power_pot(void)
 {
 	unsigned char pot_data;
@@ -624,12 +626,6 @@ void act_power_pot(void)
 
     printf("pot_data %x\n",pot_data);
 
-    // testing
-    if (pot_data)
-        POWER_POT_SELECT;
-    else
-        POWER_POT_DESELECT;
-#if 0
     POWER_POT_SELECT;
 
     SPI_Byte_Write(0);     // volatile writes - address 0
@@ -637,7 +633,7 @@ void act_power_pot(void)
 
     POWER_POT_DESELECT;
 
-
+#if 0
     // nvram
     POWER_POT_SELECT;
     SPI_Byte_Write(0x20);
