@@ -136,7 +136,21 @@ void pulsebithigh(const char latch_id);
 
 void write_synth_spi(const unsigned int *);
 
-void init_potentiometers(void);
+void ref_dac_init(void);
+
+// delay() between dac_select_bit and synth_latch_bit so we are guaranteed
+// dac_select_bit effect has propogated through so we can safely set
+// synth_latch_bit
+
+#define SQUELCH_POT_SELECT  {dac_select_bit=0; delay(5); synth_latch_bit=1; delay(20);}
+#define SQUELCH_POT_DESELECT {dac_select_bit=1; synth_latch_bit=0;}
+
+#define POWER_POT_SELECT  {rf_power_pot_select_bit=0; delay(1);}
+#define POWER_POT_DESELECT rf_power_pot_select_bit=1
+
+//#define INIT_POT(pot_id) {pot_id##_SELECT; SPI_Byte_Write(0x40); SPI_Byte_Write(0x0F); pot_id##_DESELECT;}
+
+void init_squelch_potentiometer();
 
 void delay(unsigned int limit)
 {
@@ -428,11 +442,15 @@ void act_control(void)
 
 	pulsebithigh(SHIFT_REG_LATCH_ID);
 
-#if 0
     /* allow unit to power up */
     if (val & SR_POWER)
-        delay(1000);
-#endif
+    {
+        while(!power_on_bit);
+
+        ref_dac_init();
+
+        init_squelch_potentiometer();
+    }
 
     act_stbyte();
 }
@@ -497,13 +515,14 @@ void act_ref_dac(unsigned char init_required)
 {
 	unsigned char dacno, data_high, data_low;
 
+    // TODO NO LONGER REQUIRED? INIT DONE AT POWER ON OF RF BOARD?
     // Set up ref osc dac chip.
     if (init_required)
     {
         ref_dac_init();
 
-        // HACK slave the digi pot init off this
-        init_potentiometers();
+        // HACK slave the squelch digi pot init off this
+        init_squelch_potentiometer();
     }
 
     // format of DAC command
@@ -555,28 +574,18 @@ void act_ref_dac(unsigned char init_required)
     act_stbyte();
 }
 
-// delay() between dac_select_bit and synth_latch_bit so we are guaranteed
-// dac_select_bit effect has propogated through so we can safely set
-// synth_latch_bit
-
-#define SQUELCH_POT_SELECT  {dac_select_bit=0; delay(5); synth_latch_bit=1; delay(20);}
-#define SQUELCH_POT_DESELECT {dac_select_bit=1; synth_latch_bit=0;}
-
-#define POWER_POT_SELECT_NODELAY rf_power_pot_select_bit=0
-#define POWER_POT_SELECT  {POWER_POT_SELECT_NODELAY; delay(1);}
-#define POWER_POT_DESELECT rf_power_pot_select_bit=1
-
-void init_potentiometers(void)
+void init_pot_spi(void)
 {
-    POWER_POT_SELECT_NODELAY; // get delay from squelch pot select
-    SQUELCH_POT_SELECT;
-
     // init TCON (Terminal Control Register)
     SPI_Byte_Write(0x40);    // TCON at address 4
     SPI_Byte_Write(0x0F);    // Everything enabled/connected
+}
 
+void init_squelch_potentiometer(void)
+{
+    SQUELCH_POT_SELECT;
+    init_pot_spi();
     SQUELCH_POT_DESELECT;
-    POWER_POT_DESELECT;
 }
 
 void act_squelch_pot(void)
@@ -614,6 +623,7 @@ void act_squelch_pot(void)
 
 #define BUGCHECK_PP 1
 #define crash(crashcode) {while(1) { printf("BUG %d\n",crashcode); delay(1000); }}
+//#define crash(crashcode) printf("BUG %d\n",crashcode);
 
 void act_power_pot(void)
 {
@@ -697,7 +707,7 @@ void act_set_power(const int powerstate)
 
     if (powerstate)
     {
-        delay(100000);
+        while(!power_on_bit);
 
 #if defined(SIXMETRES)
 #define REF_DAC_INIT_HI 0x0C
@@ -717,7 +727,7 @@ void act_set_power(const int powerstate)
 
         write_ref_dac(REF_DAC_CMD(1), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
 
-        init_potentiometers();
+        init_squelch_potentiometer();
 
         baa();
     }
@@ -1018,6 +1028,11 @@ void main (void)
     ADC0_Init();
 
     latch_init();
+
+    // initialise power pot
+    POWER_POT_SELECT;
+    init_pot_spi();
+    POWER_POT_DESELECT;
 
     // come up powered on to allow ref osc to stabilise
     act_set_power(1);
