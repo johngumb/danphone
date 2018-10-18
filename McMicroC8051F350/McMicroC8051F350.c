@@ -1241,9 +1241,6 @@ void PORT_Init (void)
 
    pin1_open_drain=0;   // MOSFET outputs disabled
    pin15_open_drain=0;  // MOSFET outputs disabled
-
-   // should by default come up high (open drain)
-   //rf_power_pot_select_bit=1;
 }
 
 //-----------------------------------------------------------------------------
