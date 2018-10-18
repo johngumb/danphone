@@ -456,7 +456,7 @@ class StatusLEDtimer(wx.Timer):
 
         self.m_lock_count = self.m_lock_count + 1
 
-        sopen=self.target.m_rig.squelch_open()
+        sopen=self.target.m_rig.squelch_open() and self.target.m_rig.getpower()
 
         if not self.m_squelch_sample:
             if sopen:
@@ -893,10 +893,11 @@ class MyFrame(wx.Frame):
         # should go within power supply present check
         self.m_powered_on = self.m_rig.powered_on()
 
-        if self.m_powered_on and not self.m_last_powered_on:
-            print "rig just powered on"
-            self.init_rig()
-            init_done = True
+        if self.m_rig.getpower():
+            if self.m_powered_on and not self.m_last_powered_on:
+                print "rig just powered on"
+                self.init_rig()
+                init_done = True
 
         if not self.m_powered_on and self.m_last_powered_on:
             print "rig just powered off"
@@ -907,7 +908,7 @@ class MyFrame(wx.Frame):
 
         if self.m_power_supply_present and not self.m_last_power_supply_present:
             print "rig power supply turned on"
-            if not init_done:
+            if (not init_done) and self.m_rig.getpower():
                 self.init_rig()
 
         if not self.m_power_supply_present and self.m_last_power_supply_present:

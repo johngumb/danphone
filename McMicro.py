@@ -123,9 +123,12 @@ class McMicro:
 
         self.m_shiftreg.latch()
 
-        self.disable_tx()
+        self.m_requested_power_state = val
 
         return
+
+    def getpower(self):
+        return self.m_requested_power_state
 
 #        elif self.m_tx_freq in [145.1375E6]: # AL
     def enable_tx(self, ctcss = 0, enable_tx_audio = True):
@@ -176,6 +179,8 @@ class McMicro:
         return
 
     def set_tx_power_high(self):
+        if self.m_hwif.server()=="skate":
+            self.m_hwif.enqueue("P91")
 
         self.m_shiftreg.clearbit(self.SR_TX_POWER_HI_LO)
 
@@ -184,6 +189,9 @@ class McMicro:
         return
 
     def set_tx_power_low(self):
+        if self.m_hwif.server()=="skate":
+            self.m_hwif.enqueue("P58")
+
         self.m_shiftreg.setbit(self.SR_TX_POWER_HI_LO)
 
         self.m_shiftreg.latch()
