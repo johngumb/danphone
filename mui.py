@@ -417,7 +417,13 @@ class StatusLEDtimer(wx.Timer):
         # during this time the LEDs will not update
         # power state will not be updated 
         #
-        if self.target.m_tx and not self.target.m_devid[0]=="cli":
+        #if self.target.m_tx and not self.target.m_devid[0]=="cli":
+        if self.target.m_tx:
+
+            if self.target.m_rig.get_tx_pa_state():
+                self.target.m_squelch_led.SetState(5)
+            else:
+                self.target.m_squelch_led.SetState(6)
 
             #
             # HACK not sure what wx.WakeUpIdle does

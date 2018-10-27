@@ -101,6 +101,8 @@ class McMicro:
 
         self.m_refosc_init_boundary = 3
 
+        self.m_tx_on = False
+
         return
 
     def __del__(self):
@@ -150,6 +152,8 @@ class McMicro:
 
             self.set_ctcss(ctcss)
 
+        self.m_tx_on = True
+
         return
 
     def disable_tx(self):
@@ -163,6 +167,8 @@ class McMicro:
             self.tune(self.m_rx_freq)
 
         self.set_ctcss(0)
+
+        self.m_tx_on = False
 
         return
 
@@ -256,6 +262,9 @@ class McMicro:
             result = self.m_last_status & 1
 
         return result
+
+    def get_tx_pa_state(self):
+        return (self.m_last_status & 8) != 0
 
     def stcharupdate(self, statstr):
         if statstr.strip():
@@ -482,10 +491,10 @@ class McMicro:
 
                 # 50MHz reception measured at 71.4MHz LO
                 # E == init DAC reference source and gain required
-                self.m_hwif.enqueue("E2C3E")
+                self.m_hwif.enqueue("D2C3E")
 
                 # squelch pot
-                self.m_hwif.enqueue("Q90")
+                self.m_hwif.enqueue("QB0")
             self.m_refosc_count += 1
         else:
             if self.m_refosc_count < self.m_refosc_init_boundary:
