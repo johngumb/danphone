@@ -879,6 +879,8 @@ class MyFrame(wx.Frame):
         self.m_ext_alarm_button.SetValue(False)
         self.onButtonExtAlarm(None)
 
+        self.m_rig.set_tx_power_low()
+
         # do this last in order to give the synth time to come up
         # - seems to be set_step that fails
         self.m_rig.set_step(self.m_step)
@@ -1205,6 +1207,8 @@ def jack_recfifo():
 
 def closedown():
     global g_pipe
+    g_rig.disable_tx()
+    g_rig.disable_audio_pa()
 
     stop_extthread(ExtSocket)
     g_rig.m_request_thread_exit=True

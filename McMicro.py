@@ -116,6 +116,7 @@ class McMicro:
         self.m_ctcss_fudge = val
 
     def setpower(self, val):
+        #print "setpower", val
         if val:
             self.m_shiftreg.setbit(self.SR_POWER)
         else:
@@ -152,6 +153,8 @@ class McMicro:
         return
 
     def disable_tx(self):
+        #print "disable_tx"
+
         self.m_shiftreg.clearbit(self.SR_TX_RX|self.SR_TX_AUDIO_ENABLE)
 
         self.m_shiftreg.latch()
@@ -164,6 +167,7 @@ class McMicro:
         return
 
     def enable_pa(self):
+        #print "enable_pa"
 
         self.m_shiftreg.setbit(self.SR_TX_PA)
 
@@ -172,6 +176,8 @@ class McMicro:
         return
 
     def disable_pa(self):
+        #print "disable_pa"
+
         self.m_shiftreg.clearbit(self.SR_TX_PA)
 
         self.m_shiftreg.latch()
@@ -180,21 +186,21 @@ class McMicro:
 
     def set_tx_power_high(self):
         if self.m_hwif.server()=="skate":
-            self.m_hwif.enqueue("P91")
+            self.m_hwif.enqueue("P9C")
+        else:
+            self.m_shiftreg.clearbit(self.SR_TX_POWER_HI_LO)
 
-        self.m_shiftreg.clearbit(self.SR_TX_POWER_HI_LO)
-
-        self.m_shiftreg.latch()
+            self.m_shiftreg.latch()
 
         return
 
     def set_tx_power_low(self):
         if self.m_hwif.server()=="skate":
-            self.m_hwif.enqueue("P58")
+            self.m_hwif.enqueue("P50")
+        else:
+            self.m_shiftreg.setbit(self.SR_TX_POWER_HI_LO)
 
-        self.m_shiftreg.setbit(self.SR_TX_POWER_HI_LO)
-
-        self.m_shiftreg.latch()
+            self.m_shiftreg.latch()
 
         return
 
@@ -202,6 +208,8 @@ class McMicro:
         return os.path.exists("/tmp/inhibit_audio_pa") or self.m_inhibit_audio_pa
 
     def enable_audio_pa(self):
+        #print "enable_audio_pa"
+
         if not self.inhibit_audio_pa():
             self.m_shiftreg.setbit(self.SR_AUDIO_PA)
 
@@ -210,6 +218,8 @@ class McMicro:
         return
 
     def disable_audio_pa(self):
+        #print "disable_audio_pa"
+
         self.m_shiftreg.clearbit(self.SR_AUDIO_PA)
 
         self.m_shiftreg.latch()
