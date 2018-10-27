@@ -249,7 +249,7 @@ class McMicro:
 
     def stcharupdate(self, statstr):
         if statstr.strip():
-            self.m_last_status = int(statstr)
+            self.m_last_status = int(statstr,16)
 
     def set_power_supply_state(self, power_supply_state):
         self.m_power_supply_present = power_supply_state
