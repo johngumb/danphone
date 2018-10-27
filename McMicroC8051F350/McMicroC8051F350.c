@@ -101,6 +101,7 @@ sbit cts_bit=P1^4; /* comes from RS232 as RTS */
 sbit pin15_open_drain=P1^5;
 sbit pin1_open_drain=P1^6;
 sbit pin2_input_bit=P1^7; /* pin 2 off DB15 connector */
+sbit rf_pa_status = P2^0;
 
 #define SYNTH_LATCH_ID 1
 #define SHIFT_REG_LATCH_ID 2
@@ -406,6 +407,14 @@ unsigned char hexdigittobyte(char ch)
 	return val;
 }
 
+char bytetohexdigit(unsigned char val)
+{
+    if (val>9)
+        return (val-10)+'A';
+    else
+        return val+'0';
+}
+
 unsigned char strtohex(char *ch)
 {
 	unsigned char i=0;
@@ -432,7 +441,6 @@ unsigned char strtohex(char *ch)
 }
 
 void act_stbyte();
-void stchar(void);
 
 void act_control(void)
 {
@@ -772,19 +780,17 @@ unsigned char stval()
 
         if (squelch_bit)
             result+=2;
+
+        if (rf_pa_status)
+            result +=8;
     }
 
     return result;
 }
 
-void stchar()
-{
-    putchar(stval()+'0');
-}
-
 void act_stbyte()
 {
-    stchar();
+    putchar(bytetohexdigit(stval()));
     putchar('K');
     putchar('\n');
 }
@@ -1029,10 +1035,20 @@ void main (void)
 
     latch_init();
 
-    // initialise power pot
+    // initialise power pot - setup
     POWER_POT_SELECT;
     init_pot_spi();
     POWER_POT_DESELECT;
+
+#if 0
+    // initialise power pot - value
+    POWER_POT_SELECT;
+
+    SPI_Byte_Write(0);     // volatile writes - address 0
+    SPI_Byte_Write(0x28);
+
+    POWER_POT_DESELECT;
+#endif
 
     // come up powered on to allow ref osc to stabilise
     act_set_power(1);
@@ -1219,6 +1235,7 @@ void main (void)
 // P1.5 - output - Pin 12 on CPU to drive pin 15 on 'D' type (MOSFET)
 // P1.6 - output - Pin 11 on CPU to drive pin 1 on 'D' type (MOSFET)
 // P1.7 - input  - Pin 15 on CPU from pin 2 on 'D' type ground for logic 1
+// P2.0 - input  - PA status
 //
 // must be push-pull for ft232 test lead
 #define UART_TX_OPEN_DRAIN
