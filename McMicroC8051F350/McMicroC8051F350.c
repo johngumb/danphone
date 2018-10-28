@@ -519,25 +519,13 @@ void ref_dac_init(void)
 // Write to MCP48FEB22 12 bit DAC controlling 14.4MHz synth ref osc
 // 0x000 14.398925 MHz
 // 0xFFF 14.400251 MHz 4.2031V as measured on KXN1123AA input pin
-void act_ref_dac(unsigned char init_required)
+void act_ref_dac()
 {
 	unsigned char dacno, data_high, data_low;
 
-    // TODO NO LONGER REQUIRED? INIT DONE AT POWER ON OF RF BOARD?
-    // Set up ref osc dac chip.
-    if (init_required)
-    {
-        ref_dac_init();
-
-        // HACK slave the squelch digi pot init off this
-        init_squelch_potentiometer();
-    }
-
     // format of DAC command
-    // <D|E>NABC
-    // <D|E>: Dac command (that's how we got here so skip it)
-    // D: Dac command without initialisation
-    // E: Dac command with initialisation
+    // DNABC
+    // D: Dac command (that's how we got here so skip it)
     // N: Dac number
     //    0: DAC 0
     //    1: DAC 1
@@ -1079,9 +1067,7 @@ void main (void)
 
 			partcmd('T', act_ctcss());
 
-			partcmd('D', act_ref_dac(0));
-
-            partcmd('E', act_ref_dac(1));
+			partcmd('D', act_ref_dac());
 
             partcmd('Q', act_squelch_pot());
 
