@@ -10,8 +10,15 @@ def change_intensity(color, fac):
         
     return wx.Colour(*rgb)
 
+blue=wx.Colour(0, 0, 255)
+orange=wx.Colour(255, 165, 0)
+black=wx.Colour(0, 0, 0)
+grey=wx.Colour(170, 170, 170)
+green=wx.Colour(10, 220, 10)
+yellow=wx.Colour(250, 200, 0)
+red=wx.Colour(220, 10, 10)
 class LED(wx.Control):
-    def __init__(self, parent, id=-1, colors=[wx.Colour(220, 10, 10), wx.Colour(250, 200, 0), wx.Colour(10, 220, 10), wx.Colour(170, 170, 170),wx.Colour(0, 0, 0), wx.Colour(255, 165, 0), wx.Colour(0, 0, 255)],
+    def __init__(self, parent, id=-1, colors=[red, yellow, green, grey, black, orange, blue],
                  pos=(-1,-1), style=wx.NO_BORDER):
         size = (17, 17)
         wx.Control.__init__(self, parent, id, pos, size, style)
