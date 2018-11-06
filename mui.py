@@ -418,8 +418,7 @@ class StatusLEDtimer(wx.Timer):
         # power state will not be updated 
         #
         #if self.target.m_tx and not self.target.m_devid[0]=="cli":
-        if self.target.m_tx:
-
+        if self.target.m_rig.m_tx_on:
             if self.target.m_rig.get_tx_pa_state():
                 self.target.m_squelch_led.SetState(5)
             else:
@@ -821,13 +820,16 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_tx()
             self.m_rig.disable_audio()
             self.m_rig.enable_pa()
-        elif data[0] in ['D','E','Q']:
+        elif data[0] in ['D','Q']:
             self.m_rig.execute_rig_cmd(data)
             print "cmd complete"
         elif data in "ft8-txon":
             self.m_rig.enable_tx(enable_tx_audio=False)
+        elif data in "pa-on":
+            self.m_rig.enable_pa()
         elif data in "ft8-txoff":
             self.m_rig.disable_tx()
+            self.m_rig.disable_pa()
         else:
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()
