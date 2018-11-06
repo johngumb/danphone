@@ -35,6 +35,8 @@ class TelnetCLI:
 
         self.m_serial = serial.serial_for_url("rfc2217://%s:%d" % server_transport_addr, 115200, timeout=0.5)
 
+#        self.m_serial = serial.Serial("/dev/ttyUSB0", 115200)
+
         #
         # needed to detect whether the radio has volts attatched
         # - drive DTR to -9V. Radio will pull this up if there is power
