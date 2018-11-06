@@ -606,14 +606,6 @@ void act_squelch_pot(void)
 
     SQUELCH_POT_DESELECT;
 
-#if 0
-    // nvram
-    SQUELCH_POT_SELECT;
-    SPI_Byte_Write(0x20);
-    SPI_Byte_Write(pot_data);
-    SQUELCH_POT_DESELECT;
-#endif
-
     act_stbyte();
 }
 
@@ -640,14 +632,6 @@ void act_power_pot(void)
     SPI_Byte_Write(pot_data);
 
     POWER_POT_DESELECT;
-
-#if 0
-    // nvram
-    POWER_POT_SELECT;
-    SPI_Byte_Write(0x20);
-    SPI_Byte_Write(pot_data);
-    POWER_POT_DESELECT;
-#endif
 
 	// read back
     POWER_POT_SELECT;
@@ -1028,16 +1012,6 @@ void main (void)
     init_pot_spi();
     POWER_POT_DESELECT;
 
-#if 0
-    // initialise power pot - value
-    POWER_POT_SELECT;
-
-    SPI_Byte_Write(0);     // volatile writes - address 0
-    SPI_Byte_Write(0x28);
-
-    POWER_POT_DESELECT;
-#endif
-
     // come up powered on to allow ref osc to stabilise
     act_set_power(1);
 
@@ -1368,62 +1342,6 @@ void PCA0_Init (void)
    // PCA counter initially disabled
    CR = 0;
 }
-
-#if 0
-//-----------------------------------------------------------------------------
-// SPI_Array_Write
-//-----------------------------------------------------------------------------
-//
-// Return Value : None
-// Parameters   : None
-//
-// Note: SPI_Data_Array must contain the data to be sent before calling this
-// function.
-//
-// Writes an array of values of size MAX_BUFFER_SIZE to the SPI Slave.  The
-// command consists of:
-//
-// Command = SPI_WRITE_BUFFER
-// Length = 1 byte of command, MAX_BUFFER_SIZE bytes of data
-//
-// Note: Polled mode is used for this function in order to buffer the data
-// being sent using the TXBMT flag.
-//
-//-----------------------------------------------------------------------------
-void SPI_Array_Write (void)
-{
-   unsigned char array_index;
-
-   while (!NSSMD0);                    // Wait until the SPI is free, in case
-                                       // it's already busy
-
-   ESPI0 = 0;                          // Disable SPI interrupts
-
-   NSSMD0 = 0;
-
-   SPI0DAT = SPI_WRITE_BUFFER;         // Load the XMIT register
-   while (TXBMT != 1)                  // Wait until the command is moved into
-   {                                   // the XMIT buffer
-   }
-
-   for (array_index = 0; array_index < MAX_BUFFER_SIZE; array_index++)
-   {
-      SPI0DAT = SPI_Data_Array[array_index]; // Load the data into the buffer
-      while (TXBMT != 1)               // Wait until the data is moved into
-      {                                // the XMIT buffer
-      }
-   }
-   SPIF = 0;
-   while (SPIF != 1)                   // Wait until the last byte of the
-   {                                   // data reaches the Slave
-   }
-   SPIF = 0;
-
-   NSSMD0 = 1;                         // Diable the Slave
-
-   ESPI0 = 1;                          // Re-enable SPI interrupts
-}
-#endif
 
 //-----------------------------------------------------------------------------
 // ADC0_Init
