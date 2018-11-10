@@ -21,6 +21,7 @@
 import telnetlib
 import serial
 import time
+import sys
 
 import radiosim
 
@@ -33,10 +34,10 @@ class TelnetCLI:
 
 #        self.m_tn = telnetlib.Telnet("skate",2217)
 
-        self.m_serial = serial.serial_for_url("rfc2217://%s:%d" % server_transport_addr, 115200, timeout=0.5)
-
-        # RADARC Construction contest 2018 for local operation
-        #self.m_serial = serial.Serial("/dev/ttyUSB0", 115200, timeout=0.5)
+        if '-s' in sys.argv:
+            self.m_serial = serial.Serial("/dev/ttyUSB0", 115200, timeout=0.5)
+        else:
+            self.m_serial = serial.serial_for_url("rfc2217://%s:%d" % server_transport_addr, 115200, timeout=0.5)
 
         #
         # needed to detect whether the radio has volts attatched
