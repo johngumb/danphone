@@ -96,7 +96,6 @@ ID_BUTTON_MONITOR=wx.NewId()
 ID_BUTTON_TX=wx.NewId()
 ID_SPIN_SQUELCH_LEVEL=wx.NewId()
 ID_BUTTON_MUTE=wx.NewId()
-#ID_BUTTON_MUTE_SKYPE=wx.NewId()
 ID_BUTTON_ON_OFF=wx.NewId()
 ID_BUTTON_AUDIO_PA=wx.NewId()
 ID_BUTTON_EXT_ALARM=wx.NewId()
@@ -662,8 +661,6 @@ class MyFrame(wx.Frame):
 
         self.m_mute_button = wx.ToggleButton(self, ID_BUTTON_MUTE, "Mute")
 
-#        self.m_mute_button_skype = wx.ToggleButton(self, ID_BUTTON_MUTE_SKYPE, "MuteSkype")
-
         self.m_on_off_button = wx.ToggleButton(self, ID_BUTTON_ON_OFF, "On/Off")
 
         self.m_audio_pa_button = wx.ToggleButton(self, ID_BUTTON_AUDIO_PA, "SPKR")
@@ -694,8 +691,6 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX,self.onButtonTransmit)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE,self.onButtonMute)
-
-#        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_MUTE_SKYPE,self.onButtonMuteSkype)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_ON_OFF,self.onButtonOnOff)
 
@@ -1073,21 +1068,6 @@ class MyFrame(wx.Frame):
 
         return
 
-    def onButtonMuteSkype(self,event):
-        skype_playback_jack_port="skype_playback_mixer"
-        skype_left="MAIN L"
-        skype_right="MAIN R"
-        skype_left_connection='%s:"%s" system:playback_1'%(skype_playback_jack_port,skype_left)
-        skype_right_connection='%s:"%s" system:playback_2'%(skype_playback_jack_port,skype_right)
-        if self.m_mute_button_skype.GetValue():
-            jack_cmd("jack_disconnect %s" % skype_left_connection)
-            jack_cmd("jack_disconnect %s" % skype_right_connection)
-        else:
-            jack_cmd("jack_connect %s" % skype_left_connection)
-            jack_cmd("jack_connect %s" % skype_right_connection)
-
-        return
-
     def OnSquelchFloatSpin(self,event):
         floatspin = event.GetEventObject()
 
@@ -1166,15 +1146,6 @@ class MyFrame(wx.Frame):
 #        sizer_1.Add(self.m_spin_ctrl_1 , 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_mute_button, 0, wx.ADJUST_MINSIZE, 0)
-
-        add_skype_mute=False
-        for olen in (2,3):
-            if len(sys.argv)==olen:
-                if sys.argv[olen-1]=="-s":
-                    add_skype_mute = True
-        if add_skype_mute:
-            sizer_1.Add(self.m_mute_button_skype, 0, wx.ADJUST_MINSIZE, 0)
-        
         sizer_1.Add(self.m_tx_rx, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_pa, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_button_tx_power_level, 0, wx.ADJUST_MINSIZE, 0)
