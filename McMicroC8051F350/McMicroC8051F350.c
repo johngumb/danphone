@@ -151,8 +151,6 @@ unsigned long read_adc(void);
 #define POWER_POT_SELECT  {rf_power_pot_select_bit=0; delay(10);}
 #define POWER_POT_DESELECT rf_power_pot_select_bit=1
 
-//#define INIT_POT(pot_id) {pot_id##_SELECT; SPI_Byte_Write(0x40); SPI_Byte_Write(0x0F); pot_id##_DESELECT;}
-
 void init_squelch_potentiometer();
 
 void delay(unsigned int limit)
