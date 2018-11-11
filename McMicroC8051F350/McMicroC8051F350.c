@@ -139,6 +139,8 @@ void write_synth_spi(const unsigned int *);
 
 void ref_dac_init(void);
 
+unsigned long read_adc(void);
+
 // delay() between dac_select_bit and synth_latch_bit so we are guaranteed
 // dac_select_bit effect has propogated through so we can safely set
 // synth_latch_bit
@@ -769,6 +771,14 @@ void act_stbyte()
     putchar('\n');
 }
 
+void act_temperature()
+{
+    while(!AD0INT);
+    printf("%lx",read_adc());
+    AD0INT = 0;                         // clear AD0 interrupt flag
+    act_stbyte();
+}
+
 #if REPORTING
 void act_report(char startstop)
 {
@@ -951,7 +961,7 @@ void act_hostsync()
     putchar('\n');
 }
 
-void read_adc()
+unsigned long read_adc(void)
 {
     unsigned long mV;
 
@@ -984,7 +994,8 @@ void read_adc()
                                        // (i.e. 2500 (VREF) * 2^24 (ADC result)
                                        // is greater than 2^32)
 
-   //printf("AIN0.2 voltage: %4ld mV\n",mV);
+//   printf("AIN0.2 voltage: %4ld mV\n",mV);
+   return mV;
 }
 
 #define cmd(_cmpstr,_rtn) if (strcmp(str, _cmpstr)==0) {_rtn; break;}
@@ -1030,14 +1041,10 @@ void main (void)
     {
         getstr(&str);
 
-        if(AD0INT) // conversion complete?
-        {
-         read_adc();
-         AD0INT = 0;                         // clear AD0 interrupt flag
-        }
-
         do {
 			partcmd('C', act_control());
+
+            partcmd('H', act_temperature());
 
 			partcmd('S', act_synth());
 
