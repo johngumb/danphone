@@ -212,8 +212,10 @@ class TelnetCLI:
         if (len(self.m_cmdlist)):
             print "pending cmds, sent",msg
 
-        if text.strip():
-            self.m_mcmicro.stcharupdate(text[-2])
+        t = text.strip()
+
+        if t:
+            self.m_mcmicro.stcharupdate(t[:-1])
 
         while (len(self.m_cmdlist)):
             cmd = self.m_cmdlist.pop(0)

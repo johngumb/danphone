@@ -103,6 +103,8 @@ class McMicro:
 
         self.m_tx_on = False
 
+        self.m_temperature = 0
+
         return
 
     def __del__(self):
@@ -267,8 +269,13 @@ class McMicro:
         return (self.m_last_status & 8) != 0
 
     def stcharupdate(self, statstr):
-        if statstr.strip():
-            self.m_last_status = int(statstr,16)
+        '''
+        status update to mc micro - status string must be stripped
+        '''
+
+        self.m_last_status = int(statstr[-1],16)
+        if len(statstr) > 1:
+            self.m_temperature = int(statstr[:-1],16)
 
     def set_power_supply_state(self, power_supply_state):
         self.m_power_supply_present = power_supply_state
@@ -515,6 +522,9 @@ class McMicro:
             self.m_hwif.enqueue("pin1on")
         else:
             self.m_hwif.enqueue("pin1off")
+
+    def take_temperature(self):
+        self.m_hwif.enqueue("H")
 
 def test():
     mc = McMicro()
