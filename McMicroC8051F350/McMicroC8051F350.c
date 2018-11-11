@@ -146,7 +146,7 @@ void ref_dac_init(void);
 #define SQUELCH_POT_SELECT  {dac_select_bit=0; delay(5); synth_latch_bit=1; delay(20);}
 #define SQUELCH_POT_DESELECT {dac_select_bit=1; synth_latch_bit=0;}
 
-#define POWER_POT_SELECT  {rf_power_pot_select_bit=0; delay(1);}
+#define POWER_POT_SELECT  {rf_power_pot_select_bit=0; delay(10);}
 #define POWER_POT_DESELECT rf_power_pot_select_bit=1
 
 //#define INIT_POT(pot_id) {pot_id##_SELECT; SPI_Byte_Write(0x40); SPI_Byte_Write(0x0F); pot_id##_DESELECT;}
@@ -402,7 +402,7 @@ unsigned char hexdigittobyte(char ch)
 	else if ( (ch>='A') && (ch<='F') )
 		val=ch-'A'+10;
 	else
-		printf("HEX ERROR:%x\n",ch);
+		printf("HEX ERROR:%x\n",(unsigned) ch);
 
 	return val;
 }
@@ -543,9 +543,9 @@ void act_ref_dac()
     // must be 2 characters remaining
     data_low = strtohex(&str[3]);
 
-    //printf("dacno %x\n",dacno);
-    //printf("data_high %x\n",data_high);
-    //printf("data_low %x\n",data_low);
+    //printf("dacno %x\n",(unsigned) dacno);
+    //printf("data_high %x\n",(unsigned)  data_high);
+    //printf("data_low %x\n",(unsigned) data_low);
 
     if (dacno >= 2)
     {
@@ -597,7 +597,7 @@ void act_squelch_pot(void)
     // must be 2 characters remaining
     pot_data = strtohex(&str[1]);
 
-    //printf("pot_data %x\n",pot_data);
+    //printf("pot_data %x\n",(unsigned) pot_data);
 
     SQUELCH_POT_SELECT;
 
@@ -609,9 +609,9 @@ void act_squelch_pot(void)
     act_stbyte();
 }
 
-#define BUGCHECK_PP 1
-#define crash(crashcode) {while(1) { printf("BUG %d\n",crashcode); delay(1000); }}
-//#define crash(crashcode) printf("BUG %d\n",crashcode);
+#define BUGCHECK_PP 255
+#define crash(crashcode) {while(1) { printf("BUG %d\n",(unsigned) crashcode); delay(1000); }}
+//#define crash(crashcode) printf("BUG %d\n",(unsigned) crashcode);
 
 void act_power_pot(void)
 {
@@ -632,6 +632,8 @@ void act_power_pot(void)
     SPI_Byte_Write(pot_data);
 
     POWER_POT_DESELECT;
+
+    delay(10);
 
 	// read back
     POWER_POT_SELECT;
@@ -665,7 +667,7 @@ void act_ctcss(void)
 		PCA0CPH0 = toneval;
 	}
 
-	//printf("CTCSS: %02x\n", toneval);
+	//printf("CTCSS: %02x\n", (unsigned) toneval);
 
        act_stbyte();
 }
