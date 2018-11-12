@@ -119,6 +119,7 @@ char g_line_in_progress;
 static char g_reporting;
 #endif
 
+static unsigned char g_timer2_count;
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
@@ -126,7 +127,7 @@ static char g_reporting;
 void SYSCLK_Init(void);
 void UART0_Init(void);
 void PORT_Init(void);
-void Timer2_Init(int);
+void Timer2_Init(void);
 void SPI0_Init(void);
 void PCA0_Init(void);
 void ADC0_Init(void);
@@ -1015,6 +1016,7 @@ void main (void)
 	PCA0_Init();
     PORT_Init();                        // Initialize Port I/O
     ADC0_Init();
+    Timer2_Init();
 
     latch_init();
 
@@ -1249,6 +1251,60 @@ void SYSCLK_Init (void)
                                         // the SYSCLK source
 }
 
+#define TIMER_PRESCALER            12  // Based on Timer2 CKCON and TMR2CN
+                                       // settings
+
+#define LED_TOGGLE_RATE            160  // LED toggle rate in milliseconds
+                                       // if LED_TOGGLE_RATE = 1, the LED will
+                                       // be on for 1 millisecond and off for
+                                       // 1 millisecond
+
+#define LED_TOGGLE_RATE_SCALED     20
+
+#define TIMER2_SCALE (LED_TOGGLE_RATE/LED_TOGGLE_RATE_SCALED)
+
+// There are SYSCLK/TIMER_PRESCALER timer ticks per second, so
+// SYSCLK/TIMER_PRESCALER/1000 timer ticks per millisecond.
+#define TIMER_TICKS_PER_MS  SYSCLK/TIMER_PRESCALER/1000
+
+// Note: LED_TOGGLE_RATE*TIMER_TICKS_PER_MS should not exceed 65535 (0xFFFF)
+// for the 16-bit timer
+
+#define AUX1     TIMER_TICKS_PER_MS*LED_TOGGLE_RATE_SCALED
+#define AUX2     -AUX1
+
+#define TIMER2_RELOAD            AUX2  // Reload value for Timer2
+
+sfr16 TMR2RL = 0xCA;                   // Timer2 Reload Register
+sfr16 TMR2 = 0xCC;                     // Timer2 Register
+
+//-----------------------------------------------------------------------------
+// Timer2_Init
+//-----------------------------------------------------------------------------
+//
+// Return Value : None
+// Parameters   : None
+//
+// This function configures Timer2 as a 16-bit reload timer, interrupt enabled.
+// Using the SYSCLK at 24.5MHz with a 1:12 prescaler.
+//
+// Note: The Timer2 uses a 1:12 prescaler.  If this setting changes, the
+// TIMER_PRESCALER constant must also be changed.
+//-----------------------------------------------------------------------------
+void Timer2_Init(void)
+{
+   CKCON &= ~0x60;                     // Timer2 uses SYSCLK/12
+   TMR2CN &= ~0x01;
+
+   TMR2RL = TIMER2_RELOAD;             // Reload value to be used in Timer2
+   TMR2 = TMR2RL;                      // Init the Timer2 register
+
+   TMR2CN = 0x04;                      // Enable Timer2 in auto-reload mode
+   ET2 = 1;                            // Timer2 interrupt enabled
+
+   EA = 1;                             // Enable global interrupts
+}
+
 //-----------------------------------------------------------------------------
 // UART0_Init
 //-----------------------------------------------------------------------------
@@ -1393,11 +1449,28 @@ void ADC0_Init (void)
 #endif
 }
 
-#if 0
 //-----------------------------------------------------------------------------
 // Interrupt Service Routines
 //-----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
+// Timer2_ISR
+//-----------------------------------------------------------------------------
+//
+// Here we process the Timer2 interrupt and toggle the LED
+//
+//-----------------------------------------------------------------------------
+void Timer2_ISR (void) interrupt 5
+{
+   g_timer2_count+=1;
+
+   if ((g_timer2_count%TIMER2_SCALE)==0)
+    pin15_open_drain = ~pin15_open_drain;
+
+   TF2H = 0;                           // Reset Interrupt
+}
+
+#if 0
 //-----------------------------------------------------------------------------
 // ADC0_ISR
 //-----------------------------------------------------------------------------
