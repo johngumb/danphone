@@ -120,6 +120,11 @@ if __name__ == "__main__":
     if not sim:
         send_msg("ft8-txon")
         send_msg(zero)
+
+        recfile = '/home/john/ft8_t2.wav'
+        recfile_final = '/home/john/ft8_t2_sox.wav'
+
+        p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])        
         # time to adjust to near tx freq
         time.sleep(2)
     
@@ -129,14 +134,11 @@ if __name__ == "__main__":
         #f=open("g4rdc-cq-tones")
         #cq_syms = [ int(x.strip()) for x in f.readlines() ]
         #f.close()
-        recfile = '/home/john/ft8_t2.wav'
-        recfile_final = '/home/john/ft8_t2_sox.wav'
 
         # last thing we do before sending message
         if len(sys.argv) > 1:
             send_msg("pa-on")
 
-        p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])
         time.sleep(0.1)
     
     #for i in test_syms3:
