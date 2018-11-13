@@ -82,7 +82,15 @@ LONGDATA rawValue;
 
 #define MDCLK         2457600          // Modulator clock in Hz (ideal is
                                        // (2.4576 MHz)
+// timer 2 stuff
+#define LED_TOGGLE_RATE            1000  // LED toggle rate in milliseconds
+                                       // if LED_TOGGLE_RATE = 1, the LED will
+                                       // be on for 1 millisecond and off for
+                                       // 1 millisecond
 
+#define LED_TOGGLE_RATE_SCALED     20
+
+#define TIMER2_SCALE (LED_TOGGLE_RATE/LED_TOGGLE_RATE_SCALED)
 
 /* sbit unused_input=P0^1; look to re-use this; was used for 9.6V status */
 sbit synth_latch_bit=P0^3;
@@ -110,6 +118,8 @@ static char str[20];
 
 // IF offset: 34108 for 4KHz step, 10816 for 12.5KHz step
 static unsigned int g_last_tx, g_if_offset=10816;
+
+static unsigned char g_t2_timeout;
 
 #define REPORTING 0
 #if REPORTING
@@ -520,7 +530,7 @@ void ref_dac_init(void)
 // Write to MCP48FEB22 12 bit DAC controlling 14.4MHz synth ref osc
 // 0x000 14.398925 MHz
 // 0xFFF 14.400251 MHz 4.2031V as measured on KXN1123AA input pin
-void act_ref_dac()
+void act_ref_dac(unsigned char sync_required)
 {
 	unsigned char dacno, data_high, data_low;
 
@@ -547,6 +557,13 @@ void act_ref_dac()
     //printf("dacno %x\n",(unsigned) dacno);
     //printf("data_high %x\n",(unsigned)  data_high);
     //printf("data_low %x\n",(unsigned) data_low);
+
+    if (sync_required)
+    {
+        while (g_t2_timeout);
+
+        g_t2_timeout=1;
+    }
 
     if (dacno >= 2)
     {
@@ -1050,7 +1067,9 @@ void main (void)
 
 			partcmd('T', act_ctcss());
 
-			partcmd('D', act_ref_dac());
+			partcmd('D', act_ref_dac(0));
+
+            partcmd('E', act_ref_dac(1));
 
             partcmd('Q', act_squelch_pot());
 
@@ -1254,15 +1273,6 @@ void SYSCLK_Init (void)
 #define TIMER_PRESCALER            12  // Based on Timer2 CKCON and TMR2CN
                                        // settings
 
-#define LED_TOGGLE_RATE            160  // LED toggle rate in milliseconds
-                                       // if LED_TOGGLE_RATE = 1, the LED will
-                                       // be on for 1 millisecond and off for
-                                       // 1 millisecond
-
-#define LED_TOGGLE_RATE_SCALED     20
-
-#define TIMER2_SCALE (LED_TOGGLE_RATE/LED_TOGGLE_RATE_SCALED)
-
 // There are SYSCLK/TIMER_PRESCALER timer ticks per second, so
 // SYSCLK/TIMER_PRESCALER/1000 timer ticks per millisecond.
 #define TIMER_TICKS_PER_MS  SYSCLK/TIMER_PRESCALER/1000
@@ -1465,7 +1475,9 @@ void Timer2_ISR (void) interrupt 5
    g_timer2_count+=1;
 
    if ((g_timer2_count%TIMER2_SCALE)==0)
-    pin15_open_drain = ~pin15_open_drain;
+    g_t2_timeout=0;
+   else
+    g_t2_timeout=1;
 
    TF2H = 0;                           // Reset Interrupt
 }
