@@ -83,7 +83,7 @@ LONGDATA rawValue;
 #define MDCLK         2457600          // Modulator clock in Hz (ideal is
                                        // (2.4576 MHz)
 // timer 2 stuff
-#define LED_TOGGLE_RATE            1000  // LED toggle rate in milliseconds
+#define LED_TOGGLE_RATE            160  // LED toggle rate in milliseconds
                                        // if LED_TOGGLE_RATE = 1, the LED will
                                        // be on for 1 millisecond and off for
                                        // 1 millisecond
@@ -129,7 +129,7 @@ char g_line_in_progress;
 static char g_reporting;
 #endif
 
-static unsigned char g_timer2_count;
+static unsigned char g_timer2_count, g_sync_required, g_control_byte;
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
@@ -471,6 +471,12 @@ void act_control(void)
         init_squelch_potentiometer();
     }
 
+    // if we are disabling tx no longer need delays between any commands
+    if ((!(val & SR_TX_RX)) && (g_control_byte & SR_TX_RX))
+        g_sync_required = 0;
+
+    g_control_byte = val;
+
     act_stbyte();
 }
 
@@ -503,6 +509,14 @@ void act_synth(void)
     act_stbyte();
 }
 
+void act_sync_required(void)
+{
+    // extend this to specify the exact delay required
+    g_sync_required = strtohex(&str[1]);
+
+    act_stbyte();
+}
+
 void write_ref_dac(unsigned char cmd, unsigned char d_hi, unsigned char d_lo)
 {
 	dac_select_bit=0;
@@ -530,7 +544,7 @@ void ref_dac_init(void)
 // Write to MCP48FEB22 12 bit DAC controlling 14.4MHz synth ref osc
 // 0x000 14.398925 MHz
 // 0xFFF 14.400251 MHz 4.2031V as measured on KXN1123AA input pin
-void act_ref_dac(unsigned char sync_required)
+void act_ref_dac()
 {
 	unsigned char dacno, data_high, data_low;
 
@@ -558,7 +572,7 @@ void act_ref_dac(unsigned char sync_required)
     //printf("data_high %x\n",(unsigned)  data_high);
     //printf("data_low %x\n",(unsigned) data_low);
 
-    if (sync_required)
+    if (g_sync_required)
     {
         while (g_t2_timeout);
 
@@ -1067,9 +1081,9 @@ void main (void)
 
 			partcmd('T', act_ctcss());
 
-			partcmd('D', act_ref_dac(0));
+			partcmd('D', act_ref_dac());
 
-            partcmd('E', act_ref_dac(1));
+            partcmd('E', act_sync_required());
 
             partcmd('Q', act_squelch_pot());
 
