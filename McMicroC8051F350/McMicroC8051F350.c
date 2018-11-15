@@ -1294,7 +1294,7 @@ void SYSCLK_Init (void)
 // Note: LED_TOGGLE_RATE*TIMER_TICKS_PER_MS should not exceed 65535 (0xFFFF)
 // for the 16-bit timer
 
-#define AUX1     TIMER_TICKS_PER_MS*LED_TOGGLE_RATE_SCALED
+#define AUX1     (TIMER_TICKS_PER_MS+50)*LED_TOGGLE_RATE_SCALED
 #define AUX2     -AUX1
 
 #define TIMER2_RELOAD            AUX2  // Reload value for Timer2
