@@ -1296,8 +1296,8 @@ void SYSCLK_Init (void)
 
 //#define AUX1     (TIMER_TICKS_PER_MS+50)*LED_TOGGLE_RATE_SCALED
 
-// measured 320ms period
-#define AUX1     (TIMER_TICKS_PER_MS*LED_TOGGLE_RATE_SCALED)-566
+// measured 320ms period - offset 559. 567 seems to work best with FT8
+#define AUX1     ((TIMER_TICKS_PER_MS*LED_TOGGLE_RATE_SCALED)+567)
 #define AUX2     -AUX1
 
 #define TIMER2_RELOAD            AUX2  // Reload value for Timer2
