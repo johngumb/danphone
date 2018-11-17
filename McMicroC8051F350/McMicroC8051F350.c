@@ -1294,7 +1294,10 @@ void SYSCLK_Init (void)
 // Note: LED_TOGGLE_RATE*TIMER_TICKS_PER_MS should not exceed 65535 (0xFFFF)
 // for the 16-bit timer
 
-#define AUX1     (TIMER_TICKS_PER_MS+50)*LED_TOGGLE_RATE_SCALED
+//#define AUX1     (TIMER_TICKS_PER_MS+50)*LED_TOGGLE_RATE_SCALED
+
+// measured 320ms period
+#define AUX1     (TIMER_TICKS_PER_MS*LED_TOGGLE_RATE_SCALED)-566
 #define AUX2     -AUX1
 
 #define TIMER2_RELOAD            AUX2  // Reload value for Timer2
@@ -1489,7 +1492,10 @@ void Timer2_ISR (void) interrupt 5
    g_timer2_count+=1;
 
    if ((g_timer2_count%TIMER2_SCALE)==0)
+    {
     g_t2_timeout=0;
+    pin15_open_drain = ~pin15_open_drain;
+    }
    else
     g_t2_timeout=1;
 
