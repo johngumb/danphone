@@ -129,7 +129,12 @@ char g_line_in_progress;
 static char g_reporting;
 #endif
 
-static unsigned char g_timer2_count, g_sync_required, g_control_byte;
+static unsigned char g_timer2_count, g_control_byte;
+static unsigned int g_sync_required;
+
+// Timer2 SFR
+sfr16 TMR2RL = 0xCA;                   // Timer2 Reload Register
+sfr16 TMR2 = 0xCC;                     // Timer2 Register
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
@@ -512,7 +517,23 @@ void act_synth(void)
 void act_sync_required(void)
 {
     // extend this to specify the exact delay required
-    g_sync_required = strtohex(&str[1]);
+    g_sync_required = (strtohex(&str[1])<<8) + strtohex(&str[3]);
+
+    if (g_sync_required)
+    {
+        TMR2RL = -g_sync_required;             // Reload value to be used in Timer2
+        TMR2 = TMR2RL;                      // Init the Timer2 register
+
+        TMR2CN = 0x04;                      // Enable Timer2 in auto-reload mode
+        ET2 = 1;                            // Timer2 interrupt enabled
+        EA = 1;                             // Enable global interrupts
+    }
+    else
+    {
+        TMR2CN = 0;
+        ET2 = 0;
+        EA = 0;
+    }
 
     act_stbyte();
 }
@@ -1289,6 +1310,7 @@ void SYSCLK_Init (void)
 
 // There are SYSCLK/TIMER_PRESCALER timer ticks per second, so
 // SYSCLK/TIMER_PRESCALER/1000 timer ticks per millisecond.
+// 2042
 #define TIMER_TICKS_PER_MS  SYSCLK/TIMER_PRESCALER/1000
 
 // Note: LED_TOGGLE_RATE*TIMER_TICKS_PER_MS should not exceed 65535 (0xFFFF)
@@ -1302,8 +1324,6 @@ void SYSCLK_Init (void)
 
 #define TIMER2_RELOAD            AUX2  // Reload value for Timer2
 
-sfr16 TMR2RL = 0xCA;                   // Timer2 Reload Register
-sfr16 TMR2 = 0xCC;                     // Timer2 Register
 
 //-----------------------------------------------------------------------------
 // Timer2_Init
@@ -1322,14 +1342,6 @@ void Timer2_Init(void)
 {
    CKCON &= ~0x60;                     // Timer2 uses SYSCLK/12
    TMR2CN &= ~0x01;
-
-   TMR2RL = TIMER2_RELOAD;             // Reload value to be used in Timer2
-   TMR2 = TMR2RL;                      // Init the Timer2 register
-
-   TMR2CN = 0x04;                      // Enable Timer2 in auto-reload mode
-   ET2 = 1;                            // Timer2 interrupt enabled
-
-   EA = 1;                             // Enable global interrupts
 }
 
 //-----------------------------------------------------------------------------
