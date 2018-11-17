@@ -546,20 +546,31 @@ class McMicro:
     def command_duration(self):
         self.disable_status_polling()
 
+        cmd_count = 40
 
-        cmd_count = 10
+        result={}
 
-        start_time=time.time()
-        i = 0
-        while i < cmd_count:
-            self.m_hwif.enqueue("E00")
-            i+=1
+        for j in [0,1]:
 
-        end_time=time.time()
+            if j == 0:
+                self.m_hwif.enqueue("EA19F")
+            else:
+                self.m_hwif.enqueue("E0000")
+
+            i = 0
+            start_time=time.time()
+
+            while i < cmd_count:
+                self.m_hwif.enqueue("D2C3E")
+                i+=1
+
+            end_time=time.time()
+
+            result[j]=end_time - start_time
 
         self.enable_status_polling()
 
-        return (end_time - start_time)/cmd_count
+        return (result[0]-result[1])/cmd_count
         
 def test():
     mc = McMicro()
