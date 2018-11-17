@@ -82,7 +82,15 @@ LONGDATA rawValue;
 
 #define MDCLK         2457600          // Modulator clock in Hz (ideal is
                                        // (2.4576 MHz)
+// timer 2 stuff
+#define LED_TOGGLE_RATE            160  // LED toggle rate in milliseconds
+                                       // if LED_TOGGLE_RATE = 1, the LED will
+                                       // be on for 1 millisecond and off for
+                                       // 1 millisecond
 
+#define LED_TOGGLE_RATE_SCALED     20
+
+#define TIMER2_SCALE (LED_TOGGLE_RATE/LED_TOGGLE_RATE_SCALED)
 
 /* sbit unused_input=P0^1; look to re-use this; was used for 9.6V status */
 sbit synth_latch_bit=P0^3;
@@ -111,6 +119,8 @@ static char str[20];
 // IF offset: 34108 for 4KHz step, 10816 for 12.5KHz step
 static unsigned int g_last_tx, g_if_offset=10816;
 
+static unsigned char g_t2_timeout;
+
 #define REPORTING 0
 #if REPORTING
 #define CHAR_WAIT_MAX 1000
@@ -119,6 +129,11 @@ char g_line_in_progress;
 static char g_reporting;
 #endif
 
+static unsigned char g_timer2_count, g_control_byte;
+
+// Timer2 SFR
+sfr16 TMR2RL = 0xCA;                   // Timer2 Reload Register
+sfr16 TMR2 = 0xCC;                     // Timer2 Register
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
@@ -126,7 +141,7 @@ static char g_reporting;
 void SYSCLK_Init(void);
 void UART0_Init(void);
 void PORT_Init(void);
-void Timer2_Init(int);
+void Timer2_Init(void);
 void SPI0_Init(void);
 void PCA0_Init(void);
 void ADC0_Init(void);
@@ -460,6 +475,8 @@ void act_control(void)
         init_squelch_potentiometer();
     }
 
+    g_control_byte = val;
+
     act_stbyte();
 }
 
@@ -488,6 +505,29 @@ void act_synth(void)
 	}
 
 	pulsebithigh(SYNTH_LATCH_ID);
+
+    act_stbyte();
+}
+
+void act_sync_required(void)
+{
+    // extend this to specify the exact delay required
+    TMR2RL = -((strtohex(&str[1])<<8) + strtohex(&str[3])); // Reload value to be used in Timer2
+
+    if (TMR2RL)
+    {
+        TMR2 = TMR2RL;                      // Init the Timer2 register
+
+        TMR2CN = 0x04;                      // Enable Timer2 in auto-reload mode
+        ET2 = 1;                            // Timer2 interrupt enabled
+        EA = 1;                             // Enable global interrupts
+    }
+    else
+    {
+        TMR2CN = 0;
+        ET2 = 0;
+        EA = 0;
+    }
 
     act_stbyte();
 }
@@ -546,6 +586,13 @@ void act_ref_dac()
     //printf("dacno %x\n",(unsigned) dacno);
     //printf("data_high %x\n",(unsigned)  data_high);
     //printf("data_low %x\n",(unsigned) data_low);
+
+    if (TMR2RL)
+    {
+        while (g_t2_timeout);
+
+        g_t2_timeout=1;
+    }
 
     if (dacno >= 2)
     {
@@ -1015,6 +1062,7 @@ void main (void)
 	PCA0_Init();
     PORT_Init();                        // Initialize Port I/O
     ADC0_Init();
+    Timer2_Init();
 
     latch_init();
 
@@ -1049,6 +1097,8 @@ void main (void)
 			partcmd('T', act_ctcss());
 
 			partcmd('D', act_ref_dac());
+
+            partcmd('E', act_sync_required());
 
             partcmd('Q', act_squelch_pot());
 
@@ -1249,6 +1299,45 @@ void SYSCLK_Init (void)
                                         // the SYSCLK source
 }
 
+#define TIMER_PRESCALER            12  // Based on Timer2 CKCON and TMR2CN
+                                       // settings
+
+// There are SYSCLK/TIMER_PRESCALER timer ticks per second, so
+// SYSCLK/TIMER_PRESCALER/1000 timer ticks per millisecond.
+// 2042
+#define TIMER_TICKS_PER_MS  SYSCLK/TIMER_PRESCALER/1000
+
+// Note: LED_TOGGLE_RATE*TIMER_TICKS_PER_MS should not exceed 65535 (0xFFFF)
+// for the 16-bit timer
+
+//#define AUX1     (TIMER_TICKS_PER_MS+50)*LED_TOGGLE_RATE_SCALED
+
+// measured 320ms period - offset 559. 567 seems to work best with FT8
+#define AUX1     ((TIMER_TICKS_PER_MS*LED_TOGGLE_RATE_SCALED)+567)
+#define AUX2     -AUX1
+
+#define TIMER2_RELOAD            AUX2  // Reload value for Timer2
+
+
+//-----------------------------------------------------------------------------
+// Timer2_Init
+//-----------------------------------------------------------------------------
+//
+// Return Value : None
+// Parameters   : None
+//
+// This function configures Timer2 as a 16-bit reload timer, interrupt enabled.
+// Using the SYSCLK at 24.5MHz with a 1:12 prescaler.
+//
+// Note: The Timer2 uses a 1:12 prescaler.  If this setting changes, the
+// TIMER_PRESCALER constant must also be changed.
+//-----------------------------------------------------------------------------
+void Timer2_Init(void)
+{
+   CKCON &= ~0x60;                     // Timer2 uses SYSCLK/12
+   TMR2CN &= ~0x01;
+}
+
 //-----------------------------------------------------------------------------
 // UART0_Init
 //-----------------------------------------------------------------------------
@@ -1393,11 +1482,33 @@ void ADC0_Init (void)
 #endif
 }
 
-#if 0
 //-----------------------------------------------------------------------------
 // Interrupt Service Routines
 //-----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
+// Timer2_ISR
+//-----------------------------------------------------------------------------
+//
+// Here we process the Timer2 interrupt and toggle the LED
+//
+//-----------------------------------------------------------------------------
+void Timer2_ISR (void) interrupt 5
+{
+   g_timer2_count+=1;
+
+   if ((g_timer2_count%TIMER2_SCALE)==0)
+    {
+    g_t2_timeout=0;
+    pin15_open_drain = ~pin15_open_drain;
+    }
+   else
+    g_t2_timeout=1;
+
+   TF2H = 0;                           // Reset Interrupt
+}
+
+#if 0
 //-----------------------------------------------------------------------------
 // ADC0_ISR
 //-----------------------------------------------------------------------------
