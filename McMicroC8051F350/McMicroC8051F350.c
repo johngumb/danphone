@@ -130,7 +130,6 @@ static char g_reporting;
 #endif
 
 static unsigned char g_timer2_count, g_control_byte;
-static unsigned int g_sync_required;
 
 // Timer2 SFR
 sfr16 TMR2RL = 0xCA;                   // Timer2 Reload Register
@@ -476,10 +475,6 @@ void act_control(void)
         init_squelch_potentiometer();
     }
 
-    // if we are disabling tx no longer need delays between any commands
-    if ((!(val & SR_TX_RX)) && (g_control_byte & SR_TX_RX))
-        g_sync_required = 0;
-
     g_control_byte = val;
 
     act_stbyte();
@@ -517,11 +512,10 @@ void act_synth(void)
 void act_sync_required(void)
 {
     // extend this to specify the exact delay required
-    g_sync_required = (strtohex(&str[1])<<8) + strtohex(&str[3]);
+    TMR2RL = -(strtohex(&str[1])<<8) + strtohex(&str[3]); // Reload value to be used in Timer2
 
-    if (g_sync_required)
+    if (TMR2RL)
     {
-        TMR2RL = -g_sync_required;             // Reload value to be used in Timer2
         TMR2 = TMR2RL;                      // Init the Timer2 register
 
         TMR2CN = 0x04;                      // Enable Timer2 in auto-reload mode
@@ -593,7 +587,7 @@ void act_ref_dac()
     //printf("data_high %x\n",(unsigned)  data_high);
     //printf("data_low %x\n",(unsigned) data_low);
 
-    if (g_sync_required)
+    if (TMR2RL)
     {
         while (g_t2_timeout);
 
