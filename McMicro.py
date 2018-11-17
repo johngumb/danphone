@@ -54,7 +54,7 @@ class StatusMonitor(threading.Thread):
             # if there is already one in progress
             # as status comes back on all commands
             #
-            if not mcmicro.m_hwif.cmd_in_progress():
+            if not mcmicro.m_hwif.cmd_in_progress() and mcmicro.status_polling_enabled():
                 mcmicro.getstatus()
 
 # could leave tx unlocked to prevent TX PA enable
@@ -105,6 +105,8 @@ class McMicro:
 
         self.m_temperature = 0
 
+        self.m_status_polling_enabled = True
+
         return
 
     def __del__(self):
@@ -115,6 +117,21 @@ class McMicro:
         self.setpower(False)
 
         return
+
+    def disable_status_polling(self):
+        '''
+        prevent 'Z' command getting in the way of FT8 DAC commands
+        '''
+        self.m_status_polling_enabled = False
+
+    def enable_status_polling(self):
+        '''
+        prevent 'Z' command getting in the way of FT8 DAC commands
+        '''
+        self.m_status_polling_enabled = True
+
+    def status_polling_enabled(self):
+        return self.m_status_polling_enabled
 
     def set_ctcss_fudge(self, val):
         self.m_ctcss_fudge = val
@@ -526,6 +543,24 @@ class McMicro:
     def take_temperature(self):
         self.m_hwif.enqueue("H")
 
+    def command_duration(self):
+        self.disable_status_polling()
+
+
+        cmd_count = 10
+
+        start_time=time.time()
+        i = 0
+        while i < cmd_count:
+            self.m_hwif.enqueue("E00")
+            i+=1
+
+        end_time=time.time()
+
+        self.enable_status_polling()
+
+        return (end_time - start_time)/cmd_count
+        
 def test():
     mc = McMicro()
 

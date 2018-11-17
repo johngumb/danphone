@@ -763,6 +763,8 @@ class MyFrame(wx.Frame):
         # relay control - off initially
         self.m_rig.set_pin1(False)
 
+        #print self.m_rig.command_duration()
+
         self.Bind(EVT_DATA, self.OnData)
 
         ExtSocket+=socketext
@@ -815,14 +817,16 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_tx()
             self.m_rig.disable_audio()
             self.m_rig.enable_pa()
-        elif data[0] in ['D','Q']:
+        elif data[0] in ['D','E','Q']:
             self.m_rig.execute_rig_cmd(data)
             print "cmd complete"
         elif data in "ft8-txon":
+            self.m_rig.disable_status_polling()
             self.m_rig.enable_tx(enable_tx_audio=False)
         elif data in "pa-on":
             self.m_rig.enable_pa()
         elif data in "ft8-txoff":
+            self.m_rig.enable_status_polling()
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()
         else:
@@ -833,6 +837,13 @@ class MyFrame(wx.Frame):
             if not self.m_stay_muted:
                 sdrunmute()
                 unmute(self.m_audioserver)
+
+        ft8_socket = "/tmp/ft8response"
+        if os.path.exists(ft8_socket):
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            s.connect(ft8_socket)
+            s.send(data)
+            s.close()
 
     def onButtonTx(self,event):
         if self.m_tx_rx.GetValue():

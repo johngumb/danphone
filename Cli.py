@@ -34,10 +34,12 @@ class TelnetCLI:
 
 #        self.m_tn = telnetlib.Telnet("skate",2217)
 
+        self.m_default_timeout = 0.5
+
         if '-s' in sys.argv:
-            self.m_serial = serial.Serial("/dev/ttyUSB0", 115200, timeout=0.5)
+            self.m_serial = serial.Serial("/dev/ttyUSB0", 115200, timeout=self.m_default_timeout)
         else:
-            self.m_serial = serial.serial_for_url("rfc2217://%s:%d" % server_transport_addr, 115200, timeout=0.5)
+            self.m_serial = serial.serial_for_url("rfc2217://%s:%d" % server_transport_addr, 115200, timeout=self.m_default_timeout)
 
         #
         # needed to detect whether the radio has volts attatched
@@ -78,7 +80,7 @@ class TelnetCLI:
         #
         # optimisation
         #
-        if msg[0]!="Z":
+        if msg[0] not in ["Z","D"]:
             if msg==self.m_last_msg:
                 return
             else:
@@ -175,13 +177,22 @@ class TelnetCLI:
                 print "retrying",msg
                 time.sleep(0.1)
 
+            if msg=='E01':
+                self.m_serial.timeout = 2.0;
+
+            # control commands knocks off msg syncing
+            if msg[0]=='C':
+                self.m_serial.timeout = self.m_default_timeout
+    
             self.m_serial.write(msg+"\n")
 
             if msg.find("pin1")==0:
                 (idx, mo, txt) = (0, None, '')
                 break
 
+            #a=time.time()
             (idx, mo, txt) = self.expect("K")
+            #print time.time()-a
 
             #
             # timeout?
@@ -213,6 +224,8 @@ class TelnetCLI:
             print "pending cmds, sent",msg
 
         t = text.strip()
+
+        #print t
 
         if t:
             self.m_mcmicro.stcharupdate(t[:-1])

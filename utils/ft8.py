@@ -9,6 +9,10 @@ cq_syms=[2, 5, 6, 0, 4, 1, 3, 5, 7, 3, 0, 0, 0, 3, 3, 6, 2, 7, 4, 3, 4, 0, 1, 1,
 test_syms=[2, 5, 6, 0, 4, 1, 3, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 2, 5, 6, 0, 4, 1, 3, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 2, 5, 6, 0, 4, 1, 3]
 reply_syms=[2, 5, 6, 0, 4, 1, 3, 3, 4, 6, 5, 0, 1, 3, 7, 2, 1, 7, 1, 6, 4, 6, 6, 1, 0, 6, 5, 2, 5, 2, 0, 7, 6, 0, 7, 2, 2, 5, 6, 0, 4, 1, 3, 4, 0, 0, 5, 6, 1, 3, 7, 3, 7, 6, 6, 2, 7, 2, 6, 0, 2, 0, 3, 7, 7, 2, 5, 0, 2, 1, 6, 2, 2, 5, 6, 0, 4, 1, 3]
 
+g_server =  None
+g_last_freq =0.0
+g_last_sym = 8
+g_last_result = None
 
 #{0: 1500.0,
 # 1: 1506.25,
@@ -27,9 +31,12 @@ def init_tones(basefreq):
     for i in range(8):
         g_tones[i]=i*6.25 + basefreq
 
-def freq_to_dac(freq):
+def freq_to_dac(sym, freq):
     global old_freq_offset
     global old_twice_dac_offset
+    global g_last_freq
+    global g_last_result
+    global g_last_sym
 
     base_f=1500
     #base_dac=2611
@@ -43,20 +50,39 @@ def freq_to_dac(freq):
 
     diff_offset = freq_offset - old_freq_offset
 
-    sqf = diff_offset/32
-    print sqf
-    if diff_offset>=0:
-        square_offset = sqf*sqf
-    else:
-        square_offset = -1*sqf*sqf
+#    if sym == g_last_sym:
+#        diff_offset = 0
+#        old_freq_offset = 0
+#        g_last_sym = sym
+#        g_last_freq = freq
+#        return g_last_result
+
+    # sqf = diff_offset/32
+    # print sqf
+    # if diff_offset>=0:
+    #     square_offset = sqf*sqf
+    # else:
+    #     square_offset = -1*sqf*sqf
 
     square_offset = 0
-    print square_offset
+#    print square_offset
     # 4.4 and 16 look ok
-    twice_dac_offset=(2*(freq_offset+(diff_offset/4.2)+square_offset))/hz_per_count
+
+    #17 nov twice_dac_offset=(2*(freq_offset+(diff_offset/4.2)+square_offset))/hz_per_count
+
+    #4.17 looks good 17 nov
+    if diff_offset>0:
+        factor=4.1
+    else:
+        factor=4.1
+
+    twice_dac_offset=(2*(freq_offset+(diff_offset/factor)+square_offset))/hz_per_count
     #twice_dac_offset=(2*freq_offset)/hz_per_count
 
     #print twice_dac_offset - old_twice_dac_offset
+
+#    if sym > 4 and g_last_sym >= 4:
+#        twice_dac_offset += 4
 
     if False:
         boundary=10
@@ -80,17 +106,22 @@ def freq_to_dac(freq):
         dac_cmd = 4
 
     result = (dac_cmd, dac_val)
+    g_last_result = result
+
     #print result
 
     old_freq_offset = freq_offset
     old_twice_dac_offset = twice_dac_offset
-    
+
+    g_last_freq = freq
+    g_last_sym = sym
+
     return result
     
 def sym_to_dac(tone_num):
     freq = g_tones[tone_num]
     #print freq
-    return freq_to_dac(freq)
+    return freq_to_dac(tone_num,freq)
 
 def send_dac(val):
     cmd = "D%d%X" % val
@@ -98,15 +129,36 @@ def send_dac(val):
     send_msg(cmd)
 
 def send_msg(msg):
+    g_server.listen(1)
+
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect("/tmp/mui-ext.s.6m")
     s.send(msg)
     s.close()
+
+    conn, addr = g_server.accept()
+    datagram = conn.recv(1024)
+    assert(datagram==msg)
+    #print "got response",datagram
+
+def setup_response_socket(Socket):
+    global g_server
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    if os.path.exists(Socket):
+        os.remove(Socket)
+
+    g_server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    g_server.bind(Socket)
     
 if __name__ == "__main__":
     init_tones(1500)
     print g_tones
 
+    response_socket = "/tmp/ft8response"
+
+    setup_response_socket(response_socket)
+    
     print len(test_syms)
     test_syms2 = [ x if x!=8 else 7 for x in test_syms ]
     test_syms3 = [ x if x!=9 else 0 for x in test_syms2 ]
@@ -124,10 +176,11 @@ if __name__ == "__main__":
         recfile = '/home/john/ft8_t2.wav'
         recfile_final = '/home/john/ft8_t2_sox.wav'
 
-        p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])        
         # time to adjust to near tx freq
         time.sleep(2)
-    
+
+
+
         #freq_to_dac(g_tones[5])
 
 
@@ -139,8 +192,11 @@ if __name__ == "__main__":
         if len(sys.argv) > 1:
             send_msg("pa-on")
 
-        time.sleep(0.1)
-    
+        # synch on messages required - send synch delay eventually
+        send_msg("E01")
+
+        p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])
+
     #for i in test_syms3:
     lastsym = -1
     for i in cq_syms:
@@ -153,18 +209,16 @@ if __name__ == "__main__":
             else:
                 print v
         else:
-            if d != lastsym:
-                send_dac(d)
-                #time.sleep(0.159)
-                time.sleep(0.158)
-            else:
-                time.sleep(0.161)
+            print i,
+            n=time.time()
+            send_dac(d)
+            print time.time()-n
 
         lastsym = d
 
     if not sim:
         send_msg("ft8-txoff") # disables PA
-
+        
         time.sleep(1)
 
         p.terminate()
@@ -183,3 +237,5 @@ if __name__ == "__main__":
 
         #send_msg("Q90")
         #send_dac(1529)
+
+    os.unlink(response_socket)
