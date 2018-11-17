@@ -193,8 +193,10 @@ if __name__ == "__main__":
             send_msg("pa-on")
 
         # synch on messages required - send synch delay eventually
-        send_msg("E01")
-
+        #send_msg("E9F88")
+        #send_msg("EA198") #320ms
+        #send_msg("EA1A0")  #320.06ms
+        send_msg("EA19F")
         p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])
 
     #for i in test_syms3:
@@ -218,7 +220,7 @@ if __name__ == "__main__":
 
     if not sim:
         send_msg("ft8-txoff") # disables PA
-        
+        send_msg("E0000")        
         time.sleep(1)
 
         p.terminate()
