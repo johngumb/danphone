@@ -72,17 +72,17 @@ def freq_to_dac(sym, freq):
 
     #4.17 looks good 17 nov
     if diff_offset>0:
-        factor=4.1
+        factor=4.17
     else:
-        factor=4.1
+        factor=4.17
 
     twice_dac_offset=(2*(freq_offset+(diff_offset/factor)+square_offset))/hz_per_count
     #twice_dac_offset=(2*freq_offset)/hz_per_count
 
     #print twice_dac_offset - old_twice_dac_offset
 
-#    if sym > 4 and g_last_sym >= 4:
-#        twice_dac_offset += 4
+    if sym > 4 and g_last_sym >= 4:
+        twice_dac_offset += 2
 
     if False:
         boundary=10
