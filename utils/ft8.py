@@ -41,9 +41,26 @@ def freq_to_dac(sym, freq):
     neutral=0xC3E # 50.315, 2kHz above 50.313
     #hz_per_count = 1.058
     #hz_per_count = 1.046
-    hz_per_count = 1.058
+    #hz_per_count = 1.059
+    if freq>=1400:
+        hz_per_count = 1.0585
+    else:
+        hz_per_count = 1.0585
 
-    dac=neutral - ((2000-freq) * hz_per_count)
+    # if freq < 1100:
+    #     factor = 0.985
+    # elif freq < 1400:
+    #     factor = 0.995
+    # else:
+    #     factor = 1.00
+
+    if freq < 1400:
+        factor = 1.0 - 0.05*((2000.0-freq)/2000.0)
+    else:
+        factor = 1.0
+    print "factor", factor
+
+    dac=neutral - ((2000-freq) * hz_per_count * factor)
 
     twice_dac = 2 * dac
 
@@ -120,7 +137,7 @@ def setup_response_socket(Socket):
     g_server.bind(Socket)
     
 if __name__ == "__main__":
-    base_f=1500
+    base_f=1803
     init_tones(base_f)
     print g_tones
 
