@@ -39,6 +39,8 @@ def freq_to_dac(sym, freq):
     global g_last_sym
 
     neutral=0xC3E # 50.315, 2kHz above 50.313
+    #hz_per_count = 1.058
+    #hz_per_count = 1.046
     hz_per_count = 1.058
 
     dac=neutral - ((2000-freq) * hz_per_count)
@@ -60,8 +62,8 @@ def freq_to_dac(sym, freq):
 
     twice_dac_offset=(2*diff_offset/factor)/hz_per_count
 
-#    if sym > 4 and g_last_sym >= 4:
-#        twice_dac_offset += 2
+    if sym > 4 and g_last_sym >= 4:
+        twice_dac_offset += 2
 
     twice_dac = int(round(twice_dac))
 
@@ -118,7 +120,8 @@ def setup_response_socket(Socket):
     g_server.bind(Socket)
     
 if __name__ == "__main__":
-    init_tones(1500)
+    base_f=1500
+    init_tones(base_f)
     print g_tones
 
     response_socket = "/tmp/ft8response"
@@ -131,13 +134,14 @@ if __name__ == "__main__":
     print test_syms3
 
     zero_rx = "D2C3E" # for rx
-    zero = "D2A2D"
-
+    #zero = "D2A2D"
+    zero = freq_to_dac(0, base_f)
+    
     sim = len(sys.argv) > 1 and sys.argv[1] != "p"
 
     if not sim:
         send_msg("ft8-txon")
-        send_msg(zero)
+        send_dac(zero)
 
         recfile = '/home/john/ft8_t2.wav'
         recfile_final = '/home/john/ft8_t2_sox.wav'
