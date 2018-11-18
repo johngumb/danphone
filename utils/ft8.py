@@ -38,22 +38,17 @@ def freq_to_dac(sym, freq):
     global g_last_result
     global g_last_sym
 
-    base_f=1500
-    base_dac=2605
+    neutral=0xC3E # 50.315, 2kHz above 50.313
+    hz_per_count = 1.058
 
-    twice_base_dac=base_dac*2
+    dac=neutral - ((2000-freq) * hz_per_count)
 
-    hz_per_count = 1.046
-    freq_offset=freq-base_f
+    twice_dac = 2 * dac
 
-    diff_offset = freq_offset - old_freq_offset
-
-#    if sym == g_last_sym:
-#        diff_offset = 0
-#        old_freq_offset = 0
-#        g_last_sym = sym
-#        g_last_freq = freq
-#        return g_last_result
+    if g_last_freq:
+        diff_offset = freq - g_last_freq
+    else:
+        diff_offset = 0
 
     #17 nov twice_dac_offset=(2*(freq_offset+(diff_offset/4.2)+square_offset))/hz_per_count
 
@@ -63,14 +58,14 @@ def freq_to_dac(sym, freq):
     else:
         factor=4.17
 
-    twice_dac_offset=(2*(freq_offset+(diff_offset/factor)))/hz_per_count
+    twice_dac_offset=(2*diff_offset/factor)/hz_per_count
 
-    if sym > 4 and g_last_sym >= 4:
-        twice_dac_offset += 2
+#    if sym > 4 and g_last_sym >= 4:
+#        twice_dac_offset += 2
 
-    twice_dac_offset_int = int(round(twice_dac_offset))
+    twice_dac = int(round(twice_dac))
 
-    twice_dac_val = twice_dac_offset_int + twice_base_dac
+    twice_dac_val = twice_dac + twice_dac_offset
     
     if twice_dac_val % 2 == 0:
         dac_val = twice_dac_val/2
@@ -83,9 +78,6 @@ def freq_to_dac(sym, freq):
     g_last_result = result
 
     #print result
-
-    old_freq_offset = freq_offset
-    old_twice_dac_offset = twice_dac_offset
 
     g_last_freq = freq
     g_last_sym = sym
