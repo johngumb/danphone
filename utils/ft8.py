@@ -4,6 +4,7 @@ import time
 import subprocess
 import os
 import string
+import csv
 
 cq_syms=[2, 5, 6, 0, 4, 1, 3, 5, 7, 3, 0, 0, 0, 3, 3, 6, 2, 7, 4, 3, 4, 0, 1, 1, 2, 2, 2, 1, 5, 6, 3, 2, 3, 1, 2, 0, 2, 5, 6, 0, 4, 1, 3, 7, 6, 4, 0, 4, 0, 6, 1, 4, 7, 6, 6, 2, 7, 2, 6, 0, 2, 0, 3, 7, 7, 2, 5, 0, 6, 0, 1, 6, 2, 5, 6, 0, 4, 1, 3]
 test_syms=[2, 5, 6, 0, 4, 1, 3, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 2, 5, 6, 0, 4, 1, 3, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 2, 5, 6, 0, 4, 1, 3]
@@ -31,19 +32,28 @@ def init_tones(basefreq):
     for i in range(8):
         g_tones[i]=i*6.25 + basefreq
 
-def freq_to_dac(sym, freq):
+def freq_to_dac(sym, freq, initial=False):
     global old_freq_offset
     global old_twice_dac_offset
     global g_last_freq
     global g_last_result
     global g_last_sym
 
+    if initial:
+        with open('dacdata-orig.csv', 'rb') as csvfile:
+            reader = csv.reader(csvfile)
+            for row in csvfile:
+                dacv,dacf=row.split(',')
+                if freq<float(dacf)-2000:
+                    return (2,int(dacv))
+
     neutral=0xC3E # 50.315, 2kHz above 50.313
     #hz_per_count = 1.058
     #hz_per_count = 1.046
     #hz_per_count = 1.059
     if freq>=1400:
-        hz_per_count = 1.0585
+#        hz_per_count = 1.0585
+        hz_per_count = 1.0956
     else:
         hz_per_count = 1.0585
 
@@ -137,7 +147,7 @@ def setup_response_socket(Socket):
     g_server.bind(Socket)
     
 if __name__ == "__main__":
-    base_f=1803
+    base_f=1500
     init_tones(base_f)
     print g_tones
 
@@ -152,7 +162,7 @@ if __name__ == "__main__":
 
     zero_rx = "D2C3E" # for rx
     #zero = "D2A2D"
-    zero = freq_to_dac(0, base_f)
+    zero = freq_to_dac(0, base_f, initial=True)
     
     sim = len(sys.argv) > 1 and sys.argv[1] != "p"
 
