@@ -28,6 +28,10 @@ g_tones={}
 old_freq_offset=0.0
 old_twice_dac_offset=0.0
 
+g_hz_per_count=None
+g_base_freq=None
+g_base_dac=None
+
 def init_tones(basefreq):
     for i in range(8):
         g_tones[i]=i*6.25 + basefreq
@@ -39,38 +43,46 @@ def freq_to_dac(sym, freq, initial=False):
     global g_last_result
     global g_last_sym
 
+    global g_hz_per_count
+    global g_base_freq
+    global g_base_dac
+
     if initial:
         with open('dacdata-orig.csv', 'rb') as csvfile:
+            base = None
+            freqrange = 50.0
             reader = csv.reader(csvfile)
             for row in csvfile:
                 dacv,dacf=row.split(',')
-                if freq<float(dacf)-2000:
-                    return (2,int(dacv))
+                if freq<float(dacf)-2000 and not base:
+                    base = int(dacv)
+                if (freq+freqrange)<(float(dacf)-2000):
+                    print "z",int(dacv),int(base)
+                    print freqrange
+                    print (float(dacv)-float(base))
+                    g_hz_per_count = freqrange/(float(dacv)-float(base))
+                    g_base_freq = freq
+                    g_base_dac = int(base)
+                    return (2,int(base))
 
     neutral=0xC3E # 50.315, 2kHz above 50.313
     #hz_per_count = 1.058
     #hz_per_count = 1.046
     #hz_per_count = 1.059
-    if freq>=1400:
-#        hz_per_count = 1.0585
-        hz_per_count = 1.0956
-    else:
-        hz_per_count = 1.0585
+#     if freq>=1400:
+# #        hz_per_count = 1.0585
+#         hz_per_count = 1.0956
+#     else:
+#         hz_per_count = 1.0585
 
-    # if freq < 1100:
-    #     factor = 0.985
-    # elif freq < 1400:
-    #     factor = 0.995
-    # else:
-    #     factor = 1.00
+#    dac=neutral - ((2000-freq) * g_hz_per_count)
 
-    if freq < 1400:
-        factor = 1.0 - 0.05*((2000.0-freq)/2000.0)
-    else:
-        factor = 1.0
-    print "factor", factor
+    hz_per_count = g_hz_per_count * 1.12
+    hz_per_count = g_hz_per_count * 1.1
 
-    dac=neutral - ((2000-freq) * hz_per_count * factor)
+    print hz_per_count
+
+    dac=g_base_dac + (freq-g_base_freq)*hz_per_count
 
     twice_dac = 2 * dac
 
@@ -147,7 +159,7 @@ def setup_response_socket(Socket):
     g_server.bind(Socket)
     
 if __name__ == "__main__":
-    base_f=1500
+    base_f=1497
     init_tones(base_f)
     print g_tones
 
