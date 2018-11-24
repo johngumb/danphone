@@ -60,7 +60,7 @@ def freq_to_dac(sym, freq, initial=False):
                     print "z",int(dacv),int(base)
                     print freqrange
                     print (float(dacv)-float(base))
-                    g_hz_per_count = freqrange/(float(dacv)-float(base))
+                    #g_hz_per_count = freqrange/(float(dacv)-float(base))
                     g_base_freq = freq
                     g_base_dac = int(base)
                     return (2,int(base))
@@ -77,9 +77,12 @@ def freq_to_dac(sym, freq, initial=False):
 
 #    dac=neutral - ((2000-freq) * g_hz_per_count)
 
-    hz_per_count = g_hz_per_count * 1.12
-    hz_per_count = g_hz_per_count * 1.1
+    #hz_per_count = g_hz_per_count * 1.12
 
+    # working 24 nov
+    #hz_per_count = g_hz_per_count * 1.1
+
+    hz_per_count = g_hz_per_count
     print hz_per_count
 
     dac=g_base_dac + (freq-g_base_freq)*hz_per_count
@@ -157,9 +160,8 @@ def setup_response_socket(Socket):
 
     g_server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     g_server.bind(Socket)
-    
-if __name__ == "__main__":
-    base_f=1497
+
+def run_ft8(base_f):
     init_tones(base_f)
     print g_tones
 
@@ -250,3 +252,94 @@ if __name__ == "__main__":
         #send_dac(1529)
 
     os.unlink(response_socket)
+
+
+def get_errors(base_f, resfilename):
+    global g_hz_per_count
+
+    with open(resfilename, 'rb') as resfile:
+        results_full=resfile.readlines()
+
+#        [158:238]
+    start = 158
+    idx=0
+    for l in results_full:
+        if len(l)<20:
+            print "start",idx
+            start = idx
+            break
+        idx+=1
+
+    results = results_full[start:start+80]
+    
+    errors=0
+    for r in results[:-1]:
+        if r.find('*')!=-1:
+            errors+=1
+
+    if results:
+        return (base_f, g_hz_per_count, errors, results[-1])
+    else:
+        return None
+
+if __name__ == "__main__":
+    base_f=1206 # works
+    base_f=1503
+
+    resfilename='/home/john/basicft8/x'
+
+    res={}
+
+    meas_f = False
+
+    if not meas_f:
+        g_hz_per_count=0.9
+    else:
+        #g_hz_per_count=1.16 # 1200
+        g_hz_per_count=1.05
+
+    retry_limit = 5
+#    for base_f in range(1190,1210):
+    #for base_f in range(1490,1510):
+    while g_hz_per_count<1.3:
+
+        retries = 0
+        run_ft8(base_f)
+
+        errors = get_errors(base_f, resfilename)
+
+        while not errors and retries < retry_limit:
+            print "retrying"
+            run_ft8(base_f)
+            errors = get_errors(base_f, resfilename)
+            retries +=1
+
+        if retries == retry_limit:
+            break
+
+        if meas_f:
+            res[base_f] = errors
+        else:
+            res[g_hz_per_count] = errors
+
+        if meas_f:
+            print res[base_f]
+        else:
+            print res[g_hz_per_count]
+
+        if not meas_f:
+            g_hz_per_count += 0.01
+
+    init=True
+    k=res.keys()
+    k.sort()
+    for r in k:
+        fname="hz1.%s.txt" % repr(base_f)
+        if init:
+            if os.path.exists(fname):
+                os.unlink(fname)
+            init=False
+        w=open(fname,"a+")
+        w.write("%s %s\n" % (repr(r), repr(res[r])))
+        print r, res[r]
+        w.close()
