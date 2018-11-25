@@ -514,8 +514,12 @@ class McMicro:
                 #self.m_hwif.enqueue("E2C56")
 
                 # 50MHz reception measured at 71.4MHz LO
-                # E == init DAC reference source and gain required
-                self.m_hwif.enqueue("D2C3E")
+                val=0xC3E
+                calfile="/home/john/6mcal"
+                if os.path.exists(calfile):
+                    with open(calfile) as caldata:
+                        val+=int(caldata.read())
+                self.m_hwif.enqueue("D2%X" % val)
 
                 # squelch pot
                 self.m_hwif.enqueue("QB8")

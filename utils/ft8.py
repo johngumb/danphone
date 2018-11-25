@@ -27,54 +27,15 @@ g_last_result = None
 g_tones={}
 old_freq_offset=0.0
 old_twice_dac_offset=0.0
-
-g_hz_per_count=None
 g_base_freq=None
 g_base_dac=None
 
-# 0
-hpc={}
-hpc[0]=1.00
-hpc[1]=1.00
-hpc[2]=1.02
-hpc[3]=1.05
-hpc[4]=1.05
-hpc[5]=1.05
-hpc[6]=1.05
-hpc[7]=1.05
-#hpc[8]=1.16
-hpc[8]=1.05
-#hpc[9]=1.14
-hpc[9]=1.05
-#1000
-#hpc[10]=1.14
-hpc[10]=1.05
-#hpc[11]=1.15
-hpc[11]=1.05
-#hpc[12]=1.14
-hpc[12]=1.05
-#hpc[13]=1.1
-hpc[13]=1.05
-hpc[14]=1.1
-#hpc[14]=1.05
-hpc[15]=1.05
-hpc[16]=1.05
-hpc[17]=1.05
-hpc[18]=1.05
-hpc[19]=1.05
-hpc[20]=1.05
-hpc[21]=1.05
-hpc[22]=1.05
-hpc[23]=1.03
-hpc[24]=1.03
-hpc[25]=1.03
-hpc[26]=1.03
-hpc[27]=1.03
-
-
-
-
-
+def cal(calfreq):
+    zero = freq_to_dac(0, calfreq, initial=True)
+    send_dac(zero)
+    send_msg("ft8-txon")
+    time.sleep(20)
+    send_msg("ft8-txoff")
 
 def init_tones(basefreq):
     for i in range(8):
@@ -86,32 +47,19 @@ def freq_to_dac(sym, freq, initial=False):
     global g_last_freq
     global g_last_result
     global g_last_sym
-
-    global g_hz_per_count
     global g_base_freq
     global g_base_dac
-    global hpc
 
     if initial:
         with open('dacdata-orig.csv', 'rb') as csvfile:
-            base = None
-            freqrange = 50.0
             reader = csv.reader(csvfile)
             for row in csvfile:
                 dacv,dacf=row.split(',')
-                if freq<float(dacf)-2000 and not base:
-                    base = int(dacv)
-                if (freq+freqrange)<(float(dacf)-2000):
-                    print "z",int(dacv),int(base)
-                    print freqrange
-                    print (float(dacv)-float(base))
-#                    g_hz_per_count = 1.15 * freqrange/(float(dacv)-float(base))
-                    g_hz_per_count = hpc[int(freq/100)]
+                if freq<float(dacf)-2000:
                     g_base_freq = freq
-                    g_base_dac = int(base)
-                    return (2,int(base))
+                    g_base_dac = int(dacv)
+                    return (2, int(dacv))
 
-    #neutral=0xC3E # 50.315, 2kHz above 50.313
     #hz_per_count = 1.058
     #hz_per_count = 1.046
     #hz_per_count = 1.059
@@ -128,8 +76,10 @@ def freq_to_dac(sym, freq, initial=False):
     # working 24 nov
     #hz_per_count = g_hz_per_count * 1.1
 
-    hz_per_count = g_hz_per_count
-    print hz_per_count, freq
+    if g_base_freq >= 2300:
+        hz_per_count = 1.03
+    else:
+        hz_per_count = 1.05
 
     dac=g_base_dac + (freq-g_base_freq)*hz_per_count
 
@@ -160,12 +110,17 @@ def freq_to_dac(sym, freq, initial=False):
         dac_val = twice_dac_val/2
         dac_cmd = 2
     else:
-        twice_dac_val_minus_1_over_2 = int(twice_dac_val-1)/2
+        # divisible by 2
+        twice_dac_val_minus_1_over_2 = int((twice_dac_val-1)/2)
+
+        # will overflow when 1 added at remote end?
         if (twice_dac_val_minus_1_over_2 & 0xFF) == 0xFF:
             dac_val = twice_dac_val_minus_1_over_2+2
+            # subtract one at remote
             dac_cmd = 3
         else:
             dac_val = twice_dac_val_minus_1_over_2
+            # add one at remote
             dac_cmd = 4
 
     result = (dac_cmd, dac_val)
@@ -211,6 +166,16 @@ def setup_response_socket(Socket):
     g_server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     g_server.bind(Socket)
 
+def reset_dac():
+    # HACK
+    val=0xC3E
+    calfile="/home/john/6mcal"
+    if os.path.exists(calfile):
+        with open(calfile) as caldata:
+            val+=int(caldata.read())
+    print "D2%X" % val
+    send_msg("D2%X" % val)
+
 def run_ft8(base_f):
     init_tones(base_f)
     print g_tones
@@ -218,7 +183,13 @@ def run_ft8(base_f):
     response_socket = "/tmp/ft8response"
 
     setup_response_socket(response_socket)
-    
+
+    # for f in (1000,1500,2000,2300):
+    #     cal(f)
+    # reset_dac()
+
+    # sys.exit(0)
+
     print len(test_syms)
     test_syms2 = [ x if x!=8 else 7 for x in test_syms ]
     test_syms3 = [ x if x!=9 else 0 for x in test_syms2 ]
@@ -281,7 +252,7 @@ def run_ft8(base_f):
 
     if not sim:
         send_msg("ft8-txoff") # disables PA
-        send_msg("E0000")        
+        send_msg("E0000") # stop 160ms sync
         time.sleep(1)
 
         p.terminate()
@@ -305,8 +276,6 @@ def run_ft8(base_f):
 
 
 def get_errors(base_f, resfilename):
-    global g_hz_per_count
-
     with open(resfilename, 'rb') as resfile:
         results_full=resfile.readlines()
 
@@ -328,7 +297,7 @@ def get_errors(base_f, resfilename):
             errors+=1
 
     if results:
-        return (base_f, g_hz_per_count, errors, results[-1])
+        return (base_f, errors, results[-1])
     else:
         return None
 
@@ -396,47 +365,8 @@ def measure():
 
 if __name__ == "__main__":
 
-    base_f=1800
-    base_f=1002
-    base_f=1105
-    base_f=1204
-    base_f=1300
-    base_f=1400
-    base_f=1500
-    base_f=1602
-    base_f=1703
-    base_f=1800
-    base_f=1903
-    base_f=2002
-    base_f=2102
-    base_f=2202
-    base_f=2302
-    base_f=2402
-    base_f=2502
-    base_f=2605
-    base_f=2705
-    base_f=1355
-    base_f=1252
-    base_f=1152
-    base_f=1058
-    base_f=958
-    base_f=849
-    base_f=749
-    base_f=649
-    base_f=549
-    base_f=449
-    base_f=349
-    base_f=251
-    base_f=151
-    base_f=1355
-    base_f=1400
-    base_f=1250
-    base_f=1152
-    base_f=1058
-    base_f=1400
-    base_f=900
-    base_f=802
-    base_f=1550
+
+    base_f=1850
 
     run_ft8(base_f)
 
