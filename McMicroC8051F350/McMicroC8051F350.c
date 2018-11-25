@@ -662,7 +662,7 @@ void act_squelch_pot(void)
 
 void act_power_pot(void)
 {
-	unsigned char pot_data, read_low;
+	unsigned char pot_data, i;
 
     // format of POT command
     // PAB
@@ -672,6 +672,11 @@ void act_power_pot(void)
 
     // must be 2 characters remaining
     pot_data = strtohex(&str[1]);
+
+#define MAX_POWERPOT_ATTEMPTS 5
+    for (i=0; (i<MAX_POWERPOT_ATTEMPTS); i++)
+    {
+    unsigned char read_low;
 
     POWER_POT_SELECT;
 
@@ -690,7 +695,13 @@ void act_power_pot(void)
 
 	POWER_POT_DESELECT;
 
-    if (pot_data != read_low)
+    if (pot_data == read_low)
+    {
+        break;
+    }
+    }
+
+    if (i==MAX_POWERPOT_ATTEMPTS)
     {
         crash(BUGCHECK_PP);
     }
@@ -1500,7 +1511,7 @@ void Timer2_ISR (void) interrupt 5
    if ((g_timer2_count%TIMER2_SCALE)==0)
     {
     g_t2_timeout=0;
-    pin15_open_drain = ~pin15_open_drain;
+    //pin15_open_drain = ~pin15_open_drain;
     }
    else
     g_t2_timeout=1;
