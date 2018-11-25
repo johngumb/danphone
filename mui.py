@@ -623,7 +623,7 @@ class MyFrame(wx.Frame):
             f.SetFormat("%F")
             f.SetDigits(self.m_digits)
             if sixmetres():
-                self.m_freq=51.51E6
+                self.m_freq=50.315E6
             elif twometres():
                 self.m_freq=145.5E6
             else:
