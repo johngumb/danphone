@@ -32,6 +32,50 @@ g_hz_per_count=None
 g_base_freq=None
 g_base_dac=None
 
+# 0
+hpc={}
+hpc[0]=1.00
+hpc[1]=1.00
+hpc[2]=1.02
+hpc[3]=1.05
+hpc[4]=1.05
+hpc[5]=1.05
+hpc[6]=1.05
+hpc[7]=1.05
+#hpc[8]=1.16
+hpc[8]=1.05
+#hpc[9]=1.14
+hpc[9]=1.05
+#1000
+#hpc[10]=1.14
+hpc[10]=1.05
+#hpc[11]=1.15
+hpc[11]=1.05
+#hpc[12]=1.14
+hpc[12]=1.05
+#hpc[13]=1.1
+hpc[13]=1.05
+hpc[14]=1.1
+#hpc[14]=1.05
+hpc[15]=1.05
+hpc[16]=1.05
+hpc[17]=1.05
+hpc[18]=1.05
+hpc[19]=1.05
+hpc[20]=1.05
+hpc[21]=1.05
+hpc[22]=1.05
+hpc[23]=1.03
+hpc[24]=1.03
+hpc[25]=1.03
+hpc[26]=1.03
+hpc[27]=1.03
+
+
+
+
+
+
 def init_tones(basefreq):
     for i in range(8):
         g_tones[i]=i*6.25 + basefreq
@@ -46,6 +90,7 @@ def freq_to_dac(sym, freq, initial=False):
     global g_hz_per_count
     global g_base_freq
     global g_base_dac
+    global hpc
 
     if initial:
         with open('dacdata-orig.csv', 'rb') as csvfile:
@@ -60,12 +105,13 @@ def freq_to_dac(sym, freq, initial=False):
                     print "z",int(dacv),int(base)
                     print freqrange
                     print (float(dacv)-float(base))
-                    #g_hz_per_count = freqrange/(float(dacv)-float(base))
+#                    g_hz_per_count = 1.15 * freqrange/(float(dacv)-float(base))
+                    g_hz_per_count = hpc[int(freq/100)]
                     g_base_freq = freq
                     g_base_dac = int(base)
                     return (2,int(base))
 
-    neutral=0xC3E # 50.315, 2kHz above 50.313
+    #neutral=0xC3E # 50.315, 2kHz above 50.313
     #hz_per_count = 1.058
     #hz_per_count = 1.046
     #hz_per_count = 1.059
@@ -83,7 +129,7 @@ def freq_to_dac(sym, freq, initial=False):
     #hz_per_count = g_hz_per_count * 1.1
 
     hz_per_count = g_hz_per_count
-    print hz_per_count
+    print hz_per_count, freq
 
     dac=g_base_dac + (freq-g_base_freq)*hz_per_count
 
@@ -110,13 +156,17 @@ def freq_to_dac(sym, freq, initial=False):
     twice_dac = int(round(twice_dac))
 
     twice_dac_val = twice_dac + twice_dac_offset
-    
     if twice_dac_val % 2 == 0:
         dac_val = twice_dac_val/2
         dac_cmd = 2
     else:
-        dac_val = (twice_dac_val-1)/2
-        dac_cmd = 4
+        twice_dac_val_minus_1_over_2 = int(twice_dac_val-1)/2
+        if (twice_dac_val_minus_1_over_2 & 0xFF) == 0xFF:
+            dac_val = twice_dac_val_minus_1_over_2+2
+            dac_cmd = 3
+        else:
+            dac_val = twice_dac_val_minus_1_over_2
+            dac_cmd = 4
 
     result = (dac_cmd, dac_val)
     g_last_result = result
@@ -282,7 +332,7 @@ def get_errors(base_f, resfilename):
     else:
         return None
 
-if __name__ == "__main__":
+def measure():
     base_f=1206 # works
     base_f=1503
 
@@ -343,3 +393,53 @@ if __name__ == "__main__":
         w.write("%s %s\n" % (repr(r), repr(res[r])))
         print r, res[r]
         w.close()
+
+if __name__ == "__main__":
+
+    base_f=1800
+    base_f=1002
+    base_f=1105
+    base_f=1204
+    base_f=1300
+    base_f=1400
+    base_f=1500
+    base_f=1602
+    base_f=1703
+    base_f=1800
+    base_f=1903
+    base_f=2002
+    base_f=2102
+    base_f=2202
+    base_f=2302
+    base_f=2402
+    base_f=2502
+    base_f=2605
+    base_f=2705
+    base_f=1355
+    base_f=1252
+    base_f=1152
+    base_f=1058
+    base_f=958
+    base_f=849
+    base_f=749
+    base_f=649
+    base_f=549
+    base_f=449
+    base_f=349
+    base_f=251
+    base_f=151
+    base_f=1355
+    base_f=1400
+    base_f=1250
+    base_f=1152
+    base_f=1058
+    base_f=1400
+    base_f=900
+    base_f=802
+    base_f=1550
+
+    run_ft8(base_f)
+
+    resfilename='/home/john/basicft8/x'
+
+    print get_errors(base_f, resfilename)
