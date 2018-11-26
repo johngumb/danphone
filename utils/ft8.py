@@ -57,8 +57,8 @@ def freq_to_dac(sym, freq, initial=False):
                 dacv,dacf=row.split(',')
                 if freq<float(dacf)-2000:
                     g_base_freq = freq
-                    g_base_dac = int(dacv)
-                    return (2, int(dacv))
+                    g_base_dac = int(dacv)+read_calfile("/home/john/6mcalcsv")
+                    return (2, g_base_dac)
 
     #hz_per_count = 1.058
     #hz_per_count = 1.046
@@ -166,13 +166,18 @@ def setup_response_socket(Socket):
     g_server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     g_server.bind(Socket)
 
+def read_calfile(calfile):
+    res = 0
+    if os.path.exists(calfile):
+        with open(calfile) as caldata:
+            res = int(caldata.read())
+
+    return res
+
 def reset_dac():
     # HACK
     val=0xC3E
-    calfile="/home/john/6mcal"
-    if os.path.exists(calfile):
-        with open(calfile) as caldata:
-            val+=int(caldata.read())
+    val+=read_calfile("/home/john/6mcal")
     print "D2%X" % val
     send_msg("D2%X" % val)
 
@@ -184,11 +189,12 @@ def run_ft8(base_f):
 
     setup_response_socket(response_socket)
 
-    # for f in (1000,1500,2000,2300):
-    #     cal(f)
-    # reset_dac()
+    if False:
+        for f in (1000,1500,2000,2300):
+            cal(f)
+        reset_dac()
 
-    # sys.exit(0)
+        sys.exit(0)
 
     print len(test_syms)
     test_syms2 = [ x if x!=8 else 7 for x in test_syms ]
@@ -365,8 +371,7 @@ def measure():
 
 if __name__ == "__main__":
 
-
-    base_f=1850
+    base_f=1250
 
     run_ft8(base_f)
 
