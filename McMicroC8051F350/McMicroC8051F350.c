@@ -1301,13 +1301,14 @@ void SYSCLK_Init (void)
                                         // the SYSCLK source
 }
 
-#define TIMER_PRESCALER            12  // Based on Timer2 CKCON and TMR2CN
+// The following all calculated on host now
+// #define TIMER_PRESCALER            12  // Based on Timer2 CKCON and TMR2CN
                                        // settings
 
 // There are SYSCLK/TIMER_PRESCALER timer ticks per second, so
 // SYSCLK/TIMER_PRESCALER/1000 timer ticks per millisecond.
 // 2042
-#define TIMER_TICKS_PER_MS  SYSCLK/TIMER_PRESCALER/1000
+//#define TIMER_TICKS_PER_MS  SYSCLK/TIMER_PRESCALER/1000
 
 // Note: LED_TOGGLE_RATE*TIMER_TICKS_PER_MS should not exceed 65535 (0xFFFF)
 // for the 16-bit timer
@@ -1315,10 +1316,10 @@ void SYSCLK_Init (void)
 //#define AUX1     (TIMER_TICKS_PER_MS+50)*LED_TOGGLE_RATE_SCALED
 
 // measured 320ms period - offset 559. 567 seems to work best with FT8
-#define AUX1     ((TIMER_TICKS_PER_MS*LED_TOGGLE_RATE_SCALED)+567)
-#define AUX2     -AUX1
+//#define AUX1     ((TIMER_TICKS_PER_MS*LED_TOGGLE_RATE_SCALED)+567)
+//#define AUX2     -AUX1
 
-#define TIMER2_RELOAD            AUX2  // Reload value for Timer2
+//#define TIMER2_RELOAD            AUX2  // Reload value for Timer2
 
 
 //-----------------------------------------------------------------------------
