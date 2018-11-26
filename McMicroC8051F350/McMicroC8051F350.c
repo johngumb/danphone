@@ -1301,27 +1301,6 @@ void SYSCLK_Init (void)
                                         // the SYSCLK source
 }
 
-// The following all calculated on host now
-// #define TIMER_PRESCALER            12  // Based on Timer2 CKCON and TMR2CN
-                                       // settings
-
-// There are SYSCLK/TIMER_PRESCALER timer ticks per second, so
-// SYSCLK/TIMER_PRESCALER/1000 timer ticks per millisecond.
-// 2042
-//#define TIMER_TICKS_PER_MS  SYSCLK/TIMER_PRESCALER/1000
-
-// Note: LED_TOGGLE_RATE*TIMER_TICKS_PER_MS should not exceed 65535 (0xFFFF)
-// for the 16-bit timer
-
-//#define AUX1     (TIMER_TICKS_PER_MS+50)*LED_TOGGLE_RATE_SCALED
-
-// measured 320ms period - offset 559. 567 seems to work best with FT8
-//#define AUX1     ((TIMER_TICKS_PER_MS*LED_TOGGLE_RATE_SCALED)+567)
-//#define AUX2     -AUX1
-
-//#define TIMER2_RELOAD            AUX2  // Reload value for Timer2
-
-
 //-----------------------------------------------------------------------------
 // Timer2_Init
 //-----------------------------------------------------------------------------
@@ -1428,16 +1407,6 @@ void PCA0_Init (void)
 
    PCA0CPM0 = 0x46;                    // Module 0 = Frequency Output mode
 
-   // Configure frequency for CEX0
-   // PCA0CPH0 = (SYSCLK/12)/(2*CEX0_FREQUENCY), where:
-   // SYSCLK/12 = PCA time base
-   // CEX0_FREQUENCY = desired frequency
-//   PCA0CPH0 = (SYSCLK/12)/(2*CEX0_FREQUENCY);
-    // [jag] cannot use above calculation on target - doesn't work
-    // presumably due to 8 bit target. Better to calculate this value on host.
-    //PCA0CPH0 = 207; // 77 Hz
-    //PCA0CPH0 = 193; // 82.5Hz
-
    // PCA counter initially disabled
    CR = 0;
 }
@@ -1474,15 +1443,6 @@ void ADC0_Init (void)
 
    ADC0MD = 0x81;                      // Start internal calibration
    while(AD0CALC != 1);                // Wait until calibration is complete
-
-#if 0
-   EIE1   |= 0x08;                     // Enable ADC0 Interrupts
-   ADC0MD  = 0x80;                     // Enable the ADC0 (IDLE Mode)
-
-   AD0INT = 0;
-   ADC0MD = 0x83;                      // Start continuous conversions
-   EA = 1;                             // Enable global interrupts
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1510,52 +1470,3 @@ void Timer2_ISR (void) interrupt 5
 
    TF2H = 0;                           // Reset Interrupt
 }
-
-#if 0
-//-----------------------------------------------------------------------------
-// ADC0_ISR
-//-----------------------------------------------------------------------------
-//
-// This ISR prints the result to the UART. The ISR is called after each ADC
-// conversion.
-//
-//-----------------------------------------------------------------------------
-void ADC0_ISR (void) interrupt 10
-{
-   unsigned long mV;
-
-   while(!AD0INT);                     // Wait till conversion complete
-   //AD0INT = 0;                         // Clear ADC0 conversion complete flag
-
-   // Copy the output value of the ADC
-   rawValue.Byte[Byte3] = 0x00;
-   rawValue.Byte[Byte2] = (unsigned char)ADC0H;
-   rawValue.Byte[Byte1] = (unsigned char)ADC0M;
-   rawValue.Byte[Byte0] = (unsigned char)ADC0L;
-
-   //                           Vref (mV)
-   //   measurement (mV) =   --------------- * result (bits)
-   //                       (2^24)-1 (bits)
-   //
-   //   measurement (mV) =  result (bits) / ((2^24)-1 (bits) / Vref (mV))
-   //
-   //
-   //   With a Vref (mV) of 2500:
-   //
-   //   measurement (mV) =  result (bits) / ((2^24)-1 / 2500)
-   //
-   //   measurement (mV) =  result (bits) / ((2^24)-1 / 2500)
-   //
-   //   measurement (mV) =  result (bits) / (16777215 / 2500)
-   //
-   //   measurement (mV) =  result (bits) / (6710)
-
-   mV = rawValue.result / 6710;        // Because of bounds issues, this
-                                       // calculation has been manipulated as
-                                       // shown above
-                                       // (i.e. 2500 (VREF) * 2^24 (ADC result)
-                                       // is greater than 2^32)
-
-   printf("AIN0.2 voltage: %4ld mV\n",mV);
-}
-#endif
