@@ -511,7 +511,6 @@ void act_synth(void)
 
 void act_sync_required(void)
 {
-    // extend this to specify the exact delay required
     TMR2RL = -((strtohex(&str[1])<<8) + strtohex(&str[3])); // Reload value to be used in Timer2
 
     if (TMR2RL)
