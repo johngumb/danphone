@@ -656,12 +656,12 @@ void act_squelch_pot(void)
 }
 
 #define BUGCHECK_PP 255
-#define crash(crashcode) {while(1) { printf("BUG %d\n",(unsigned) crashcode); delay(1000); }}
+#define crash(crashcode) {while(1) { printf("BG%d\n",(unsigned) crashcode); delay(1000); }}
 //#define crash(crashcode) printf("BUG %d\n",(unsigned) crashcode);
 
 void act_power_pot(void)
 {
-	unsigned char pot_data, i;
+	unsigned char pot_data, read_low;
 
     // format of POT command
     // PAB
@@ -672,11 +672,6 @@ void act_power_pot(void)
     // must be 2 characters remaining
     pot_data = strtohex(&str[1]);
 
-#define MAX_POWERPOT_ATTEMPTS 5
-    for (i=0; (i<MAX_POWERPOT_ATTEMPTS); i++)
-    {
-    unsigned char read_low;
-
     POWER_POT_SELECT;
 
     SPI_Byte_Write(0);     // volatile writes - address 0
@@ -684,7 +679,7 @@ void act_power_pot(void)
 
     POWER_POT_DESELECT;
 
-    delay(20);
+    delay(10);
 
 	// read back
     POWER_POT_SELECT;
@@ -694,17 +689,7 @@ void act_power_pot(void)
 
 	POWER_POT_DESELECT;
 
-    if (pot_data == read_low)
-    {
-        break;
-    }
-    else
-    {
-        delay(20);
-    }
-    }
-
-    if (i==MAX_POWERPOT_ATTEMPTS)
+    if (pot_data != read_low)
     {
         crash(BUGCHECK_PP);
     }
