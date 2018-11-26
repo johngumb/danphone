@@ -685,7 +685,7 @@ void act_power_pot(void)
 
     POWER_POT_DESELECT;
 
-    delay(10);
+    delay(20);
 
 	// read back
     POWER_POT_SELECT;
@@ -698,6 +698,10 @@ void act_power_pot(void)
     if (pot_data == read_low)
     {
         break;
+    }
+    else
+    {
+        delay(20);
     }
     }
 
