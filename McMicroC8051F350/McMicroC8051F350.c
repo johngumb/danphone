@@ -672,26 +672,29 @@ void act_power_pot(void)
     // must be 2 characters remaining
     pot_data = strtohex(&str[1]);
 
-    POWER_POT_SELECT;
-
-    SPI_Byte_Write(0);     // volatile writes - address 0
-    SPI_Byte_Write(pot_data);
-
-    POWER_POT_DESELECT;
-
-    delay(10);
-
-	// read back
-    POWER_POT_SELECT;
-
-    SPI_Byte_Write(0x0C); // high byte
-	read_low = SPI_Byte_Write(0xFF); // low byte
-
-	POWER_POT_DESELECT;
-
-    if (pot_data != read_low)
+    for (;;)
     {
-        crash(BUGCHECK_PP);
+        POWER_POT_SELECT;
+
+        SPI_Byte_Write(0);     // volatile writes - address 0
+        SPI_Byte_Write(pot_data);
+
+        POWER_POT_DESELECT;
+
+        delay(10);
+
+        // read back
+        POWER_POT_SELECT;
+
+        SPI_Byte_Write(0x0C); // high byte
+        read_low = SPI_Byte_Write(0xFF); // low byte
+
+        POWER_POT_DESELECT;
+
+        if (read_low==pot_data)
+            break;
+
+        delay(10);
     }
 
     act_stbyte();
