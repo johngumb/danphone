@@ -240,7 +240,7 @@ void pulsebithigh(const char latch_id)
     latch(0,latch_id);
 }
 
-void set_tx_state(const int txena)
+void set_tx_state(const unsigned char txena)
 {
     unsigned int w[2];
     w[0]=0;
@@ -263,7 +263,7 @@ void set_tx_state(const int txena)
     write_synth_spi(&w);
 }
 
-void set_pa_state(const int paena)
+void set_pa_state(const unsigned char paena)
 {
     if (paena)
         SPI_Byte_Write(SR_TX_RX|SR_TX_AUDIO_ENABLE|SR_POWER|SR_TX_PA|SR_TX_POWER_HI_LO);
@@ -278,7 +278,7 @@ void set_pa_state(const int paena)
 //-----------------------------------------------------------------------------
 
 
-int iswhitespace(const char *c)
+unsigned char iswhitespace(const char *c)
 {
     return ((*c==' ') || (*c=='\r') || (*c=='\n'));
 }
@@ -317,12 +317,12 @@ char getchar_jag (void)
 
 void getstr(char *str)
 {
-    char c;
-    int ptr=0;
+    unsigned char ptr=0;
 
     while (1)
     {
-        c = getchar_jag();
+        char c = getchar_jag();
+
 #if REPORTING
         if (c==-1)
         {
@@ -408,7 +408,7 @@ void act_set_synth()
 
 }
 
-unsigned char hexdigittobyte(char ch)
+unsigned char hexdigittobyte(const char ch)
 {
 	unsigned char val;
 
@@ -422,7 +422,7 @@ unsigned char hexdigittobyte(char ch)
 	return val;
 }
 
-char bytetohexdigit(unsigned char val)
+char bytetohexdigit(const unsigned char val)
 {
     if (val>9)
         return (val-10)+'A';
@@ -430,7 +430,7 @@ char bytetohexdigit(unsigned char val)
         return val+'0';
 }
 
-unsigned char strtohex(char *ch)
+unsigned char strtohex(const char *ch)
 {
 	unsigned char i=0;
 	unsigned char rval=0;
@@ -531,7 +531,9 @@ void act_sync_required(void)
     act_stbyte();
 }
 
-void write_ref_dac(unsigned char cmd, unsigned char d_hi, unsigned char d_lo)
+void write_ref_dac(const unsigned char cmd,
+                   const unsigned char d_hi,
+                   const unsigned char d_lo)
 {
 	dac_select_bit=0;
 
@@ -702,9 +704,7 @@ void act_power_pot(void)
 
 void act_ctcss(void)
 {
-	unsigned char toneval;
-
-	toneval = strtohex(str+1);
+	unsigned char toneval = strtohex(str+1);
 
 	if (!toneval)
 		CR = 0;
@@ -718,10 +718,10 @@ void act_ctcss(void)
 
 	//printf("CTCSS: %02x\n", (unsigned) toneval);
 
-       act_stbyte();
+    act_stbyte();
 }
 
-void act_set_power(const int powerstate)
+void act_set_power(const unsigned char powerstate)
 {
     if (powerstate)
     {
@@ -834,35 +834,35 @@ void act_report(char startstop)
 #endif
 
 #ifdef TESTING
-void set_rts(int state)
+void set_rts(unsigned char state)
 {
     rts_bit = state;
 }
 
 
-void set_pin15_open_drain(int state)
+void set_pin15_open_drain(const unsigned char state)
 {
     pin15_open_drain = state;
 }
 
 void get_cts()
 {
-    char cts_val = cts_bit;
+    const char cts_val = cts_bit;
     putchar('0'+cts_val);
 }
 
 void get_pin2()
 {
-    char pin2_val = pin2_input_bit;
+    const char pin2_val = pin2_input_bit;
     putchar('0'+ pin2_val);
 }
 
-void set_pin1_open_drain(int state)
+void set_pin1_open_drain(const unsigned char state)
 {
    pin1_open_drain = state;
 }
 
-void act_test(int tv)
+void act_test(const int tv)
 {
     unsigned int w[2];
 
@@ -1010,7 +1010,7 @@ void act_hostsync()
 
 unsigned long read_adc(void)
 {
-    unsigned long mV;
+   unsigned long mV;
 
    // Copy the output value of the ADC
    rawValue.Byte[Byte3] = 0x00;
@@ -1081,9 +1081,6 @@ void main (void)
 
     // default freq of 70.45
     //g_last_tx=35912;
-
-    AD0INT = 0;                            // clear pending sample indication
-    ADC0MD = 0x83;                         // Start continuous conversions
 
     while (1)
     {
@@ -1443,6 +1440,9 @@ void ADC0_Init (void)
 
    ADC0MD = 0x81;                      // Start internal calibration
    while(AD0CALC != 1);                // Wait until calibration is complete
+
+   AD0INT = 0;                         // clear pending sample indication
+   ADC0MD = 0x83;                      // Start continuous conversions
 }
 
 //-----------------------------------------------------------------------------
@@ -1461,12 +1461,14 @@ void Timer2_ISR (void) interrupt 5
    g_timer2_count+=1;
 
    if ((g_timer2_count%TIMER2_SCALE)==0)
-    {
-    g_t2_timeout=0;
-    //pin15_open_drain = ~pin15_open_drain;
-    }
+   {
+       g_t2_timeout=0;
+
+       // so we can see this on a scope by monitoring P15
+       //pin15_open_drain = ~pin15_open_drain;
+   }
    else
-    g_t2_timeout=1;
+        g_t2_timeout=1;
 
    TF2H = 0;                           // Reset Interrupt
 }
