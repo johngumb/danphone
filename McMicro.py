@@ -103,9 +103,13 @@ class McMicro:
 
         self.m_tx_on = False
 
-        self.m_temperature = 0
+        self.m_temperature_mv = 0
 
         self.m_status_polling_enabled = True
+
+        self.m_status_count = 0
+
+        self.m_audio_pa_enabled = False
 
         return
 
@@ -154,6 +158,8 @@ class McMicro:
 
 #        elif self.m_tx_freq in [145.1375E6]: # AL
     def enable_tx(self, ctcss = 0, enable_tx_audio = True):
+        #print "enable_tx"
+
         if self.m_tx_freq in [50.05E6, 50.016E6]:
             return
 
@@ -236,18 +242,23 @@ class McMicro:
         #print "enable_audio_pa"
 
         if not self.inhibit_audio_pa():
-            self.m_shiftreg.setbit(self.SR_AUDIO_PA)
+            if not self.m_audio_pa_enabled:
+                self.m_shiftreg.setbit(self.SR_AUDIO_PA)
 
-            self.m_shiftreg.latch()
+                self.m_shiftreg.latch()
 
+                self.m_audio_pa_enabled = True
         return
 
     def disable_audio_pa(self):
         #print "disable_audio_pa"
 
-        self.m_shiftreg.clearbit(self.SR_AUDIO_PA)
+        if self.m_audio_pa_enabled:
+            self.m_shiftreg.clearbit(self.SR_AUDIO_PA)
 
-        self.m_shiftreg.latch()
+            self.m_shiftreg.latch()
+
+            self.m_audio_pa_enabled = False
 
         return
 
@@ -266,8 +277,21 @@ class McMicro:
         return
 
     def getstatus(self):
+        if self.m_hwif.server()=="skate":
 
-        self.m_hwif.enqueue("Z")
+            if self.m_status_count == 0:
+
+                # get temperature periodically
+                self.m_hwif.enqueue("H")
+            else:
+                self.m_hwif.enqueue("Z")
+
+            self.m_status_count += 1
+
+            if self.m_status_count == 50:
+                self.m_status_count = 0
+        else:
+            self.m_hwif.enqueue("Z")
 
 
     def getlock(self):
@@ -292,7 +316,7 @@ class McMicro:
 
         self.m_last_status = int(statstr[-1],16)
         if len(statstr) > 1:
-            self.m_temperature = int(statstr[:-1],16)
+            self.m_temperature_mv = int(statstr[:-1],16)
 
     def set_power_supply_state(self, power_supply_state):
         self.m_power_supply_present = power_supply_state
@@ -545,7 +569,8 @@ class McMicro:
             self.m_hwif.enqueue("pin1off")
 
     def take_temperature(self):
-        self.m_hwif.enqueue("H")
+        # silabs-c8051-temperature.pdf AN103
+        return (776 - self.m_temperature_mv)/2.86
 
     def command_duration(self):
         self.disable_status_polling()

@@ -410,6 +410,8 @@ class StatusLEDtimer(wx.Timer):
     def Notify(self):
         """Called every timer interval"""
 
+        #print self.target.m_rig.take_temperature()
+
         #
         # HACK
         # during TX stop clicking
