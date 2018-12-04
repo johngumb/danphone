@@ -294,8 +294,8 @@ char getchar_jag (void)
    if ( g_line_in_progress)
        while (!RI0);
 
-    else
-    {
+   else
+   {
        for (i=0; (i<CHAR_WAIT_MAX); i++)
        {
           if (RI0)
@@ -327,7 +327,7 @@ void getstr(char *str)
         if (c==-1)
         {
             g_line_in_progress=1;
-            return c;
+            return;
         }
         else 
 #endif
@@ -432,13 +432,11 @@ char bytetohexdigit(const unsigned char val)
 
 unsigned char strtohex(const char *ch)
 {
-	unsigned char i=0;
-	unsigned char rval=0;
+	unsigned char val, i=0, rval=0;
 
 	while (i<2)
 	{
-		unsigned char val = hexdigittobyte(ch[i]);
-
+		val = hexdigittobyte(ch[i]);
 
 		if (i==0)
 		{
@@ -482,13 +480,11 @@ void act_control(void)
 
 void act_synth(void)
 {
-	unsigned char offset=1; // skip first command string byte "S"
+	unsigned char fval, offset=1; // skip first command string byte "S"
 
 	// deal with, for example "SD9C" or "S09C"
 	if ((strlen(str)%2)==0)
 	{
-		unsigned char fval;
-
 		fval=hexdigittobyte(str[offset++]);
 
 		SPI_Byte_Write(fval);
