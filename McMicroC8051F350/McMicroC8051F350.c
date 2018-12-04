@@ -588,6 +588,7 @@ void act_ref_dac()
     //printf("data_high %x\n",(unsigned)  data_high);
     //printf("data_low %x\n",(unsigned) data_low);
 
+    // 160ms sync for FT8?
     if (TMR2RL)
     {
         while (g_t2_timeout);
