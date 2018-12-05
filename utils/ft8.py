@@ -10,10 +10,13 @@ cq_syms=[2, 5, 6, 0, 4, 1, 3, 5, 7, 3, 0, 0, 0, 3, 3, 6, 2, 7, 4, 3, 4, 0, 1, 1,
 test_syms=[2, 5, 6, 0, 4, 1, 3, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 2, 5, 6, 0, 4, 1, 3, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 2, 5, 6, 0, 4, 1, 3]
 reply_syms=[2, 5, 6, 0, 4, 1, 3, 3, 4, 6, 5, 0, 1, 3, 7, 2, 1, 7, 1, 6, 4, 6, 6, 1, 0, 6, 5, 2, 5, 2, 0, 7, 6, 0, 7, 2, 2, 5, 6, 0, 4, 1, 3, 4, 0, 0, 5, 6, 1, 3, 7, 3, 7, 6, 6, 2, 7, 2, 6, 0, 2, 0, 3, 7, 7, 2, 5, 0, 2, 1, 6, 2, 2, 5, 6, 0, 4, 1, 3]
 
+wsj2=[3, 1, 4, 0, 6, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 5, 5, 1, 7, 1, 0, 0, 6, 0, 7, 4, 0, 5, 4, 3, 0, 0, 7, 3, 1, 4, 0, 6, 5, 2, 1, 6, 7, 6, 7, 1, 2, 4, 6, 3, 6, 5, 5, 1, 6, 7, 0, 1, 4, 2, 6, 0, 6, 7, 0, 2, 7, 0, 0, 3, 1, 4, 0, 6, 5, 2, 0]
+
 g_server =  None
 g_last_freq =0.0
 g_last_sym = 8
-g_last_result = None
+g_base_freq = None
+g_base_dac = None
 
 #{0: 1500.0,
 # 1: 1506.25,
@@ -25,10 +28,6 @@ g_last_result = None
 # 7: 1543.75}
 
 g_tones={}
-old_freq_offset=0.0
-old_twice_dac_offset=0.0
-g_base_freq=None
-g_base_dac=None
 
 def cal(calfreq):
     zero = freq_to_dac(0, calfreq, initial=True)
@@ -42,10 +41,7 @@ def init_tones(basefreq):
         g_tones[i]=i*6.25 + basefreq
 
 def freq_to_dac(sym, freq, initial=False):
-    global old_freq_offset
-    global old_twice_dac_offset
     global g_last_freq
-    global g_last_result
     global g_last_sym
     global g_base_freq
     global g_base_dac
@@ -124,7 +120,6 @@ def freq_to_dac(sym, freq, initial=False):
             dac_cmd = 4
 
     result = (dac_cmd, dac_val)
-    g_last_result = result
 
     #print result
 
@@ -239,8 +234,8 @@ def run_ft8(base_f):
 
     #for i in test_syms3:
     lastsym = -1
-    for i in cq_syms:
-#    for i in reply_syms:
+#    for i in wsj2:
+    for i in reply_syms:
         d = sym_to_dac(i)
         if sim:
             (c, v) = d
@@ -371,7 +366,7 @@ def measure():
 
 if __name__ == "__main__":
 
-    base_f=1250
+    base_f=1500
 
     run_ft8(base_f)
 
