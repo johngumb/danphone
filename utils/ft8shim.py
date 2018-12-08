@@ -1,18 +1,55 @@
 import os
+import socket
 import socketserver
 import csv
 
+class FT8symTranslator:
+    def __init__(self, basefreq):
+        self.m_tones = {}
+        for i in range(8):
+            self.m_tones[i]=i*6.25 + basefreq
+
+    def sym_to_freq(self, sym):
+        return self.m_tones[sym];
+
 class WsjtxListener(socketserver.BaseRequestHandler):
+    def get_radio_encoder(self, basefreq):
+        self.clear_radio_encoder()
+
+        self.server.m_radio_cmd_encoder = RadioCmdEncoder()
+        self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq)
+
+    def clear_radio_encoder(self):
+        if self.server.m_radio_cmd_encoder:
+            del self.server.m_radio_cmd_encoder
+            self.server.m_radio_cmd_encoder = None
+
     def handle(self):
         self.data = self.request.recv(1024).strip()
 
         #print(str(self.data,'ascii'))
         req = str(self.data,'ascii')
+        print(req)
+
+        # base freq; prepare
         if req.find("FB")==0:
-            self.server.m_refosc.set_base_freq(int(req[2:]))
-        #print(self.server.arg1)
-        print(self.server.arg2)
-        return
+            print("got fb")
+
+            basefreq = int(req[2:])
+            self.get_radio_encoder(basefreq)
+
+            self.server.m_radio_cmd_encoder.send_msg("ft8-txon")
+
+        # message to send; must be prepared otherwise ignore
+        elif req[0]=='M':
+            if self.server.m_radio_cmd_encoder:
+                symlist = [int(a) for a in list(req[1:])]
+                self.server.m_radio_cmd_encoder.send_symseq(symlist)
+                self.server.m_radio_cmd_encoder.send_msg("ft8-txoff")                
+            else:
+                print("ignoring",req)
+
+            self.clear_radio_encoder()
 
 class RefOsc:
     def __init__(self, datafile, calfile):
@@ -75,7 +112,7 @@ class RefOsc:
 
         twice_dac_val = twice_dac + twice_dac_offset
         if twice_dac_val % 2 == 0:
-            dac_val = twice_dac_val/2
+            dac_val = int(twice_dac_val/2)
             dac_cmd = 2
         else:
             # divisible by 2
@@ -100,26 +137,94 @@ class RefOsc:
 
         return result
 
-class RadioCmdSender():
+class RadioCmdHandler:
     def __init__(self):
-        return
+        self.m_response_socket_name = "/tmp/ft8response"
+        self.setup_response_socket(self.m_response_socket_name)
+
+    def __del__(self):
+        if os.path.exists(self.m_response_socket_name):
+            os.remove(self.m_response_socket_name)
+
+    def setup_response_socket(self, socket_name):
+
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.m_response_server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+        if os.path.exists(socket_name):
+            os.remove(socket_name)
+
+        self.m_response_server.bind(socket_name)
+
+    def send_msg(self, msg):
+        self.m_response_server.listen(1)
+        asciimsg = msg.encode('ascii')
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.connect("/tmp/mui-ext.s.6m")
+        s.sendall(asciimsg)
+        s.close()
+
+        conn, addr = self.m_response_server.accept()
+        datagram = conn.recv(1024)
+        assert(datagram==asciimsg)
+        #print "got response",datagram
+
+class RadioCmdEncoder:
+    def __init__(self):
+        self.m_radio_cmd_handler=RadioCmdHandler()
+        self.m_use_pa = False
+        self.m_sync_dac_cmds = False
+
+    def prepare_for_symseq(self, basefreq):
+
+        # think about lifetime
+        self.m_refosc = RefOsc("dacdata-orig.csv", "/home/john/6mcal")
+
+        self.m_ft8trans = FT8symTranslator(basefreq)
+
+        self.m_refosc.set_base_freq(basefreq)
+
+    # allow access to raw message sender
+    def send_msg(self, msg):
+        self.m_radio_cmd_handler.send_msg(msg)
+
+    def send_dac(self, val):
+        '''
+        takes a tuple (N,DV) where N is DAC command (1,2,3,4) and DV is 12 bit dac val
+        '''
+        cmd = "D%d%X" % val
+        print(cmd)
+        self.m_radio_cmd_handler.send_msg(cmd)
+
+    def send_symseq(self, symseq):
+        # turn on 160ms sync on dac commands
+        self.m_radio_cmd_handler.send_msg("EA19F")
+
+        for sym in symseq:
+            symfreq = self.m_ft8trans.sym_to_freq(sym)
+
+            d = self.m_refosc.freq_to_dac(sym, symfreq)
+
+            self.send_dac(d)
+
+        self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
 
 
-class RadioUnixStreamServer(socketserver.UnixStreamServer):
+class WSJTXUnixStreamServer(socketserver.UnixStreamServer):
 
-    def __init__(self, server_address, RequestHandlerClass, refosc, arg2):
+    def __init__(self, server_address, RequestHandlerClass, radio_cmd_encoder, arg2):
         socketserver.UnixStreamServer.__init__(self, 
                                                  server_address, 
                                                  RequestHandlerClass)
-        self.m_refosc = refosc
+        self.m_radio_cmd_encoder = radio_cmd_encoder
         self.arg2 = arg2
 
-def establish_wsjtx_listener(sockname, refosc):
+def establish_wsjtx_listener(sockname):
     if os.path.exists(wsj_listen_sock):
         os.unlink(wsj_listen_sock)
 
 #    server = socketserver.UnixStreamServer(wsj_listen_sock, WsjtxListener)
-    server = RadioUnixStreamServer(wsj_listen_sock, WsjtxListener, refosc, 2)
+    server = WSJTXUnixStreamServer(wsj_listen_sock, WsjtxListener, None, 2)
 
     try:
         server.serve_forever()
@@ -133,7 +238,4 @@ def establish_wsjtx_listener(sockname, refosc):
 if __name__ == "__main__":
     wsj_listen_sock = "/tmp/testsock"
 
-
-    refosc = RefOsc("dacdata-orig.csv", "/home/john/6mcal")
-
-    establish_wsjtx_listener(wsj_listen_sock, refosc);
+    establish_wsjtx_listener(wsj_listen_sock);
