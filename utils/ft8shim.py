@@ -1,3 +1,4 @@
+import sys
 import os
 import socket
 import socketserver
@@ -189,7 +190,7 @@ class RadioCmdHandler:
 class RadioCmdEncoder:
     def __init__(self):
         self.m_radio_cmd_handler=RadioCmdHandler()
-        self.m_use_pa = False
+        self.m_use_pa = sys.argv[1] == "-p"
         self.m_sync_dac_cmds = False
         self.m_cancel_tx = False
 
