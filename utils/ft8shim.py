@@ -3,6 +3,8 @@ import socket
 import socketserver
 import csv
 
+# TODO calibrate dac freq based on beat freq received from FCD???
+
 class FT8symTranslator:
     def __init__(self, basefreq):
         self.m_tones = {}
@@ -45,11 +47,26 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             if self.server.m_radio_cmd_encoder:
                 symlist = [int(a) for a in list(req[1:])]
                 self.server.m_radio_cmd_encoder.send_symseq(symlist)
-                self.server.m_radio_cmd_encoder.send_msg("ft8-txoff")                
+                self.server.m_radio_cmd_encoder.send_msg("ft8-txoff")
             else:
-                print("ignoring",req)
+                print("ignoring",req,"not prepared")
 
             self.clear_radio_encoder()
+
+        elif req.find("TX")==0:
+            if self.server.m_radio_cmd_encoder:
+                if req[2]=='1':
+                    if self.server.m_radio_cmd_encoder.use_pa():
+                        self.server.m_radio_cmd_encoder.send_msg("pa-on")
+                    else:
+                        print(req,"request denied, pa not enabled")
+                else:
+                    self.server.m_radio_cmd_encoder.request_cancel_tx()
+            else:
+                print("ignoring",req,"no encoder")
+            
+        else:
+            print("unknown message",req)
 
 class RefOsc:
     def __init__(self, datafile, calfile):
@@ -174,6 +191,7 @@ class RadioCmdEncoder:
         self.m_radio_cmd_handler=RadioCmdHandler()
         self.m_use_pa = False
         self.m_sync_dac_cmds = False
+        self.m_cancel_tx = False
 
     def prepare_for_symseq(self, basefreq):
 
@@ -183,6 +201,12 @@ class RadioCmdEncoder:
         self.m_ft8trans = FT8symTranslator(basefreq)
 
         self.m_refosc.set_base_freq(basefreq)
+
+    def request_cancel_tx(self):
+        self.m_cancel_tx = True
+
+    def use_pa(self):
+        return self.m_use_pa
 
     # allow access to raw message sender
     def send_msg(self, msg):
@@ -196,11 +220,20 @@ class RadioCmdEncoder:
         print(cmd)
         self.m_radio_cmd_handler.send_msg(cmd)
 
+    def cancel_tx(self):
+        self.m_radio_cmd_handler.send_msg("ft8-txoff")
+        self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
+        self.m_cancel_tx = False
+
     def send_symseq(self, symseq):
         # turn on 160ms sync on dac commands
         self.m_radio_cmd_handler.send_msg("EA19F")
 
         for sym in symseq:
+            if self.m_cancel_tx:
+                self.cancel_tx()
+                break;
+
             symfreq = self.m_ft8trans.sym_to_freq(sym)
 
             d = self.m_refosc.freq_to_dac(sym, symfreq)
