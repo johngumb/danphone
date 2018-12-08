@@ -3,6 +3,8 @@ import os
 import socket
 import socketserver
 import csv
+import subprocess
+import time
 
 # TODO calibrate dac freq based on beat freq received from FCD???
 
@@ -34,26 +36,25 @@ class WsjtxListener(socketserver.BaseRequestHandler):
         req = str(self.data,'ascii')
         print(req)
 
-        # base freq; prepare
+        # base freq; prepare, frequency base
         if req.find("FB")==0:
-            print("got fb")
+            print("got prepare")
 
             basefreq = int(req[2:])
             self.get_radio_encoder(basefreq)
-
-            self.server.m_radio_cmd_encoder.send_msg("ft8-txon")
 
         # message to send; must be prepared otherwise ignore
         elif req[0]=='M':
             if self.server.m_radio_cmd_encoder:
                 symlist = [int(a) for a in list(req[1:])]
                 self.server.m_radio_cmd_encoder.send_symseq(symlist)
-                self.server.m_radio_cmd_encoder.send_msg("ft8-txoff")
+                self.server.m_radio_cmd_encoder.cancel_tx()
             else:
                 print("ignoring",req,"not prepared")
 
             self.clear_radio_encoder()
 
+        # PTT control  message
         elif req.find("TX")==0:
             if self.server.m_radio_cmd_encoder:
                 if req[2]=='1':
@@ -190,18 +191,17 @@ class RadioCmdHandler:
 class RadioCmdEncoder:
     def __init__(self):
         self.m_radio_cmd_handler=RadioCmdHandler()
-        self.m_use_pa = sys.argv[1] == "-p"
+        self.m_use_pa = "-p" in sys.argv
+        self.m_monitor = "-m" in sys.argv
         self.m_sync_dac_cmds = False
         self.m_cancel_tx = False
+        self.m_recfile = '/home/john/ft8_t2.wav'
+        self.m_recfile_final = '/home/john/ft8_t2_sox.wav'
+        self.m_tx_on = False
 
-    def prepare_for_symseq(self, basefreq):
-
-        # think about lifetime
-        self.m_refosc = RefOsc("dacdata-orig.csv", "/home/john/6mcal")
-
-        self.m_ft8trans = FT8symTranslator(basefreq)
-
-        self.m_refosc.set_base_freq(basefreq)
+    def __del__(self):
+        if self.m_tx_on:
+            self.send_msg("ft8-txoff")
 
     def request_cancel_tx(self):
         self.m_cancel_tx = True
@@ -222,14 +222,47 @@ class RadioCmdEncoder:
         self.m_radio_cmd_handler.send_msg(cmd)
 
     def cancel_tx(self):
+
+        if not self.m_tx_on:
+            print("cancel tx while tx not active")
+
+        # FIXME 6 metres only
+        zero_rx = "D2C3E" # for rx
+
         self.m_radio_cmd_handler.send_msg("ft8-txoff")
+        self.m_radio_cmd_handler.send_msg(zero_rx)
         self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
         self.m_cancel_tx = False
 
+    def prepare_for_symseq(self, basefreq):
+
+        # think about lifetime
+        self.m_refosc = RefOsc("dacdata-orig.csv", "/home/john/6mcal")
+
+        self.m_ft8trans = FT8symTranslator(basefreq)
+
+        self.m_refosc.set_base_freq(basefreq)
+
+        zero_tx_dac = self.m_refosc.freq_to_dac(0, basefreq)
+
+        # allow time to settle
+        self.send_msg("ft8-txon")
+        self.m_tx_on = True
+
+        self.send_dac(zero_tx_dac)
+
+
     def send_symseq(self, symseq):
+
+        if self.m_monitor:
+            self.m_recproc = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', self.m_recfile ])
+
         # turn on 160ms sync on dac commands
         self.m_radio_cmd_handler.send_msg("EA19F")
 
+        #
+        # send the symbol sequence
+        #
         for sym in symseq:
             if self.m_cancel_tx:
                 self.cancel_tx()
@@ -242,6 +275,17 @@ class RadioCmdEncoder:
             self.send_dac(d)
 
         self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
+
+        if self.m_monitor:
+            time.sleep(0.9)
+            self.m_recproc.terminate()
+            status = self.m_recproc.communicate()
+            print(status)
+            retcode = self.m_recproc.wait()
+            print(retcode)
+            os.system(str.join(' ', ['sox', self.m_recfile, '-t wavpcm --rate 12k -c 1 -b 16', self.m_recfile_final, '&&', 'rm -f', self.m_recfile]))
+
+            os.system(str.join(' ', ['python', '/home/john/basicft8/basicft8.py', '/home/john/ft8_t2_sox.wav', '>', '/home/john/basicft8/x']))
 
 
 class WSJTXUnixStreamServer(socketserver.UnixStreamServer):
