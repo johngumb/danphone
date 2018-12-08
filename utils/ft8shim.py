@@ -39,7 +39,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
 
         # base freq; prepare, frequency base
         if req.find("FB")==0:
-            print("got prepare")
+            print("got prepare",time.asctime())
 
             basefreq_and_band = req[2:].split(',')
             basefreq = int(basefreq_and_band[0])
@@ -70,6 +70,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
                     else:
                         print(req,"request denied, pa not enabled")
                 else:
+                    print(time.asctime())
                     self.server.m_radio_cmd_encoder.request_cancel_tx()
             else:
                 print("ignoring",req,"no encoder")
