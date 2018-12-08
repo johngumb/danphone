@@ -18,11 +18,12 @@ class FT8symTranslator:
         return self.m_tones[sym];
 
 class WsjtxListener(socketserver.BaseRequestHandler):
-    def get_radio_encoder(self, basefreq):
+    def get_radio_encoder(self, basefreq, band):
         self.clear_radio_encoder()
 
-        self.server.m_radio_cmd_encoder = RadioCmdEncoder()
-        self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq)
+        if band == "6m":
+            self.server.m_radio_cmd_encoder = RadioCmdEncoder()
+            self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq)
 
     def clear_radio_encoder(self):
         if self.server.m_radio_cmd_encoder:
@@ -40,8 +41,14 @@ class WsjtxListener(socketserver.BaseRequestHandler):
         if req.find("FB")==0:
             print("got prepare")
 
-            basefreq = int(req[2:])
-            self.get_radio_encoder(basefreq)
+            basefreq_and_band = req[2:].split(',')
+            basefreq = int(basefreq_and_band[0])
+            band = basefreq_and_band[1].strip()
+
+            self.get_radio_encoder(basefreq, band)
+
+            if not self.server.m_radio_cmd_encoder:
+                print("Band", band, "not supported")
 
         # message to send; must be prepared otherwise ignore
         elif req[0]=='M':
@@ -202,6 +209,7 @@ class RadioCmdEncoder:
     def __del__(self):
         if self.m_tx_on:
             self.send_msg("ft8-txoff")
+            self.m_tx_on = False
 
     def request_cancel_tx(self):
         self.m_cancel_tx = True
@@ -226,12 +234,18 @@ class RadioCmdEncoder:
         if not self.m_tx_on:
             print("cancel tx while tx not active")
 
+        # stop 160ms sync
+        self.m_radio_cmd_handler.send_msg("E0000")
+
         # FIXME 6 metres only
         zero_rx = "D2C3E" # for rx
 
         self.m_radio_cmd_handler.send_msg("ft8-txoff")
+        self.m_tx_on = False
+
+        # where we are for receive on DAC
         self.m_radio_cmd_handler.send_msg(zero_rx)
-        self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
+
         self.m_cancel_tx = False
 
     def prepare_for_symseq(self, basefreq):
@@ -274,7 +288,7 @@ class RadioCmdEncoder:
 
             self.send_dac(d)
 
-        self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
+        #self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
 
         if self.m_monitor:
             time.sleep(0.9)
