@@ -438,6 +438,12 @@ class StatusLEDtimer(wx.Timer):
         if self.m_power_count == self.m_power_max_count:
             self.target.check_for_power_event()
 
+            if sixmetres():
+                (changed, temperature) = self.target.m_rig.take_temperature()
+
+                if changed:
+                    print time.asctime(),"temperature is",repr(temperature)+"C"
+
             self.m_power_count = 0
 
         self.m_power_count = self.m_power_count + 1

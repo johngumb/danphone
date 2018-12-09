@@ -105,6 +105,8 @@ class McMicro:
 
         self.m_temperature_mv = 0
 
+        self.m_last_temperature = 0.0
+
         self.m_status_polling_enabled = True
 
         self.m_status_count = 0
@@ -280,7 +282,6 @@ class McMicro:
         if self.m_hwif.server()=="skate":
 
             if self.m_status_count == 0:
-
                 # get temperature periodically
                 self.m_hwif.enqueue("H")
             else:
@@ -570,7 +571,16 @@ class McMicro:
 
     def take_temperature(self):
         # silabs-c8051-temperature.pdf AN103
-        return (776 - self.m_temperature_mv)/2.86
+        current_temperature = (776 - self.m_temperature_mv)/2.86
+
+        if self.m_temperature_mv == 0:
+            changed = False
+        else:
+            changed = (current_temperature != self.m_last_temperature)
+
+        self.m_last_temperature = current_temperature
+
+        return (changed, current_temperature)
 
     def command_duration(self):
         self.disable_status_polling()
