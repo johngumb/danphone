@@ -293,6 +293,7 @@ class RadioCmdEncoder:
 
         if self.m_monitor:
             time.sleep(0.9)
+            self.cancel_tx()
             self.m_recproc.terminate()
             status = self.m_recproc.communicate()
             print(status)
