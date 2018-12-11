@@ -62,8 +62,8 @@ typedef union LONGDATA{                // Access LONGDATA as an
 LONGDATA rawValue;
 
 // uncomment one
-#define SIXMETRES
-//#define FOURMETRES
+//#define SIXMETRES
+#define FOURMETRES
 //#define TWOMETRES
 
 #define TESTING
@@ -468,9 +468,11 @@ void act_control(void)
     {
         while(!power_on_bit);
 
+#ifdef SIXMETRES
         ref_dac_init();
 
         init_squelch_potentiometer();
+#endif
     }
 
     g_control_byte = val;
@@ -930,12 +932,6 @@ void act_test(const int tv)
 		}
 		break;
 
-		case 7045:
-		{
-			w[1]=35912;
-
-		}
-		break;
 #ifdef OOBAND
 		case 53:
 		{
