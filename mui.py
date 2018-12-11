@@ -364,6 +364,14 @@ def is_ft8(freq):
             return True
     return False
 
+def log_temperature(rig, unconditional):
+    if not twometres():
+        (changed, temperature) = rig.take_temperature()
+
+        if changed or unconditional:
+            print time.asctime(),"temperature is","%3.2f" % temperature +"C"
+
+
 class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
         wx.Timer.__init__(self)
@@ -407,6 +415,7 @@ class StatusLEDtimer(wx.Timer):
             
         self.m_counts_initialised = True
 
+
     def Notify(self):
         """Called every timer interval"""
 
@@ -438,11 +447,7 @@ class StatusLEDtimer(wx.Timer):
         if self.m_power_count == self.m_power_max_count:
             self.target.check_for_power_event()
 
-            if sixmetres():
-                (changed, temperature) = self.target.m_rig.take_temperature()
-
-                if changed:
-                    print time.asctime(),"temperature is",repr(temperature)+"C"
+            log_temperature(self.target.m_rig, False)
 
             self.m_power_count = 0
 
