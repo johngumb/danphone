@@ -71,7 +71,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
                         print(req,"request denied, pa not enabled")
                 else:
                     print(time.asctime())
-                    self.server.m_radio_cmd_encoder.request_cancel_tx()
+                    self.server.m_radio_cmd_encoder.cancel_tx()
             else:
                 print("ignoring",req,"no encoder")
             
