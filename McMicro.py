@@ -281,7 +281,7 @@ class McMicro:
     def getstatus(self):
         if self.m_hwif.server() in ["skate", "dab"]:
 
-            if self.m_status_count == 0:
+            if self.m_status_count == 10:
                 # get temperature periodically
                 self.m_hwif.enqueue("H")
             else:
