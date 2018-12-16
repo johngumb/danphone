@@ -8,6 +8,14 @@ import time
 
 # TODO calibrate dac freq based on beat freq received from FCD???
 
+def cal_value():
+    val = 0
+    calfile="/home/john/6mcal"
+    if os.path.exists(calfile):
+        with open(calfile) as caldata:
+            val = int(caldata.read())
+    return val
+
 class FT8symTranslator:
     def __init__(self, basefreq):
         self.m_tones = {}
@@ -18,6 +26,7 @@ class FT8symTranslator:
         return self.m_tones[sym];
 
 class WsjtxListener(socketserver.BaseRequestHandler):
+
     def get_radio_encoder(self, basefreq, band):
         self.clear_radio_encoder()
 
@@ -33,9 +42,18 @@ class WsjtxListener(socketserver.BaseRequestHandler):
     def handle(self):
         self.data = self.request.recv(1024).strip()
 
+        # received something, cancel timeout timer
+        self.server.socket.settimeout(None)
+        self.server.m_timeout_set = False
+        self.server.m_set_fb = False
+
         #print(str(self.data,'ascii'))
         req = str(self.data,'ascii')
         print(req)
+
+        if not req:
+            print("Empty request string received")
+            return
 
         # base freq; prepare, frequency base
         if req.find("FB")==0:
@@ -49,6 +67,10 @@ class WsjtxListener(socketserver.BaseRequestHandler):
 
             if not self.server.m_radio_cmd_encoder:
                 print("Band", band, "not supported")
+
+            self.server.m_set_fb = True
+            self.server.m_timeout_set = True
+            self.server.socket.settimeout(3.5)
 
         # message to send; must be prepared otherwise ignore
         elif req[0]=='M':
@@ -137,7 +159,8 @@ class RefOsc:
 
         twice_dac = int(round(twice_dac))
 
-        twice_dac_val = twice_dac + twice_dac_offset
+        twice_dac_val = twice_dac + twice_dac_offset + (cal_value()*2)
+
         if twice_dac_val % 2 == 0:
             dac_val = int(twice_dac_val/2)
             dac_cmd = 2
@@ -238,14 +261,13 @@ class RadioCmdEncoder:
         # stop 160ms sync
         self.m_radio_cmd_handler.send_msg("E0000")
 
-        # FIXME 6 metres only
-        zero_rx = "D2C3E" # for rx
-
         self.m_radio_cmd_handler.send_msg("ft8-txoff")
         self.m_tx_on = False
 
         # where we are for receive on DAC
-        self.m_radio_cmd_handler.send_msg(zero_rx)
+        # FIXME 6 metres only
+        zero_rx = 0xC3E + cal_value() # for rx
+        self.m_radio_cmd_handler.send_msg("D2%X" % zero_rx)
 
         self.m_cancel_tx = False
 
@@ -321,7 +343,17 @@ def establish_wsjtx_listener(sockname):
     server = WSJTXUnixStreamServer(wsj_listen_sock, WsjtxListener, None, 2)
 
     try:
-        server.serve_forever()
+        while True:
+            server.handle_request()
+
+            if server.m_radio_cmd_encoder and server.m_timeout_set:
+                if server.m_set_fb:
+                    server.m_set_fb = False
+                else:
+                    print("Frequency Base timeout")
+                    server.m_radio_cmd_encoder.cancel_tx()
+                    server.socket.settimeout(None)
+                    server.m_timeout_set = False
 
     except KeyboardInterrupt:
         print("interrupt")
