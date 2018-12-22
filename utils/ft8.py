@@ -49,8 +49,9 @@ def freq_to_dac(sym, freq, initial=False):
     if initial:
         with open('dacdata-orig.csv', 'rb') as csvfile:
             reader = csv.reader(csvfile)
-            for row in csvfile:
-                dacv,dacf=row.split(',')
+            for row in reader:
+                [dacv, dacf] = row
+                #dacv,dacf=row.split(',')
                 if freq<float(dacf)-2000:
                     g_base_freq = freq
                     g_base_dac = int(dacv)+read_calfile("/home/john/6mcalcsv")
@@ -135,7 +136,7 @@ def sym_to_dac(tone_num):
 
 def send_dac(val):
     cmd = "D%d%X" % val
-    print cmd
+    print(cmd)
     send_msg(cmd)
 
 def send_msg(msg):
