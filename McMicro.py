@@ -553,6 +553,8 @@ class McMicro:
             if self.m_refosc_count < self.m_refosc_init_boundary:
                 self.m_refosc_count += 1
 
+        self.m_hwif.enqueue("pin15on")
+
         return result
 
     def execute_rig_cmd(self, cmd):
