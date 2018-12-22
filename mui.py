@@ -1040,7 +1040,7 @@ class MyFrame(wx.Frame):
             mute(self.m_audioserver)
             sdrmute()
             self.m_transmitting = True
-            self.m_tx_timer.Start(1000*60*7)
+            self.m_tx_timer.Start(1000*60*30)
         else:
             self.free_tx_lock()
             time.sleep(0.5)
