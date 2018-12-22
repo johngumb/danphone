@@ -842,6 +842,7 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_status_polling()
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()
+            log_temperature(self.m_rig, True)
         else:
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()
