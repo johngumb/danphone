@@ -534,9 +534,6 @@ class McMicro:
             # Don't come up in transmit mode
             self.disable_tx()
 
-            if not self.m_ftdi and self.m_hwif.server()=="dab":
-                self.m_hwif.enqueue("pin15on")
-
             if not self.m_ftdi and self.m_hwif.server()=="skate":
                 # 14.4MHz on ref osc
                 #self.m_hwif.enqueue("E2C56")
