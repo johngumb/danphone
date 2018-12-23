@@ -768,8 +768,8 @@ class MyFrame(wx.Frame):
         
         self.m_tx_lockfile = None
 
-        # lock stays off for 16 minutes
-        self.m_tx_safety_timeout=16*60*1000
+        # lock stays off for 30 minutes
+        self.m_tx_safety_timeout=30*60*1000
 
         self.m_no_tx_lock = True
 
