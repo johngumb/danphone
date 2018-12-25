@@ -572,9 +572,6 @@ class MyFrame(wx.Frame):
 
         self.m_max_freq=450E6
 
-        # linear attatched to Aux button
-        #self.m_aux_linear=True
-
         if sixmetres():
             self.m_devid=("cli",("skate",2217))
             self.m_rig.set_ctcss_fudge(0.988)
@@ -889,10 +886,11 @@ class MyFrame(wx.Frame):
 
     def onButtonTxPowerLevel(self,event):
         if self.m_button_tx_power_level.GetValue():
-            #if self.m_aux_linear:
-            #    self.m_ext_alarm_button.SetValue(False)
-            #    self.onButtonExtAlarm(event)
-            self.m_rig.set_tx_power_high()
+            if sixmetres() and self.m_ext_alarm_button.GetValue():
+                self.m_button_tx_power_level.SetValue(False)
+                self.m_rig.set_tx_power_low()
+            else:
+                self.m_rig.set_tx_power_high()
         else:
             self.m_rig.set_tx_power_low()
 
@@ -983,9 +981,9 @@ class MyFrame(wx.Frame):
             time.sleep(0.1)
 
         if self.m_ext_alarm_button.GetValue():
-            #if self.m_aux_linear:
-            #    self.m_button_tx_power_level.SetValue(False)
-            #    self.onButtonTxPowerLevel(event)
+            if sixmetres():
+                self.m_button_tx_power_level.SetValue(False)
+                self.onButtonTxPowerLevel(event)
             self.m_rig.enable_ext_alarm()
         else:
             self.m_rig.disable_ext_alarm()
