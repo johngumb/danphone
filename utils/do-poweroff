@@ -2,7 +2,9 @@
 
 #ssh root@tang "sync; sync"
 
+if [ -z "$1" ]; then
 sh /home/john/sys x
+fi
 
 machines="$(cat machines)"
 
