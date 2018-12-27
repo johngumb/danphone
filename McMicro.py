@@ -229,7 +229,7 @@ class McMicro:
 
     def set_tx_power_low(self):
         if self.m_hwif.server()=="skate":
-            self.m_hwif.enqueue("P50")
+            self.m_hwif.enqueue("P60")
         else:
             self.m_shiftreg.setbit(self.SR_TX_POWER_HI_LO)
 
