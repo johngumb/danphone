@@ -555,6 +555,36 @@ void ref_dac_init(void)
     write_ref_dac(REF_DAC_CMD(10), 0, 0);  // using register 10, gain control register
 }
 
+// Write to Maxim MAX5216BGUA 16 bit DAC controlling 14.4MHz synth ref osc
+void act_ref_dac_maxim()
+{
+	unsigned int lowdata;
+	unsigned char shifted_out, *data_ptr = (unsigned char *)&lowdata;
+
+    // format of DAC command
+    // MABCD
+    // M: Dac command (that's how we got here so skip it)
+    // A: top 4 bits of high byte DAC value 0-F i.e. bits 12..15
+    // B: bottom 4 bits high of DAC value 0-F 	i.e. bits 8..11
+    // C: top 4 bits of low byte DAC value 0-F 	i.e. bits 4..7
+	// D: bottom 4 bits low of DAC value 0-F 	i.e. bits 0..3
+
+    data_ptr[0] = strtohex(&str[1]);
+
+    // must be 2 characters remaining
+    data_ptr[1] = strtohex(&str[3]);
+
+	shifted_out=(data_ptr[1]&0xFC) >> 2;
+
+	lowdata <<=6;
+
+	printf("shifted_out %x\n",(unsigned) shifted_out);
+    printf("data_ptr[1] %x\n",(unsigned) data_ptr[1]);
+    printf("data_ptr[0] %x\n",(unsigned) data_ptr[0]);
+
+	write_ref_dac(shifted_out ,data_ptr[1], data_ptr[0]);
+}
+
 // Write to MCP48FEB22 12 bit DAC controlling 14.4MHz synth ref osc
 // 0x000 14.398925 MHz
 // 0xFFF 14.400251 MHz 4.2031V as measured on KXN1123AA input pin
@@ -1091,6 +1121,8 @@ void main (void)
 			partcmd('D', act_ref_dac());
 
             partcmd('E', act_sync_required());
+
+			partcmd('M', act_ref_dac_maxim());
 
             partcmd('Q', act_squelch_pot());
 
