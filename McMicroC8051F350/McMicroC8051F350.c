@@ -569,21 +569,33 @@ void act_ref_dac_maxim()
     // C: top 4 bits of low byte DAC value 0-F 	i.e. bits 4..7
 	// D: bottom 4 bits low of DAC value 0-F 	i.e. bits 0..3
 
+	// address top 16 bits
     data_ptr[0] = strtohex(&str[1]);
 
-    // must be 2 characters remaining
+    // address bottom 16 bits; must be 2 characters remaining
     data_ptr[1] = strtohex(&str[3]);
 
-	shifted_out=(data_ptr[1]&0xFC) >> 2;
+	shifted_out=(data_ptr[0]&0xFC) >> 2;
 
 	lowdata <<=6;
 
-	printf("shifted_out %x\n",(unsigned) shifted_out);
-    printf("data_ptr[1] %x\n",(unsigned) data_ptr[1]);
-    printf("data_ptr[0] %x\n",(unsigned) data_ptr[0]);
+//	printf("shifted_out %x\n",(unsigned) shifted_out);
+//  printf("data_ptr[1] %x\n",(unsigned) data_ptr[1]);
+//  printf("data_ptr[0] %x\n",(unsigned) data_ptr[0]);
+//	printf("lowdata %x\n", lowdata);
+
+    // 160ms sync for FT8?
+    if (TMR2RL)
+    {
+        while (g_t2_timeout);
+
+        g_t2_timeout=1;
+    }
 
 	// need 0x40 to power up device (MAX5124-MAX5216.pdf, Table 2. Operating Mode Truth Table.
-	write_ref_dac((shifted_out|0x40) ,data_ptr[1], data_ptr[0]);
+	write_ref_dac((shifted_out|0x40) ,data_ptr[0], data_ptr[1]);
+
+    act_stbyte();
 }
 
 // Write to MCP48FEB22 12 bit DAC controlling 14.4MHz synth ref osc
@@ -1279,7 +1291,7 @@ void main (void)
 // P1.7 - input  - Pin 15 on CPU from pin 2 on 'D' type ground for logic 1
 // P2.0 - input  - PA status
 //
-// must be push-pull for ft232 test lead
+// must be push-pull for ft232 test lead i.e. UNDEFINE UART_TX_OPEN_DRAIN
 #define UART_TX_OPEN_DRAIN
 void PORT_Init (void)
 {
