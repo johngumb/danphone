@@ -582,7 +582,8 @@ void act_ref_dac_maxim()
     printf("data_ptr[1] %x\n",(unsigned) data_ptr[1]);
     printf("data_ptr[0] %x\n",(unsigned) data_ptr[0]);
 
-	write_ref_dac(shifted_out ,data_ptr[1], data_ptr[0]);
+	// need 0x40 to power up device (MAX5124-MAX5216.pdf, Table 2. Operating Mode Truth Table.
+	write_ref_dac((shifted_out|0x40) ,data_ptr[1], data_ptr[0]);
 }
 
 // Write to MCP48FEB22 12 bit DAC controlling 14.4MHz synth ref osc
