@@ -592,8 +592,9 @@ void act_ref_dac_maxim()
         g_t2_timeout=1;
     }
 
-	// need 0x40 to power up device (MAX5124-MAX5216.pdf, Table 2. Operating Mode Truth Table.
-	write_ref_dac((shifted_out|0x40) ,data_ptr[0], data_ptr[1]);
+	// Need 0x40 to power up device.
+    // MAX5124-MAX5216.pdf, Table 2. Operating Mode Truth Table.
+	write_ref_dac((shifted_out|0x40), data_ptr[0], data_ptr[1]);
 
     act_stbyte();
 }
