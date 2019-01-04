@@ -279,21 +279,16 @@ class McMicro:
         return
 
     def getstatus(self):
-        if self.m_hwif.server() in ["skate", "dab"]:
-
-            if self.m_status_count == 10:
-                # get temperature periodically
-                self.m_hwif.enqueue("H")
-            else:
-                self.m_hwif.enqueue("Z")
-
-            self.m_status_count += 1
-
-            if self.m_status_count == 50:
-                self.m_status_count = 0
+        if self.m_status_count == 10:
+            # get temperature periodically
+            self.m_hwif.enqueue("H")
         else:
             self.m_hwif.enqueue("Z")
 
+        self.m_status_count += 1
+
+        if self.m_status_count == 50:
+            self.m_status_count = 0
 
     def getlock(self):
         if self.m_ftdi:
@@ -548,6 +543,17 @@ class McMicro:
 
                 # squelch pot
                 self.m_hwif.enqueue("QB8")
+
+            if not self.m_ftdi and self.m_hwif.server()=="rudd":
+                # 14.4MHz on ref osc
+
+                val=0xC400
+                calfile="/home/john/2mcal"
+                if os.path.exists(calfile):
+                    with open(calfile) as caldata:
+                        val+=int(caldata.read())
+                self.m_hwif.enqueue("M%04X" % val)
+
             self.m_refosc_count += 1
         else:
             if self.m_refosc_count < self.m_refosc_init_boundary:

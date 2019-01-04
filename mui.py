@@ -365,11 +365,10 @@ def is_ft8(freq):
     return False
 
 def log_temperature(rig, unconditional):
-    if not twometres():
-        (changed, temperature) = rig.take_temperature()
+    (changed, temperature) = rig.take_temperature()
 
-        if changed or unconditional:
-            print time.asctime(),"temperature is","%3.2f" % temperature +"C"
+    if changed or unconditional:
+        print time.asctime(),"temperature is","%3.2f" % temperature +"C"
 
 
 class StatusLEDtimer(wx.Timer):
