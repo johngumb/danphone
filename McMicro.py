@@ -547,7 +547,7 @@ class McMicro:
             if not self.m_ftdi and self.m_hwif.server()=="rudd":
                 # 14.4MHz on ref osc
 
-                val=0xC3D0
+                val=0xC3D8
                 calfile="/home/john/2mcal"
                 if os.path.exists(calfile):
                     with open(calfile) as caldata:
