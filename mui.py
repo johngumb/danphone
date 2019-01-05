@@ -359,7 +359,7 @@ class TxSafetyTimer(wx.Timer):
         return
 
 def is_ft8(freq):
-    for f in ["50315","70155","144175"]:
+    for f in ["50315","70155","144176"]:
         if string.find(repr(freq),f)==0:
             return True
     return False
@@ -826,7 +826,7 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_tx()
             self.m_rig.disable_audio()
             self.m_rig.enable_pa()
-        elif data[0] in ['D','E','Q']:
+        elif data[0] in ['D','E','M','Q']:
             self.m_rig.execute_rig_cmd(data)
             print "cmd complete"
         elif data in "ft8-txon":
