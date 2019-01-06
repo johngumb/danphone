@@ -54,7 +54,7 @@ def freq_to_dac(sym, freq, initial=False):
                 #dacv,dacf=row.split(',')
                 if freq<float(dacf)-2000:
                     g_base_freq = freq
-                    g_base_dac = int(dacv)+read_calfile("/home/john/6mcalcsv")
+                    g_base_dac = int(dacv)+read_calfile("/home/john/6mcal")
                     return (2, g_base_dac)
 
     #hz_per_count = 1.058
@@ -105,7 +105,7 @@ def freq_to_dac(sym, freq, initial=False):
     twice_dac_val = twice_dac + twice_dac_offset
     if twice_dac_val % 2 == 0:
         dac_val = twice_dac_val/2
-        dac_cmd = 2
+        dac_cmd = "2"
     else:
         # divisible by 2
         twice_dac_val_minus_1_over_2 = int((twice_dac_val-1)/2)
@@ -114,13 +114,79 @@ def freq_to_dac(sym, freq, initial=False):
         if (twice_dac_val_minus_1_over_2 & 0xFF) == 0xFF:
             dac_val = twice_dac_val_minus_1_over_2+2
             # subtract one at remote
-            dac_cmd = 3
+            dac_cmd = "3"
         else:
             dac_val = twice_dac_val_minus_1_over_2
             # add one at remote
-            dac_cmd = 4
+            dac_cmd = "4"
 
-    result = (dac_cmd, dac_val)
+    result = ("D", dac_cmd, dac_val)
+
+    #print result
+
+    g_last_freq = freq
+    g_last_sym = sym
+
+    return result
+
+def freq_to_dac_max5216(sym, freq, initial=False):
+    global g_last_freq
+    global g_last_sym
+    global g_base_freq
+    global g_base_dac
+
+    if initial:
+        with open('dacdata-2m-8step-144176.csv', 'rb') as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                [dacv, dacf] = row
+                #dacv,dacf=row.split(',')
+                if freq<float(dacf):
+                    print "jag",freq, dacf
+                    g_base_freq = freq
+                    g_base_dac = int(dacv)+read_calfile("/home/john/2mcal")
+                    return ("M","", g_base_dac)
+
+    #hz_per_count = 1.058
+    #hz_per_count = 1.046
+    #hz_per_count = 1.059
+#     if freq>=1400:
+# #        hz_per_count = 1.0585
+#         hz_per_count = 1.0956
+#     else:
+#         hz_per_count = 1.0585
+
+#    dac=neutral - ((2000-freq) * g_hz_per_count)
+
+    #hz_per_count = g_hz_per_count * 1.12
+
+    # working 24 nov
+    #hz_per_count = g_hz_per_count * 1.1
+
+    hz_per_count = 0.172 * 0.95
+    #hz_per_count = 0.17
+
+    dac=g_base_dac + (freq-g_base_freq)/hz_per_count
+
+    if g_last_freq:
+        diff_offset = freq - g_last_freq
+    else:
+        diff_offset = 0
+
+    #4.17 looks good 17 nov
+    if diff_offset>0:
+        factor=4.17
+    else:
+        factor=4.17
+
+    dac_offset=(diff_offset/factor)/hz_per_count
+
+ #   if sym > 4 and g_last_sym >= 4:
+ #       dac_offset += 8
+
+    dac_val = dac + dac_offset
+
+    result = ("M", "", dac_val)
 
     #print result
 
@@ -132,10 +198,10 @@ def freq_to_dac(sym, freq, initial=False):
 def sym_to_dac(tone_num):
     freq = g_tones[tone_num]
     #print freq
-    return freq_to_dac(tone_num,freq)
+    return freq_to_dac_max5216(tone_num,freq)
 
 def send_dac(val):
-    cmd = "D%d%X" % val
+    cmd = "%s%s%X" % val
     print(cmd)
     send_msg(cmd)
 
@@ -143,7 +209,7 @@ def send_msg(msg):
     g_server.listen(1)
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect("/tmp/mui-ext.s.6m")
+    s.connect("/tmp/mui-ext.s.2m")
     s.send(msg)
     s.close()
 
@@ -197,9 +263,10 @@ def run_ft8(base_f):
     test_syms3 = [ x if x!=9 else 0 for x in test_syms2 ]
     print test_syms3
 
-    zero_rx = "D2C3E" # for rx
+    #zero_rx = "D2C3E" # for rx
+    zero_rx = "MC3B8"
     #zero = "D2A2D"
-    zero = freq_to_dac(0, base_f, initial=True)
+    zero = freq_to_dac_max5216(0, base_f, initial=True)
     
     sim = len(sys.argv) > 1 and sys.argv[1] != "p"
 
@@ -230,7 +297,8 @@ def run_ft8(base_f):
         #send_msg("E9F88")
         #send_msg("EA198") #320ms
         #send_msg("EA1A0")  #320.06ms
-        send_msg("EA19F")
+        #send_msg("E9FF0")
+        send_msg("EA0C0")
         p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])
 
     #for i in test_syms3:
