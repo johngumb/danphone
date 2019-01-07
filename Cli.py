@@ -80,7 +80,7 @@ class TelnetCLI:
         #
         # optimisation
         #
-        if msg[0] not in ["Z","D"]:
+        if msg[0] not in ["Z","D","M"]:
             if msg==self.m_last_msg:
                 return
             else:
