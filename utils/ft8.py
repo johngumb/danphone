@@ -158,9 +158,10 @@ def freq_to_dac_max5216(sym, freq, initial=False):
 
     #hz_per_count = 0.172 * 0.95
     hz_per_count = 0.172
+    count_per_hz = 5.81
     #hz_per_count = 0.17
 
-    dac=g_base_dac + (freq-g_base_freq)/hz_per_count
+    dac=g_base_dac + (freq-g_base_freq)* count_per_hz
 
     if g_last_freq:
         diff_offset = freq - g_last_freq
@@ -168,15 +169,19 @@ def freq_to_dac_max5216(sym, freq, initial=False):
         diff_offset = 0
 
     #4.17 looks good 17 nov
+    # if diff_offset>0:
+    #     factor=1.3
+    # else:
+    #     factor=5
+
+    # dac_offset=(diff_offset/factor)/0.3
+
     if diff_offset>0:
-        factor=2.0
+        factor=1.7
     else:
-        factor=10.0
+        factor=1.1
 
-    dac_offset=(diff_offset/factor)/0.3
-
-    if sym > g_last_sym:
-        dac_offset += 32
+    dac_offset = diff_offset * factor
 
 #    if sym < g_last_sym:
 #        dac_offset -=32
@@ -268,8 +273,8 @@ def run_ft8(base_f):
         sys.exit(0)
 
     print len(test_syms)
-    test_syms2 = [ x if x!=8 else 7 for x in test_syms ]
-    test_syms3 = [ x if x!=9 else 0 for x in test_syms2 ]
+    test_syms2 = [ x if x!=8 else 5 for x in test_syms ]
+    test_syms3 = [ x if x!=9 else 2 for x in test_syms2 ]
     print test_syms3
 
     #zero_rx = "D2C3E" # for rx
@@ -309,12 +314,13 @@ def run_ft8(base_f):
         #send_msg("EA198") #320ms
         #send_msg("EA1A0")  #320.06ms
         #send_msg("E9FF0")
-        send_msg("EA190")  #160ms sync
+        send_msg("EA280")  #160ms sync
         p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])
 
-    #for i in test_syms3:
+#    for i in test_syms3:
 #    for i in wsj2:
 #    for i in reply_syms:
+    st=time.time()
     for i in cq_syms:
         d = sym_to_dac(i)
         if sim:
@@ -328,11 +334,12 @@ def run_ft8(base_f):
             n=time.time()
             send_dac(d)
             print time.time()-n
+    print "msg time",time.time() - st
 
     if not sim:
         send_msg("ft8-txoff") # disables PA
         send_msg("E0000") # stop 160ms sync
-        time.sleep(1)
+        time.sleep(1.2)
 
         p.terminate()
 
