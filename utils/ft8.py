@@ -17,6 +17,7 @@ g_last_freq =0.0
 g_last_sym = 8
 g_base_freq = None
 g_base_dac = None
+g_last_dac = None
 
 #{0: 1500.0,
 # 1: 1506.25,
@@ -134,6 +135,7 @@ def freq_to_dac_max5216(sym, freq, initial=False):
     global g_last_sym
     global g_base_freq
     global g_base_dac
+    global g_last_dac
 
     if initial:
         with open('dacdata-2m-20step-144176.csv', 'rb') as csvfile:
@@ -189,12 +191,16 @@ def freq_to_dac_max5216(sym, freq, initial=False):
 
     dac_val = dac + dac_offset
 
+    if sym == g_last_sym:
+        dac_val = g_last_dac
+
     result = ("M", "", dac_val)
 
     #print result
 
     g_last_freq = freq
     g_last_sym = sym
+    g_last_dac = dac_val
 
     return result
     
