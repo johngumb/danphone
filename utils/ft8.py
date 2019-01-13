@@ -177,7 +177,7 @@ def freq_to_dac_max5216(sym, freq, initial=False):
     # dac_offset=(diff_offset/factor)/0.3
 
     if diff_offset>0:
-        factor=1.7
+        factor=2.2
     else:
         factor=1.1
 
@@ -314,7 +314,7 @@ def run_ft8(base_f):
         #send_msg("EA198") #320ms
         #send_msg("EA1A0")  #320.06ms
         #send_msg("E9FF0")
-        send_msg("EA280")  #160ms sync
+        send_msg("EA2C0")  #160ms sync
         p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])
 
 #    for i in test_syms3:
