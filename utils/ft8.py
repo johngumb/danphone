@@ -136,34 +136,26 @@ def freq_to_dac_max5216(sym, freq, initial=False):
     global g_base_dac
 
     if initial:
-        with open('dacdata-2m-8step-144176.csv', 'rb') as csvfile:
+        with open('dacdata-2m-20step-144176.csv', 'rb') as csvfile:
             reader = csv.reader(csvfile)
+            prev_freq = 0
             for row in reader:
                 [dacv, dacf] = row
                 #dacv,dacf=row.split(',')
                 if freq<float(dacf):
-                    print "jag",freq, dacf
+                    overshoot = float(dacf) - prev_freq
+                    overshoot_dac = overshoot/0.172
+
+                    print freq, dacf
                     g_base_freq = freq
-                    g_base_dac = int(dacv)+read_calfile("/home/john/2mcal")
+                    g_base_dac = int(dacv)+read_calfile("/home/john/2mcal")-overshoot_dac
                     return ("M","", g_base_dac)
+                else:
+                    prev_freq = float(dacf)
 
-    #hz_per_count = 1.058
-    #hz_per_count = 1.046
-    #hz_per_count = 1.059
-#     if freq>=1400:
-# #        hz_per_count = 1.0585
-#         hz_per_count = 1.0956
-#     else:
-#         hz_per_count = 1.0585
 
-#    dac=neutral - ((2000-freq) * g_hz_per_count)
-
-    #hz_per_count = g_hz_per_count * 1.12
-
-    # working 24 nov
-    #hz_per_count = g_hz_per_count * 1.1
-
-    hz_per_count = 0.172 * 0.95
+    #hz_per_count = 0.172 * 0.95
+    hz_per_count = 0.172
     #hz_per_count = 0.17
 
     dac=g_base_dac + (freq-g_base_freq)/hz_per_count
@@ -175,14 +167,25 @@ def freq_to_dac_max5216(sym, freq, initial=False):
 
     #4.17 looks good 17 nov
     if diff_offset>0:
-        factor=4.17
+        factor=2.0
     else:
-        factor=4.17
+        factor=10.0
 
-    dac_offset=(diff_offset/factor)/hz_per_count
+    dac_offset=(diff_offset/factor)/0.3
 
-#    if sym > 4 and g_last_sym >= 4:
-#        dac_offset += 8
+    if sym > g_last_sym:
+        dac_offset += 32
+
+#    if sym < g_last_sym:
+#        dac_offset -=32
+
+    print dac_offset
+
+    # if sym > 3 and g_last_sym >= 3:
+    #     dac_offset += 48
+
+    # if sym < 3 and g_last_sym <= 3:
+    #     dac_offset -= 1
 
     dac_val = dac + dac_offset
 
@@ -264,7 +267,7 @@ def run_ft8(base_f):
     print test_syms3
 
     #zero_rx = "D2C3E" # for rx
-    zero_rx = "MC3B8"
+    zero_rx = "MC370"
     #zero = "D2A2D"
     zero = freq_to_dac_max5216(0, base_f, initial=True)
     
@@ -272,6 +275,8 @@ def run_ft8(base_f):
 
     if not sim:
         send_msg("ft8-txon")
+        send_msg("EA010")  #160ms sync
+        send_dac(zero)
         send_dac(zero)
 
         recfile = '/home/john/ft8_t2.wav'
@@ -298,13 +303,13 @@ def run_ft8(base_f):
         #send_msg("EA198") #320ms
         #send_msg("EA1A0")  #320.06ms
         #send_msg("E9FF0")
-        send_msg("EA190")
+        send_msg("EA190")  #160ms sync
         p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])
 
     #for i in test_syms3:
-    lastsym = -1
-    for i in wsj2:
+#    for i in wsj2:
 #    for i in reply_syms:
+    for i in cq_syms:
         d = sym_to_dac(i)
         if sim:
             (c, v) = d
@@ -317,8 +322,6 @@ def run_ft8(base_f):
             n=time.time()
             send_dac(d)
             print time.time()-n
-
-        lastsym = d
 
     if not sim:
         send_msg("ft8-txoff") # disables PA
@@ -435,7 +438,7 @@ def measure():
 
 if __name__ == "__main__":
 
-    base_f=1200
+    base_f=1500
 
     run_ft8(base_f)
 
