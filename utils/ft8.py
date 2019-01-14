@@ -18,7 +18,9 @@ g_last_sym = 8
 g_base_freq = None
 g_base_dac = None
 g_last_dac = None
-
+g_local_count_per_hz = None
+g_local_hz_per_count = None
+    
 #{0: 1500.0,
 # 1: 1506.25,
 # 2: 1512.5,
@@ -136,30 +138,102 @@ def freq_to_dac_max5216(sym, freq, initial=False):
     global g_base_freq
     global g_base_dac
     global g_last_dac
+    global g_local_count_per_hz
+    global g_local_hz_per_count
 
     if initial:
         with open('dacdata-2m-20step-144176.csv', 'rb') as csvfile:
             reader = csv.reader(csvfile)
             prev_freq = 0
-            for row in reader:
+            rowcount =0
+            rows = [ r for r in reader ]
+            for row in rows:
                 [dacv, dacf] = row
+                rowcount += 1
                 #dacv,dacf=row.split(',')
                 if freq<float(dacf):
+                    [dvl, dfl] = rows[rowcount-100]
+                    [dvh, dfh] = rows[rowcount+100]
+                    local_hpc = (float(dfh)-float(dfl))/(float(dvh)-float(dvl))
+                    print local_hpc
+                    g_local_hz_per_count = local_hpc
+                    g_local_count_per_hz=1/local_hpc
+                    print g_local_count_per_hz
+        
                     overshoot = float(dacf) - prev_freq
-                    overshoot_dac = overshoot/0.172
+                    overshoot_dac = overshoot * g_local_count_per_hz
 
                     print freq, dacf
                     g_base_freq = freq
                     g_base_dac = int(dacv)+read_calfile("/home/john/2mcal")-overshoot_dac
+
+
                     return ("M","", g_base_dac)
                 else:
                     prev_freq = float(dacf)
 
+    # 2000Hz
+    #count_per_hz = 5.0
+    count_per_hz = 4.3
 
-    #hz_per_count = 0.172 * 0.95
-    hz_per_count = 0.172
-    count_per_hz = 5.81
-    #hz_per_count = 0.17
+    # 1500Hz
+    #count_per_hz = 5.8
+    #count_per_hz = 6.5
+
+    # 1000Hz 19dB
+    #count_per_hz = 4.9
+    #count_per_hz = 4.9
+
+    # 1300Hz
+    #count_per_hz = 6.0
+    #count_per_hz = 5.9
+    #count_per_hz = 6.1 19dB
+
+    # 1400Hz
+    #count_per_hz = 6.3 got a basicft8 decode 2 errors but -17
+    #count_per_hz = 6.4 #got a basicft8 decode a few errors but -17
+    #count_per_hz = 6.35
+
+    # 1600Hz
+    #count_per_hz = 6.35
+    #count_per_hz = 6.0
+    #count_per_hz = 5.4
+
+    # 1700Hz
+    #count_per_hz = 5.25
+
+    #1800Hz
+    #count_per_hz = 5.0
+
+    #1900Hz
+    #count_per_hz = 5.0
+
+    #2000Hz
+    count_per_hz = 5.5
+
+    #2100Hz
+    #count_per_hz = 5.8
+
+    # 2500Hz
+    #count_per_hz = 5.2
+
+    # 1100Hz
+    #count_per_hz = 5.0
+
+    # 1200Hz
+    #count_per_hz = 5.3
+
+    #count_per_hz = g_local_count_per_hz + (5.83-g_local_count_per_hz)
+
+    if g_base_freq < 1400:
+        count_per_hz = 5.83
+    else:
+        count_per_hz = g_local_count_per_hz
+
+    #g_local_hz_per_count * 30
+    print "cph",count_per_hz
+
+    #count_per_hz = g_local_count_per_hz*1.2
 
     dac=g_base_dac + (freq-g_base_freq)* count_per_hz
 
@@ -168,38 +242,18 @@ def freq_to_dac_max5216(sym, freq, initial=False):
     else:
         diff_offset = 0
 
-    #4.17 looks good 17 nov
-    # if diff_offset>0:
-    #     factor=1.3
-    # else:
-    #     factor=5
-
-    # dac_offset=(diff_offset/factor)/0.3
-
     #1.6/1.1 looks ok
-    if diff_offset>0:
-        factor=1.6
-    else:
-        factor=1.1
+    #1.25/1.1 looks good at 2000Hz and 6.0 cph
+    # if diff_offset>0:
+    #     factor=1.0
+    # else:
+    #     factor=1.0
 
-    dac_offset = diff_offset * factor
-
-#    if sym < g_last_sym:
-#        dac_offset -=32
+    dac_offset = diff_offset
 
     print dac_offset
 
-    # if sym > 3 and g_last_sym >= 3:
-    #     dac_offset += 48
-
-    # if sym < 3 and g_last_sym <= 3:
-    #     dac_offset -= 1
-
     dac_val = dac + dac_offset
-
-    # WAS WORKING WITH THIS
-#    if sym == g_last_sym:
-#        dac_val = g_last_dac
 
     result = ("M", "", dac_val)
 
@@ -318,7 +372,8 @@ def run_ft8(base_f):
         #send_msg("E9FF0")
         #send_msg("EA340")  #160ms sync
         #send_msg("EA280")  #160ms sync # working ok -24
-        send_msg("EA240")  #160ms sync # working ok -24
+        #send_msg("EA240")  #160ms sync # working ok -24
+        send_msg("EA280")  #160ms sync # working ok -24
 
         p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])
 
@@ -456,7 +511,7 @@ def measure():
 
 if __name__ == "__main__":
 
-    base_f=1500
+    base_f=1900
 
     run_ft8(base_f)
 
