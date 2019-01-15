@@ -19,7 +19,6 @@ g_base_freq = None
 g_base_dac = None
 g_last_dac = None
 g_local_count_per_hz = None
-g_local_hz_per_count = None
     
 #{0: 1500.0,
 # 1: 1506.25,
@@ -139,33 +138,21 @@ def freq_to_dac_max5216(sym, freq, initial=False):
     global g_base_dac
     global g_last_dac
     global g_local_count_per_hz
-    global g_local_hz_per_count
 
     if initial:
         with open('dacdata-2m-20step-144176.csv', 'rb') as csvfile:
             reader = csv.reader(csvfile)
             prev_freq = 0
-            rowcount =0
+            rowcount = 0
             rows = [ r for r in reader ]
             for row in rows:
                 [dacv, dacf] = row
 
-                #dacv,dacf=row.split(',')
                 if freq<float(dacf):
                     extent=50
                     [dvl, dfl] = rows[rowcount-extent]
-                    # j=rowcount
-                    # dfh=dfl
-                    # while float(dfh)<(float(dfl)+150):
-                    #     j+=1
-                    #     [dvh,dfh]=rows[j]
-
-
                     [dvh, dfh] = rows[rowcount+extent]
-                    local_hpc = (float(dfh)-float(dfl))/(float(dvh)-float(dvl))
-                    print local_hpc
-                    g_local_hz_per_count = local_hpc
-                    g_local_count_per_hz=1/local_hpc
+                    g_local_count_per_hz = (float(dvh)-float(dvl))/(float(dfh)-float(dfl))
                     print g_local_count_per_hz
         
                     overshoot = float(dacf) - prev_freq
@@ -181,96 +168,29 @@ def freq_to_dac_max5216(sym, freq, initial=False):
                     prev_freq = float(dacf)
 
                 rowcount += 1
-    # 2000Hz
-    #count_per_hz = 5.0
-    count_per_hz = 4.3
 
-    # 1500Hz
-    #count_per_hz = 5.8
-    #count_per_hz = 6.5
-
-    # 1000Hz 19dB
-    #count_per_hz = 4.9
-    #count_per_hz = 4.9
-
-    # 1300Hz
-    #count_per_hz = 6.0
-    #count_per_hz = 5.9
-    #count_per_hz = 6.1 19dB
-
-    # 1400Hz
-    #count_per_hz = 6.3 got a basicft8 decode 2 errors but -17
-    #count_per_hz = 6.4 #got a basicft8 decode a few errors but -17
-    #count_per_hz = 6.35
-
-    # 1600Hz
-    #count_per_hz = 6.35
-    #count_per_hz = 6.0
-    #count_per_hz = 5.4
-
-    # 1700Hz
-    #count_per_hz = 5.25
-
-    #1800Hz
-    #count_per_hz = 5.0
-
-    #1900Hz
-    #count_per_hz = 5.0
-
-    #2000Hz
-    count_per_hz = 5.5
-
-    #2100Hz
-    #count_per_hz = 5.8
-
-    # 2500Hz
-    #count_per_hz = 5.2
-
-    # 1100Hz
-    #count_per_hz = 5.0
-
-    # 1200Hz
-    #count_per_hz = 5.3
-
-    #count_per_hz = g_local_count_per_hz + (5.83-g_local_count_per_hz)
-
-    if False:
-        count_per_hz = 5.83
-    else:
-        count_per_hz = g_local_count_per_hz
+    count_per_hz = g_local_count_per_hz
 
     if g_base_freq < 700:
         count_per_hz = 5.83
-
-#    if g_base_freq >= 1900 and g_base_freq < 2300:
-    if g_base_freq >= 1900 and g_base_freq < 2400:
+    elif g_base_freq >= 1900 and g_base_freq < 2400:
         count_per_hz *= 1.1
     elif g_base_freq >= 1050 and g_base_freq < 1200:
         count_per_hz = 5.5
 
-    #g_local_hz_per_count * 30
     print "cph",count_per_hz
-
-    #count_per_hz = g_local_count_per_hz*1.2
 
     dac=g_base_dac + (freq-g_base_freq)* count_per_hz
 
+    #
+    # Equating a dac offset directly to a frequency
+    # but a direct conversion i.e. factor of 1.0
+    # seems fine.
+    #
     if g_last_freq:
-        diff_offset = freq - g_last_freq
+        dac_offset = freq - g_last_freq
     else:
-        diff_offset = 0
-
-    #1.6/1.1 looks ok
-    #1.25/1.1 looks good at 2000Hz and 6.0 cph
-    # if g_base_freq < 2000:
-    #     if diff_offset>0:
-    #         factor=1.0
-    #     else:
-    #         factor=1.0
-    # else:
-    #     factor = 1.0
-
-    dac_offset = diff_offset
+        dac_offset = 0
 
     print dac_offset
 
@@ -280,8 +200,6 @@ def freq_to_dac_max5216(sym, freq, initial=False):
         dac_val = g_last_dac
 
     result = ("M", "", dac_val)
-
-    #print result
 
     g_last_freq = freq
     g_last_sym = sym
@@ -535,7 +453,7 @@ def measure():
 
 if __name__ == "__main__":
 
-    base_f=1080
+    base_f=1420
 
     run_ft8(base_f)
 
