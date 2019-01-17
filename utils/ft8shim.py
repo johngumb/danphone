@@ -8,9 +8,9 @@ import time
 
 # TODO calibrate dac freq based on beat freq received from FCD???
 
-def cal_value():
+def cal_value(band):
     val = 0
-    calfile="/home/john/6mcal"
+    calfile="/home/john/%scal" % band
     if os.path.exists(calfile):
         with open(calfile) as caldata:
             val = int(caldata.read())
@@ -30,9 +30,9 @@ class WsjtxListener(socketserver.BaseRequestHandler):
     def get_radio_encoder(self, basefreq, band):
         self.clear_radio_encoder()
 
-        if band == "6m":
+        if band in ["6m", "2m"]:
             self.server.m_radio_cmd_encoder = RadioCmdEncoder()
-            self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq)
+            self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq, band)
 
     def clear_radio_encoder(self):
         if self.server.m_radio_cmd_encoder:
@@ -100,7 +100,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
         else:
             print("unknown message",req)
 
-class RefOsc:
+class RefOsc6m:
     def __init__(self, datafile, calfile):
 
         with open(datafile) as csvfile:
@@ -112,6 +112,9 @@ class RefOsc:
                 self.m_caldata = int(caldata.read())
         else:
             self.m_caldata = 0
+
+        self.m_last_freq = None
+        self.m_last_sym = None
 
         return
 
@@ -125,6 +128,7 @@ class RefOsc:
                 break
 
         self.m_last_freq = None
+        self.m_last_sym = None
 
         return
 
@@ -159,11 +163,11 @@ class RefOsc:
 
         twice_dac = int(round(twice_dac))
 
-        twice_dac_val = twice_dac + twice_dac_offset + (cal_value()*2)
+        twice_dac_val = twice_dac + twice_dac_offset + (cal_value("6m")*2)
 
         if twice_dac_val % 2 == 0:
             dac_val = int(twice_dac_val/2)
-            dac_cmd = 2
+            dac_cmd = "2"
         else:
             # divisible by 2
             twice_dac_val_minus_1_over_2 = int((twice_dac_val-1)/2)
@@ -172,25 +176,106 @@ class RefOsc:
             if (twice_dac_val_minus_1_over_2 & 0xFF) == 0xFF:
                 dac_val = twice_dac_val_minus_1_over_2+2
                 # subtract one at remote
-                dac_cmd = 3
+                dac_cmd = "3"
             else:
                 dac_val = twice_dac_val_minus_1_over_2
                 # add one at remote
-                dac_cmd = 4
+                dac_cmd = "4"
 
-        result = (dac_cmd, dac_val)
-
-        #print result
+        result = ("D", dac_cmd, dac_val)
 
         self.m_last_freq = freq
         self.m_last_sym = sym
 
         return result
 
+# uses max5216 DAC
+class RefOsc2m:
+    def __init__(self, datafile, calfile):
+        with open(datafile) as csvfile:
+            self.m_reader = csv.reader(csvfile)
+            # seems horrible
+            self.m_refosc_lookup = [ row for row in self.m_reader ]
+
+        if os.path.exists(calfile):
+            with open(calfile) as caldata:
+                self.m_caldata = int(caldata.read())
+        else:
+            self.m_caldata = 0
+
+        self.m_last_freq = None
+        self.m_last_sym = None
+        self.m_last_dac = None
+
+    def set_base_freq(self, freq):
+        self.m_base_freq = freq
+
+        prev_freq = 0
+        rowcount = 0
+        for row in self.m_refosc_lookup:
+            [dacv, dacf] = row
+
+            if freq<float(dacf):
+                extent=50
+                [dvl, dfl] = self.m_refosc_lookup[rowcount-extent]
+                [dvh, dfh] = self.m_refosc_lookup[rowcount+extent]
+                self.m_local_count_per_hz = (float(dvh)-float(dvl))/(float(dfh)-float(dfl))
+                overshoot = float(dacf) - prev_freq
+                overshoot_dac = overshoot * self.m_local_count_per_hz
+
+                self.m_base_freq = freq
+                self.m_base_dac = int(dacv)+self.m_caldata-overshoot_dac
+
+                return ("M","", self.m_base_dac)
+            else:
+                prev_freq = float(dacf)
+
+            rowcount += 1
+
+        if self.m_base_freq < 700:
+            self.m_local_count_per_hz = 5.83
+        elif self.m_base_freq >= 1900 and self.m_base_freq < 2400:
+            self.m_local_count_per_hz *= 1.1
+        elif self.m_base_freq >= 1050 and self.m_base_freq < 1200:
+            self.m_local_count_per_hz = 5.5
+
+        self.m_last_freq = None
+        self.m_last_sym = None
+        self.m_last_dac = None
+
+    # maybe get rid of sym eventually?
+    def freq_to_dac(self, sym, freq):
+
+        dac=self.m_base_dac + (freq-self.m_base_freq) * self.m_local_count_per_hz
+
+        #
+        # Equating a dac offset directly to a frequency
+        # but a direct conversion i.e. factor of 1.0
+        # seems fine.
+        #
+        if self.m_last_freq:
+            dac_offset = freq - self.m_last_freq
+        else:
+            dac_offset = 0
+
+        dac_val = dac + dac_offset
+
+        if self.m_last_sym == sym:
+            dac_val = self.m_last_dac
+
+        result = ("M", "", int(dac_val))
+
+        self.m_last_freq = freq
+        self.m_last_sym = sym
+        self.m_last_dac = dac_val
+
+        return result
+
 class RadioCmdHandler:
-    def __init__(self):
+    def __init__(self, band):
         self.m_response_socket_name = "/tmp/ft8response"
         self.setup_response_socket(self.m_response_socket_name)
+        self.m_band = band
 
     def __del__(self):
         if os.path.exists(self.m_response_socket_name):
@@ -210,7 +295,7 @@ class RadioCmdHandler:
         self.m_response_server.listen(1)
         asciimsg = msg.encode('ascii')
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.connect("/tmp/mui-ext.s.6m")
+        s.connect("/tmp/mui-ext.s.%s" % self.m_band)
         s.sendall(asciimsg)
         s.close()
 
@@ -221,7 +306,6 @@ class RadioCmdHandler:
 
 class RadioCmdEncoder:
     def __init__(self):
-        self.m_radio_cmd_handler=RadioCmdHandler()
         self.m_use_pa = "-p" in sys.argv
         self.m_monitor = "-m" in sys.argv
         self.m_sync_dac_cmds = False
@@ -247,9 +331,10 @@ class RadioCmdEncoder:
 
     def send_dac(self, val):
         '''
-        takes a tuple (N,DV) where N is DAC command (1,2,3,4) and DV is 12 bit dac val
+        takes a tuple (C,N,DV) where C is DAC command (either "D" or "M"),
+        N is DAC subcommand ("1","2","3","4","") and DV is 12 or 16 bit dac val
         '''
-        cmd = "D%d%X" % val
+        cmd = "%s%s%X" % val
         print(cmd)
         self.m_radio_cmd_handler.send_msg(cmd)
 
@@ -265,22 +350,42 @@ class RadioCmdEncoder:
         self.m_tx_on = False
 
         # where we are for receive on DAC
-        # FIXME 6 metres only
-        zero_rx = 0xC3E + cal_value() # for rx
-        self.m_radio_cmd_handler.send_msg("D2%X" % zero_rx)
+        if self.m_band == "6m":
+            zero_rx = 0xC3E + cal_value(self.m_band) # for rx
+            self.m_radio_cmd_handler.send_msg("D2%X" % zero_rx)
+        elif self.m_band == "2m":
+            zero_rx = 0xC370 + cal_value(self.m_band)
+            self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
 
         self.m_cancel_tx = False
 
-    def prepare_for_symseq(self, basefreq):
+    def prepare_for_symseq(self, basefreq, band):
 
         # think about lifetime
-        self.m_refosc = RefOsc("dacdata-orig.csv", "/home/john/6mcal")
+        self.m_radio_cmd_handler=RadioCmdHandler(band)
+
+        calfile = "/home/john/%scal" % band
+
+        # duck typing
+        if band == "6m":
+            self.m_refosc = RefOsc6m("dacdata-orig.csv", calfile)
+        elif band == "2m":
+            self.m_refosc = RefOsc2m("dacdata-2m-20step-144176.csv", calfile)
 
         self.m_ft8trans = FT8symTranslator(basefreq)
 
         self.m_refosc.set_base_freq(basefreq)
 
         zero_tx_dac = self.m_refosc.freq_to_dac(0, basefreq)
+
+        print(band)
+
+        if band == "6m":
+            self.m_sync_cmd = "EA19F"
+        elif band == "2m":
+            self.m_sync_cmd = "EA320"
+
+        self.m_band = band
 
         # allow time to settle
         self.send_msg("ft8-txon")
@@ -295,7 +400,7 @@ class RadioCmdEncoder:
             self.m_recproc = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', self.m_recfile ])
 
         # turn on 160ms sync on dac commands
-        self.m_radio_cmd_handler.send_msg("EA19F")
+        self.m_radio_cmd_handler.send_msg(self.m_sync_cmd)
 
         #
         # send the symbol sequence
