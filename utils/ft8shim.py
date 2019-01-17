@@ -226,7 +226,7 @@ class RefOsc2m:
                 self.m_base_freq = freq
                 self.m_base_dac = int(dacv)+self.m_caldata-overshoot_dac
 
-                return ("M","", self.m_base_dac)
+                break
             else:
                 prev_freq = float(dacf)
 
