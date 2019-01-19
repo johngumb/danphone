@@ -542,6 +542,8 @@ void write_ref_dac(const unsigned char cmd,
 	SPI_Byte_Write(d_lo);
 
 	dac_select_bit=1;
+
+    delay(10);
 }
 
 #define REF_DAC_CMD(rdcmd) ((rdcmd)<<3)
