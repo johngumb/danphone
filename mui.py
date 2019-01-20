@@ -614,6 +614,8 @@ class MyFrame(wx.Frame):
 
         if sixmetres():
             self.m_step_selected = "5"
+        elif twometres():
+            self.m_step_selected = "8"
         else:
             self.m_step_selected = "12.5"
 
@@ -634,7 +636,7 @@ class MyFrame(wx.Frame):
             if sixmetres():
                 self.m_freq=50.315E6
             elif twometres():
-                self.m_freq=145.5E6
+                self.m_freq=144.176E6
             else:
                 self.m_freq=70.45E6
             f.SetDefaultValue( self.m_freq /1E6)
@@ -844,7 +846,9 @@ class MyFrame(wx.Frame):
             self.m_rig.disable_pa()
             self.m_rig.enable_audio()
             self.m_transmitting = False
-            if not self.m_stay_muted:
+            curfreq = self.m_rig.get_rx_freq()
+            ft8 = is_ft8(curfreq)
+            if not (self.m_stay_muted or ft8):
                 sdrunmute()
                 unmute(self.m_audioserver)
 
@@ -885,7 +889,7 @@ class MyFrame(wx.Frame):
 
     def onButtonTxPowerLevel(self,event):
         if self.m_button_tx_power_level.GetValue():
-            if sixmetres() and self.m_ext_alarm_button.GetValue():
+            if (sixmetres() or False) and self.m_ext_alarm_button.GetValue():
                 self.m_button_tx_power_level.SetValue(False)
                 self.m_rig.set_tx_power_low()
             else:
@@ -896,15 +900,11 @@ class MyFrame(wx.Frame):
         return
 
     def init_rig(self):
-        # start off in low power mode
-        self.m_button_tx_power_level.SetValue(False)
-        self.onButtonTxPowerLevel(None)
-
-        # start off with ext alarm disabled
-        self.m_ext_alarm_button.SetValue(False)
-        self.onButtonExtAlarm(None)
-
         self.m_rig.set_tx_power_low()
+        self.m_rig.disable_ext_alarm()
+
+        self.onButtonTxPowerLevel(None)
+        self.onButtonExtAlarm(None)
 
         # do this last in order to give the synth time to come up
         # - seems to be set_step that fails
@@ -980,7 +980,7 @@ class MyFrame(wx.Frame):
             time.sleep(0.1)
 
         if self.m_ext_alarm_button.GetValue():
-            if sixmetres():
+            if sixmetres() or False:
                 self.m_button_tx_power_level.SetValue(False)
                 self.onButtonTxPowerLevel(event)
             self.m_rig.enable_ext_alarm()
@@ -1045,10 +1045,11 @@ class MyFrame(wx.Frame):
 
             self.m_tx_rx.SetValue(False)
             self.m_button_pa.SetValue(False)
-
             self.m_transmitting = False
             if not self.m_monitor_button.GetValue():
-                if not self.m_stay_muted:
+                curfreq = self.m_rig.get_rx_freq()
+                ft8 = is_ft8(curfreq)
+                if not (self.m_stay_muted or ft8):
                     unmute(self.m_audioserver)
             sdrunmute()
 
