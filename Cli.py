@@ -228,7 +228,13 @@ class TelnetCLI:
         #print t
 
         if t:
-            self.m_mcmicro.stcharupdate(t[:-1])
+            # force power to be on for 'M' dac message
+            if msg[0]=="M":
+                v=int(t[-2],16)|4
+                updatestr="%X" % v
+            else:
+                updatestr=t[:-1]
+            self.m_mcmicro.stcharupdate(updatestr)
 
         while (len(self.m_cmdlist)):
             cmd = self.m_cmdlist.pop(0)
