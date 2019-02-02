@@ -457,7 +457,8 @@ def establish_wsjtx_listener(sockname):
                 else:
                     print("Frequency Base timeout")
                     server.m_radio_cmd_encoder.cancel_tx()
-                    server.clear_radio_encoder()
+                    del server.m_radio_cmd_encoder
+                    server.m_radio_cmd_encoder = None
 
                     server.socket.settimeout(None)
                     server.m_timeout_set = False
