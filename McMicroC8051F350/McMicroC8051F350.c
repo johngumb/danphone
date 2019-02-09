@@ -63,8 +63,8 @@ LONGDATA rawValue;
 
 // uncomment one
 //#define SIXMETRES
-#define FOURMETRES
-//#define TWOMETRES
+//#define FOURMETRES
+#define TWOMETRES
 
 #define TESTING
 //#define OOBAND
@@ -199,6 +199,15 @@ void baa()
 #define SYN_DIV1 0x00
 #define SYN_DIV2 0xB7
 #define SYN_DIV3 0x38
+#endif
+
+#ifdef TWOMETRES
+// 144.8 MHz - 21.4 MHz
+#define SYN_REF1 0x09
+#define SYN_REF2 0x01
+#define SYN_DIV1 0x00
+#define SYN_DIV2 0xF6
+#define SYN_DIV3 0x40
 #endif
 
     SPI_Byte_Write(SYN_REF1);
