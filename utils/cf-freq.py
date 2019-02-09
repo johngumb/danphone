@@ -9,14 +9,35 @@ import os
 
 chunk = 2048*256
 
+g_server =  None
+
+def setup_response_socket(Socket):
+    global g_server
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    if os.path.exists(Socket):
+        os.remove(Socket)
+
+    g_server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    g_server.bind(Socket)
+
 def send_msg(msg):
+    global g_server
+
+    g_server.listen(1)
+    
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect("/tmp/mui-ext.s.6m")
+    s.connect("/tmp/mui-ext.s.2m")
     s.send(msg)
     s.close()
 
+    conn, addr = g_server.accept()
+    datagram = conn.recv(1024)
+    assert(datagram==msg)
+
 def send_dac(val):
-    cmd = "D%d%03X" % val
+    #cmd = "D2%03X" % val
+    cmd = "M%04X" % val
     print cmd
     send_msg(cmd)
 
@@ -42,10 +63,17 @@ stream = p.open(
                  rate = RATE)
 
 ofile="dacdata.csv"
-os.unlink(ofile)
+if os.path.exists(ofile):
+    os.unlink(ofile)
 
-i=0
-send_dac((2,0))
+response_socket = "/tmp/ft8response"
+
+setup_response_socket(response_socket)
+
+#i=0xC3B8
+i=38740
+#i=65534
+send_dac(i)
 time.sleep(10)
 # read some data
 data = stream.read(chunk)
@@ -66,9 +94,11 @@ while True:
         x1 = (y2 - y0) * .5 / (2 * y1 - y2 - y0)
         # find the frequency and output it
         thefreq = (which+x1)*RATE/chunk
-        print "%d The freq is %f Hz." % (i, thefreq)
+        print time.asctime()
+        print "%d q The freq is %f Hz." % (i, thefreq)
     else:
         thefreq = which*RATE/chunk
+        print time.asctime()
         print "%d The freq is %f Hz." % (i, thefreq)
 
     a=open(ofile,"a+")
@@ -77,10 +107,10 @@ while True:
     # read some more data
     data = stream.read(chunk)
 
-    send_dac((2,i))
-    time.sleep(10)
-    i+=1
-    if i==4096:
+    send_dac(i)
+    #time.sleep(1)
+    i+=20
+    if i>=65536:
         break
 stream.close()
 p.terminate()
