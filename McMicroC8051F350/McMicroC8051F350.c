@@ -1,7 +1,7 @@
 /*
 * OpenPMR - tools to make old PMR radios useful.
 *
-* Copyright (C) 2013-2018  John Gumb, G4RDC
+* Copyright (C) 2013-2019  John Gumb, G4RDC
 *
 * This file is part of OpenPMR.
 
@@ -63,8 +63,8 @@ LONGDATA rawValue;
 
 // uncomment one
 //#define SIXMETRES
-//#define FOURMETRES
-#define TWOMETRES
+#define FOURMETRES
+//#define TWOMETRES
 
 #define TESTING
 //#define OOBAND
