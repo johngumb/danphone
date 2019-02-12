@@ -5,12 +5,19 @@ import socketserver
 import csv
 import subprocess
 import time
+from datetime import datetime
+
 
 # TODO calibrate dac freq based on beat freq received from FCD???
 
 def cal_value(band):
     val = 0
-    calfile="/home/john/%scal" % band
+    if band == "70cm":
+        actband = "2m"
+    else:
+        actband = band
+
+    calfile="/home/john/%scal" % actband
     if os.path.exists(calfile):
         with open(calfile) as caldata:
             val = int(caldata.read())
@@ -30,7 +37,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
     def get_radio_encoder(self, basefreq, band):
         self.clear_radio_encoder()
 
-        if band in ["6m", "2m"]:
+        if band in ["6m", "2m", "70cm"]:
             self.server.m_radio_cmd_encoder = RadioCmdEncoder()
             self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq, band)
 
@@ -74,6 +81,8 @@ class WsjtxListener(socketserver.BaseRequestHandler):
 
         # message to send; must be prepared otherwise ignore
         elif req[0]=='M':
+            print(time.asctime())
+            print(datetime.utcnow())
             if self.server.m_radio_cmd_encoder:
                 symlist = [int(a) for a in list(req[1:])]
                 self.server.m_radio_cmd_encoder.send_symseq(symlist)
@@ -295,7 +304,11 @@ class RadioCmdHandler:
         self.m_response_server.listen(1)
         asciimsg = msg.encode('ascii')
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.connect("/tmp/mui-ext.s.%s" % self.m_band)
+        if self.m_band == "70cm":
+            radband = "2m"
+        else:
+            radband = self.m_band
+        s.connect("/tmp/mui-ext.s.%s" % radband)
         s.sendall(asciimsg)
         s.close()
 
@@ -339,12 +352,11 @@ class RadioCmdEncoder:
         self.m_radio_cmd_handler.send_msg(cmd)
 
     def cancel_tx(self):
+        # stop 160ms sync
+        self.m_radio_cmd_handler.send_msg("E0000")
 
         if not self.m_tx_on:
             print("cancel tx while tx not active")
-
-        # stop 160ms sync
-        self.m_radio_cmd_handler.send_msg("E0000")
 
         self.m_radio_cmd_handler.send_msg("ft8-txoff")
         self.m_tx_on = False
@@ -353,7 +365,7 @@ class RadioCmdEncoder:
         if self.m_band == "6m":
             zero_rx = 0xC3E + cal_value(self.m_band) # for rx
             self.m_radio_cmd_handler.send_msg("D2%X" % zero_rx)
-        elif self.m_band == "2m":
+        elif self.m_band in ["2m","70cm"]:
             zero_rx = 0xC370 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
 
@@ -364,12 +376,15 @@ class RadioCmdEncoder:
         # think about lifetime
         self.m_radio_cmd_handler=RadioCmdHandler(band)
 
-        calfile = "/home/john/%scal" % band
+        if band == "70cm":
+            calfile = "/home/john/2mcal"
+        else:
+            calfile = "/home/john/%scal" % band
 
         # duck typing
         if band == "6m":
             self.m_refosc = RefOsc6m("dacdata-orig.csv", calfile)
-        elif band == "2m":
+        elif band in ["2m","70cm"]:
             self.m_refosc = RefOsc2m("dacdata-2m-20step-144176.csv", calfile)
 
         self.m_ft8trans = FT8symTranslator(basefreq)
@@ -382,7 +397,7 @@ class RadioCmdEncoder:
 
         if band == "6m":
             self.m_sync_cmd = "EA19F"
-        elif band == "2m":
+        else:
             self.m_sync_cmd = "EA320"
 
         self.m_band = band
