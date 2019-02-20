@@ -235,14 +235,6 @@ class RefOsc2m:
                 flat_start = rowkey
                 flat_start_freq = dacf
                 flat_start_dac = dacv
-                # startdip = False
-                # cand_start=float(dacf)
-                # for i in range (rowkey,len(self.m_refosc_lookup)):
-                #     (v,f)=self.m_refosc_lookup[i]
-                #     if f<cand_start:
-                #         startdip = True
-                #         flat_start=None
-                # print(rowkey,"startdip",startdip)
                 continue
 
             if flat_start_freq and dacf-flat_start_freq>0.5:
@@ -255,7 +247,6 @@ class RefOsc2m:
                     if f<cand_end and (cand_end - f) > 0.5:
                         dip = True
                         break
-                print(dip)
                 if not dip:
                     break
 
@@ -300,23 +291,13 @@ class RefOsc2m:
     # maybe get rid of sym eventually?
     def freq_to_dac(self, sym, freq):
 
-        (idx, dv, f) = self.get_idx_and_dac_from_freq(freq)
+        if self.m_last_freq:
+            freq_offset = freq - self.m_last_freq
+        else:
+            freq_offset = 0
+
+        (idx, dac_val, f) = self.get_idx_and_dac_from_freq(freq+freq_offset*0.1)
         
-        #dac=self.m_base_dac + (freq-self.m_base_freq) * self.m_local_count_per_hz
-        dac = dv
-
-        #
-        # Equating a dac offset directly to a frequency
-        # but a direct conversion i.e. factor of 1.0
-        # seems fine.
-        #
-#        if self.m_last_freq:
-#            dac_offset = freq - self.m_last_freq
-#        else:
-        dac_offset = 0
-
-        dac_val = dac + dac_offset
-
         if self.m_last_sym == sym:
             dac_val = self.m_last_dac
 
