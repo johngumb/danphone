@@ -202,9 +202,15 @@ class RefOsc6m:
 class RefOsc2m:
     def __init__(self, datafile, calfile):
         with open(datafile) as csvfile:
+            self.m_refosc_lookup={}
             self.m_reader = csv.reader(csvfile)
             # seems horrible
-            self.m_refosc_lookup = [ row for row in self.m_reader ]
+            i=0
+            for row in self.m_reader:
+                (d,f)=row
+                self.m_refosc_lookup[i]=(int(d),float(f))
+                i+=1
+            #self.m_refosc_lookup = [ (i,row) for (i,row) in zip(range(len(self.m_reader)),self.m_reader) ]
 
         if os.path.exists(calfile):
             with open(calfile) as caldata:
@@ -216,38 +222,77 @@ class RefOsc2m:
         self.m_last_sym = None
         self.m_last_dac = None
 
+    def get_idx_and_dac_from_freq(self, freq, start_idx=None):
+        flat_start = None
+        flat_end = None
+        flat_start_freq = None
+
+        for rowkey in self.m_refosc_lookup.keys():
+            row = self.m_refosc_lookup[rowkey]
+            (dacv, dacf) = row
+
+            if freq<dacf and not flat_start:
+                flat_start = rowkey
+                flat_start_freq = dacf
+                flat_start_dac = dacv
+                # startdip = False
+                # cand_start=float(dacf)
+                # for i in range (rowkey,len(self.m_refosc_lookup)):
+                #     (v,f)=self.m_refosc_lookup[i]
+                #     if f<cand_start:
+                #         startdip = True
+                #         flat_start=None
+                # print(rowkey,"startdip",startdip)
+                continue
+
+            if flat_start_freq and dacf-flat_start_freq>0.5:
+                cand_end=dacf
+                flat_end = rowkey
+
+                dip = False
+                for i in range (rowkey,len(self.m_refosc_lookup)):
+                    (v,f)=self.m_refosc_lookup[i]
+                    if f<cand_end and (cand_end - f) > 0.5:
+                        dip = True
+                        break
+                print(dip)
+                if not dip:
+                    break
+
+        if flat_end:
+            flat_end = flat_end - 1
+            (flat_end_dac,flat_end_freq)=self.m_refosc_lookup[flat_end]
+
+        print(flat_start_dac, flat_end_dac)
+        
+        if flat_end and flat_end_freq-flat_start_freq<0.2:
+            idx=flat_start + round( (flat_end-flat_start)/2 )
+        else:
+            idx=flat_start
+
+        (d,f)=self.m_refosc_lookup[idx]
+        fdiff = abs(freq-f)
+
+        (prevd,prevf)=self.m_refosc_lookup[idx-1]
+
+        fdiffprev = abs(freq-prevf)
+
+        if fdiffprev < fdiff:
+            r = (idx-1, prevd, prevf)
+        else:
+            r = (idx, d, f)
+
+        # (dstart,fstart)=self.m_refosc_lookup[flat_start]
+
+        # fdiffstart = abs(freq-fstart)
+
+        # if (fdiffstart < fdiff) and (fdiffstart < fdiffprev):
+        #      r = (flat_start, dstart, fstart)
+
+        return r
+        
     def set_base_freq(self, freq):
         self.m_base_freq = freq
-
-        prev_freq = 0
-        rowcount = 0
-        for row in self.m_refosc_lookup:
-            [dacv, dacf] = row
-
-            if freq<float(dacf):
-                extent=50
-                [dvl, dfl] = self.m_refosc_lookup[rowcount-extent]
-                [dvh, dfh] = self.m_refosc_lookup[rowcount+extent]
-                self.m_local_count_per_hz = (float(dvh)-float(dvl))/(float(dfh)-float(dfl))
-                overshoot = float(dacf) - prev_freq
-                overshoot_dac = overshoot * self.m_local_count_per_hz
-
-                self.m_base_freq = freq
-                self.m_base_dac = int(dacv)+self.m_caldata-overshoot_dac
-
-                break
-            else:
-                prev_freq = float(dacf)
-
-            rowcount += 1
-
-        if self.m_base_freq < 700:
-            self.m_local_count_per_hz = 5.83
-        elif self.m_base_freq >= 1900 and self.m_base_freq < 2400:
-            self.m_local_count_per_hz *= 1.1
-        elif self.m_base_freq >= 1050 and self.m_base_freq < 1200:
-            self.m_local_count_per_hz = 5.5
-
         self.m_last_freq = None
         self.m_last_sym = None
         self.m_last_dac = None
@@ -255,18 +300,20 @@ class RefOsc2m:
     # maybe get rid of sym eventually?
     def freq_to_dac(self, sym, freq):
 
-        dac=self.m_base_dac + (freq-self.m_base_freq) * self.m_local_count_per_hz
+        (idx, dv, f) = self.get_idx_and_dac_from_freq(freq)
+        
+        #dac=self.m_base_dac + (freq-self.m_base_freq) * self.m_local_count_per_hz
+        dac = dv
 
         #
         # Equating a dac offset directly to a frequency
         # but a direct conversion i.e. factor of 1.0
         # seems fine.
         #
-        self.m_last_freq = None
-        if self.m_last_freq:
-            dac_offset = freq - self.m_last_freq
-        else:
-            dac_offset = 0
+#        if self.m_last_freq:
+#            dac_offset = freq - self.m_last_freq
+#        else:
+        dac_offset = 0
 
         dac_val = dac + dac_offset
 
@@ -386,7 +433,8 @@ class RadioCmdEncoder:
         if band == "6m":
             self.m_refosc = RefOsc6m("dacdata-orig.csv", calfile)
         elif band in ["2m","70cm"]:
-            self.m_refosc = RefOsc2m("dacdata-2m-20step-144176.csv", calfile)
+            # FIXME absolute paths
+            self.m_refosc = RefOsc2m("/home/john/dacdata-2m-step1.csv", calfile)
 
         self.m_ft8trans = FT8symTranslator(basefreq)
 
@@ -409,11 +457,11 @@ class RadioCmdEncoder:
 
         self.send_dac(zero_tx_dac)
 
-        if self.m_monitor:
-            self.m_recproc = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', self.m_recfile ])
-
 
     def send_symseq(self, symseq):
+
+        if self.m_monitor:
+            self.m_recproc = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', self.m_recfile ])
 
         # turn on 160ms sync on dac commands
         self.m_radio_cmd_handler.send_msg(self.m_sync_cmd)
@@ -489,3 +537,9 @@ if __name__ == "__main__":
     wsj_listen_sock = "/tmp/testsock"
 
     establish_wsjtx_listener(wsj_listen_sock);
+    #r2m = RefOsc2m("dacdata.csv","/tmp/nullcalfile")
+
+    #bf=748
+    #r2m.set_base_freq(bf)
+    #v = r2m.freq_to_dac(0,bf)
+    #print(v)
