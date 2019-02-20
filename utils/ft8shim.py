@@ -262,6 +262,7 @@ class RefOsc2m:
         # but a direct conversion i.e. factor of 1.0
         # seems fine.
         #
+        self.m_last_freq = None
         if self.m_last_freq:
             dac_offset = freq - self.m_last_freq
         else:
@@ -408,11 +409,11 @@ class RadioCmdEncoder:
 
         self.send_dac(zero_tx_dac)
 
-
-    def send_symseq(self, symseq):
-
         if self.m_monitor:
             self.m_recproc = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', self.m_recfile ])
+
+
+    def send_symseq(self, symseq):
 
         # turn on 160ms sync on dac commands
         self.m_radio_cmd_handler.send_msg(self.m_sync_cmd)
