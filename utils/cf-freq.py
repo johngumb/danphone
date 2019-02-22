@@ -71,7 +71,9 @@ response_socket = "/tmp/ft8response"
 setup_response_socket(response_socket)
 
 #i=0xC3B8
-i=38740
+#i=30500 #4m
+i=38600 #2m
+i=45500
 #i=65534
 send_dac(i)
 time.sleep(10)
@@ -108,8 +110,8 @@ while True:
     data = stream.read(chunk)
 
     send_dac(i)
-    #time.sleep(1)
-    i+=20
+    time.sleep(10)
+    i+=1
     if i>=65536:
         break
 stream.close()
