@@ -1284,10 +1284,10 @@ void main (void)
 #define SYNTH_LATCH P03
 #define SR_LATCH P07
 //
-// P0.0 - SPI SCK    (digital output, push-pull)
-// P0.1 - SPI MISO   (digital input, open-drain) -- look to re-use
-// P0.2 - SPI MOSI   (digital output, push-pull)
-// P0.3 - SPI NSS    (digital output, push-pull) -- synth latch
+// P0.0 - SPI SCK    (digital output)
+// P0.1 - SPI MISO   (digital input)
+// P0.2 - SPI MOSI   (digital output)
+// P0.3 - SPI NSS    (digital output) -- synth latch
 // P0.4   UART TX
 // P0.5   UART RX
 // P0.6 - CTCSS tone
