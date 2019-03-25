@@ -7,7 +7,7 @@ import time
 import socket
 import os
 
-chunk = 2048*256
+chunk = 1024*512
 
 g_server =  None
 
@@ -27,7 +27,7 @@ def send_msg(msg):
     g_server.listen(1)
     
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect("/tmp/mui-ext.s.2m")
+    s.connect("/tmp/mui-ext.s.4m")
     s.send(msg)
     s.close()
 
@@ -71,18 +71,23 @@ response_socket = "/tmp/ft8response"
 setup_response_socket(response_socket)
 
 #i=0xC3B8
-#i=30500 #4m
-i=38600 #2m
-i=45500
+#i=29300 #4m
+i=29200 #4m
+#i=55000 #4m top end
+#i=35400 #4m
+#i=38600 #2m
+#i=45500 #2m top end
 #i=65534
-send_dac(i)
-time.sleep(10)
+
 # read some data
 data = stream.read(chunk)
 # play stream and find the frequency of each chunk
 while True:
-    # write data out to the audio stream
-    #stream.write(data)
+    send_dac(i)
+
+    # read some data
+    data = stream.read(chunk)
+
     # unpack the data and times by the hamming window
     indata = np.array(wave.struct.unpack("%dh"%(len(data)/swidth),\
                                          data))*window
@@ -106,12 +111,8 @@ while True:
     a=open(ofile,"a+")
     a.write("%d,%f\n"% (i, thefreq))
     a.close()
-    # read some more data
-    data = stream.read(chunk)
 
-    send_dac(i)
-    time.sleep(10)
-    i+=1
+    i+=16
     if i>=65536:
         break
 stream.close()
