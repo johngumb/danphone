@@ -68,10 +68,7 @@ class TelnetCLI:
     def update_power_present(self):
         power_present = self.m_serial.getDSR()
 
-        if self.m_server in ["dab", "skate", "tang"]:
-            self.m_mcmicro.set_power_supply_state(power_present)
-        else:
-            power_present = True
+        self.m_mcmicro.set_power_supply_state(power_present)
 
         return power_present
 
@@ -80,7 +77,7 @@ class TelnetCLI:
         #
         # optimisation
         #
-        if msg[0] not in ["Z","D","M"]:
+        if msg[0] not in ["Z","D","M","H"]:
             if msg==self.m_last_msg:
                 return
             else:
