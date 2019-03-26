@@ -517,6 +517,9 @@ def establish_wsjtx_listener(sockname):
 if __name__ == "__main__":
     wsj_listen_sock = "/tmp/testsock"
 
+    #establish_wsjtx_listener(wsj_listen_sock);
+    r2m = RefOsc2m("dacdata.csv","/tmp/nullcalfile")
+
     establish_wsjtx_listener(wsj_listen_sock);
     #r2m = RefOsc2m("dacdata.csv","/tmp/nullcalfile")
 

@@ -8,7 +8,7 @@ chunk = 2048*4
 
 # open up a wave
 #wf = wave.open('test-tones/440hz.wav', 'rb')
-wf = wave.open('ft8_t2_sox.wav', 'rb')
+#wf = wave.open('ft8_t2_sox.wav', 'rb')
 #swidth = wf.getsampwidth()
 swidth=2
 #RATE = wf.getframerate()
@@ -22,7 +22,7 @@ stream = p.open(
                 channels = 1,
                 input = True,
                 output = False,
-                 input_device_index=9,
+                 input_device_index=0,
                 format=pyaudio.paInt16,
                 frames_per_buffer = chunk,
                  rate = RATE)
