@@ -595,6 +595,9 @@ void act_ref_dac_maxim()
 //  printf("data_ptr[0] %x\n",(unsigned) data_ptr[0]);
 //	printf("lowdata %x\n", lowdata);
 
+    // Need 0x40 also set to power up device.
+    shifted_out |= 0x40;
+
     // 160ms sync for FT8?
     if (TMR2RL)
     {
@@ -603,9 +606,8 @@ void act_ref_dac_maxim()
         g_t2_timeout=1;
     }
 
-	// Need 0x40 to power up device.
     // MAX5124-MAX5216.pdf, Table 2. Operating Mode Truth Table.
-	write_ref_dac((shifted_out|0x40), data_ptr[0], data_ptr[1]);
+	write_ref_dac(shifted_out, data_ptr[0], data_ptr[1]);
 
     act_stbyte();
 }
