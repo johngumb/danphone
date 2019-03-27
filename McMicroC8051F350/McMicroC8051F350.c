@@ -166,6 +166,7 @@ unsigned long read_adc(void);
 #define POWER_POT_SELECT  {rf_power_pot_select_bit=0; delay(10);}
 #define POWER_POT_DESELECT rf_power_pot_select_bit=1
 
+//MCP4161-103E/SN, IC, DGTL POT, SNGL, 10K
 void init_squelch_potentiometer();
 
 void delay(unsigned int limit)
