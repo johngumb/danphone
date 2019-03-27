@@ -1,0 +1,29 @@
+. add decoupling cap on output of reg on underside of board to replace
+  the tantalum one removed.
+. disable watchdog. Ground IC601 pin 13 (non inverting input)
+. remove link a-b if fitted
+. remove ju711 and ju709 next to 9 pin d type
+. remove vr656 and vr654
+. fit link j-k ext alarm open collector output next to shift reg at edge of board. consider using fuse wire here.
+. fit ext alarm components for switching linear etc. using another board
+  as a reference
+
+audio path mods
+. remove c608 33nF cap above L601
+. consider 220k between pin 3 and pin 5 U601
+. cut link EF between shift register and transistor array which links
+. consider JU601 Flat Tx Audio
+  pin 6 of 9 pin dtype for mic and 15 pin d type and Q601
+
+15 pin d type modes
+. configure pin 1 as open collector output - remove R768. This is
+  in the middle of the board almost in line with the through
+  connector but slightly nearer 9 pin d type end of board. Reconfigure
+  base input to be like EXT ALARM - 470 ohm series resistance on base.
+. configure pin 9 (Tx/Rx) as open collector output - remove R767 - pin 31 on
+  microcontroller is base/input connection
+. configure pin 15 (CSQ) as open collector output - remove R733, fit JU703,
+  remove JU 704 - pin 12 on microcontroller is base/input connection.
+  Consider replacing Q711 with MOSFET with fuse wire on drain to protect
+  open drain configuration (very low on resistance).
+
