@@ -63,8 +63,8 @@ LONGDATA rawValue;
 
 // uncomment one
 //#define SIXMETRES
-#define FOURMETRES
-//#define TWOMETRES
+//#define FOURMETRES
+#define TWOMETRES
 
 #define TESTING
 //#define OOBAND
@@ -558,6 +558,7 @@ void write_ref_dac(const unsigned char cmd,
 
 #define REF_DAC_CMD(rdcmd) ((rdcmd)<<3)
 
+#ifdef SIXMETRES
 void ref_dac_init(void)
 {
 	// use specifed external reference from KXN1123AA
@@ -566,6 +567,7 @@ void ref_dac_init(void)
     // gain control register - 1x gain
     write_ref_dac(REF_DAC_CMD(10), 0, 0);  // using register 10, gain control register
 }
+#endif
 
 // Write to Maxim MAX5216BGUA 16 bit DAC controlling 14.4MHz synth ref osc
 void act_ref_dac_maxim()
@@ -810,10 +812,13 @@ void act_set_power(const unsigned char powerstate)
 #define REF_DAC_INIT_LO 0x3E
 
 #endif
+
+#ifdef SIXMETRES
         ref_dac_init();
         write_ref_dac(REF_DAC_CMD(0), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
 
         write_ref_dac(REF_DAC_CMD(1), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
+#endif
 
         init_squelch_potentiometer();
 
