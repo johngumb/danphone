@@ -808,13 +808,9 @@ void act_set_power(const unsigned char powerstate)
 #define REF_DAC_INIT_LO 0x3E
 
 #elif defined(FOURMETRES)
-#define REF_DAC_INIT_HI 0x0C
-#define REF_DAC_INIT_LO 0x3E
-
+        write_ref_dac(0x6F, 0xD0, 0x00); // TBD
 #elif defined(TWOMETRES)
-#define REF_DAC_INIT_HI 0x0C
-#define REF_DAC_INIT_LO 0x3E
-
+        write_ref_dac(0x6F, 0xD0, 0x00);
 #endif
 
 #ifdef SIXMETRES
