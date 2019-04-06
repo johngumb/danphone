@@ -268,7 +268,11 @@ void set_tx_state(const unsigned char txena)
     else
         // 34108 for 4KHz step
         // 10816 for 12.5KHz step
+#ifdef TWOMETRES
+        w[1]=g_last_tx - g_if_offset; // 21.4 MHz IF offset
+#else
         w[1]=g_last_tx + g_if_offset; // 21.4 MHz IF offset
+#endif
 
     write_synth_spi(&w);
 }
@@ -1132,11 +1136,15 @@ void main (void)
     // come up powered on to allow ref osc to stabilise
     act_set_power(1);
 
+#ifdef SIXMETRES
     // default freq of 51.53
     g_last_tx=26372;
+#endif
 
+#ifdef FOURMETRES
     // default freq of 70.45
-    //g_last_tx=35912;
+    g_last_tx=35912;
+#endif
 
     while (1)
     {
