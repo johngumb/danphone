@@ -296,7 +296,15 @@ class RefOsc2m:
         else:
             freq_offset = 0
 
-        (idx, dac_val, f) = self.get_idx_and_dac_from_freq(freq+freq_offset*0.1)
+        # 0.145 for 2000Hz
+        # 0.12 for 1550Hz and 1253
+        
+        factor = 0.12
+
+        if freq < 1000:
+            factor=0.08
+
+        (idx, dac_val, f) = self.get_idx_and_dac_from_freq(freq+freq_offset*factor)
         
         if self.m_last_sym == sym:
             dac_val = self.m_last_dac
