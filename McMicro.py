@@ -220,6 +220,8 @@ class McMicro:
     def set_tx_power_high(self):
         if self.m_hwif.server()=="skate":
             self.m_hwif.enqueue("P9C")
+        elif self.m_hwif.server()=="rudd":
+            self.m_hwif.enqueue("PB0")
         else:
             self.m_shiftreg.clearbit(self.SR_TX_POWER_HI_LO)
 
@@ -230,6 +232,8 @@ class McMicro:
     def set_tx_power_low(self):
         if self.m_hwif.server()=="skate":
             self.m_hwif.enqueue("P60")
+        if self.m_hwif.server()=="rudd":
+            self.m_hwif.enqueue("P28")
         else:
             self.m_shiftreg.setbit(self.SR_TX_POWER_HI_LO)
 
@@ -542,12 +546,12 @@ class McMicro:
                 self.m_hwif.enqueue("D2%X" % val)
 
                 # squelch pot
-                self.m_hwif.enqueue("QB8")
+                self.m_hwif.enqueue("QD0")
 
             if not self.m_ftdi and self.m_hwif.server()=="rudd":
                 # 14.4MHz on ref osc
 
-                val=0xC370
+                val=0xBEA0
                 calfile="/home/john/2mcal"
                 if os.path.exists(calfile):
                     with open(calfile) as caldata:
