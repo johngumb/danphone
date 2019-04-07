@@ -6,8 +6,10 @@ import numpy as np
 import time
 import socket
 import os
+import random
+import sys
 
-chunk = 1024*512
+chunk = 1024*64
 
 g_server =  None
 
@@ -27,7 +29,7 @@ def send_msg(msg):
     g_server.listen(1)
     
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect("/tmp/mui-ext.s.4m")
+    s.connect("/tmp/mui-ext.s.2m")
     s.send(msg)
     s.close()
 
@@ -70,20 +72,51 @@ response_socket = "/tmp/ft8response"
 
 setup_response_socket(response_socket)
 
+send_msg("ft8-txon")
+
 #i=0xC3B8
 #i=29300 #4m
 i=29200 #4m
 #i=55000 #4m top end
 #i=35400 #4m
-#i=38600 #2m
+i=38600 #2m
+i=37350 #2m
 #i=45500 #2m top end
 #i=65534
+
+def get_seed_array():
+    a=[i for i in range(10)]
+    random.shuffle(a)
+    return a
+
+def create_array(start,end):
+    j=0
+    arr={}
+    while j<((end-start)/10):
+        k=0
+        seed_array=get_seed_array()
+        while k<10:
+            arr[start+j*10+k]=start+seed_array[k]+j*10
+            k+=1
+        k=0
+        j+=1
+    return arr
+
+
+g_arr=create_array(i,66000)
+
+def lookup(i):
+    #return g_arr[i]
+    return i
+
+#sys.exit(0)
 
 # read some data
 data = stream.read(chunk)
 # play stream and find the frequency of each chunk
 while True:
-    send_dac(i)
+    dacval=lookup(i)
+    send_dac(dacval)
 
     # read some data
     data = stream.read(chunk)
@@ -102,17 +135,17 @@ while True:
         # find the frequency and output it
         thefreq = (which+x1)*RATE/chunk
         print time.asctime()
-        print "%d q The freq is %f Hz." % (i, thefreq)
+        print "%d q The freq is %f Hz." % (dacval, thefreq)
     else:
         thefreq = which*RATE/chunk
         print time.asctime()
-        print "%d The freq is %f Hz." % (i, thefreq)
+        print "%d The freq is %f Hz." % (dacval, thefreq)
 
     a=open(ofile,"a+")
-    a.write("%d,%f\n"% (i, thefreq))
+    a.write("%d,%f\n"% (dacval, thefreq))
     a.close()
 
-    i+=16
+    i+=1
     if i>=65536:
         break
 stream.close()
