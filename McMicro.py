@@ -569,8 +569,10 @@ class McMicro:
                 self.m_hwif.enqueue("M%04X" % val)
 
             self.m_refosc_count += 1
+        elif self.m_refosc_count == self.m_refosc_init_boundary and not result:
+            print "boundary hit but no power"
         else:
-            if self.m_refosc_count < self.m_refosc_init_boundary:
+            if self.m_refosc_count < self.m_refosc_init_boundary and result:
                 self.m_refosc_count += 1
 
         return result
