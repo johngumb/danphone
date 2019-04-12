@@ -364,12 +364,13 @@ class RadioCmdEncoder:
         self.m_radio_cmd_handler.send_msg("ft8-txoff")
         self.m_tx_on = False
 
+        # HACK HACK FIXME zero rx should be done in one place
         # where we are for receive on DAC
         if self.m_band == "6m":
             zero_rx = 0xC3E + cal_value(self.m_band) # for rx
             self.m_radio_cmd_handler.send_msg("D2%X" % zero_rx)
         elif self.m_band in ["2m","70cm"]:
-            zero_rx = 0xC370 + cal_value(self.m_band)
+            zero_rx = 0xBEA0 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
 
         self.m_cancel_tx = False
