@@ -6,7 +6,7 @@ import csv
 import subprocess
 import time
 from datetime import datetime
-
+import math
 
 # TODO calibrate dac freq based on beat freq received from FCD???
 
@@ -198,19 +198,39 @@ class RefOsc6m:
 
         return result
 
+def f_to_dv(F):
+    #
+    # from dacdata dacdata-2m-step1-opamp-linear.csv by curve fitting
+    # using (a * x) + (b/(x-c)) + d
+    #
+    [a, b, c, d] = [1.74150917e-01,
+                    -4.43158994e+03,
+                    3.69915130e+04,
+                    -6.49876296e+03]
+
+    P=[a,b,c,d]
+#    x=5000
+#    y = testfunc(x,*P)
+#    print(y)
+
+    y=F
+    A=a
+    B=d - y - a * c
+    C=b-(d*c)+(y*c)
+
+    #test to prove we have correct quadratic parameters
+    #print(A*(x**2) + B*x + C)
+
+    #print (A,B,C)
+    #print(math.sqrt(B**2 - 4*A*C))
+
+    r = (-B + math.sqrt(B**2-(4*A*C)))/(2*A)
+
+    return r
+
 # uses max5216 DAC
 class RefOsc2m:
     def __init__(self, datafile, calfile):
-        with open(datafile) as csvfile:
-            self.m_refosc_lookup={}
-            self.m_reader = csv.reader(csvfile)
-            # seems horrible
-            i=0
-            for row in self.m_reader:
-                (d,f)=row
-                self.m_refosc_lookup[i]=(int(d),float(f))
-                i+=1
-            #self.m_refosc_lookup = [ (i,row) for (i,row) in zip(range(len(self.m_reader)),self.m_reader) ]
 
         if os.path.exists(calfile):
             with open(calfile) as caldata:
@@ -222,90 +242,38 @@ class RefOsc2m:
         self.m_last_sym = None
         self.m_last_dac = None
 
-    def get_idx_and_dac_from_freq(self, freq, start_idx=None):
-        flat_start = None
-        flat_end = None
-        flat_start_freq = None
-
-        for rowkey in self.m_refosc_lookup.keys():
-            row = self.m_refosc_lookup[rowkey]
-            (dacv, dacf) = row
-
-            if freq<dacf and not flat_start:
-                flat_start = rowkey
-                flat_start_freq = dacf
-                flat_start_dac = dacv
-                continue
-
-            if flat_start_freq and dacf-flat_start_freq>0.5:
-                cand_end=dacf
-                flat_end = rowkey
-
-                dip = False
-                for i in range (rowkey,len(self.m_refosc_lookup)):
-                    (v,f)=self.m_refosc_lookup[i]
-                    if f<cand_end and (cand_end - f) > 0.5:
-                        dip = True
-                        break
-                if not dip:
-                    break
-
-        if flat_end:
-            flat_end = flat_end - 1
-            (flat_end_dac,flat_end_freq)=self.m_refosc_lookup[flat_end]
-
-        print(flat_start_dac, flat_end_dac)
-        
-        if flat_end and flat_end_freq-flat_start_freq<0.2:
-            idx=flat_start + round( (flat_end-flat_start)/2 )
-        else:
-            idx=flat_start
-
-        (d,f)=self.m_refosc_lookup[idx]
-        fdiff = abs(freq-f)
-
-        (prevd,prevf)=self.m_refosc_lookup[idx-1]
-
-        fdiffprev = abs(freq-prevf)
-
-        if fdiffprev < fdiff:
-            r = (idx-1, prevd, prevf)
-        else:
-            r = (idx, d, f)
-
-        # (dstart,fstart)=self.m_refosc_lookup[flat_start]
-
-        # fdiffstart = abs(freq-fstart)
-
-        # if (fdiffstart < fdiff) and (fdiffstart < fdiffprev):
-        #      r = (flat_start, dstart, fstart)
-
-        return r
-        
     def set_base_freq(self, freq):
-        self.m_base_freq = freq
-        self.m_last_freq = None
-        self.m_last_sym = None
-        self.m_last_dac = None
+        return
 
     # maybe get rid of sym eventually?
     def freq_to_dac(self, sym, freq):
 
+        dac = int(f_to_dv(freq)) + self.m_caldata
+
+        if not self.m_last_freq:
+            self.m_last_freq = freq
+            self.m_last_sym = sym
+            self.m_last_dac = dac
+            return ("M","", dac)
+
+        #
+        # Equating a dac offset directly to a frequency
+        # but a direct conversion i.e. factor of 1.0
+        # seems fine.
+        #
         if self.m_last_freq:
-            freq_offset = freq - self.m_last_freq
+            dac_offset = freq - self.m_last_freq
         else:
-            freq_offset = 0
+            dac_offset = 0
 
-        # 0.145 for 2000Hz
-        # 0.12 for 1550Hz and 1253
-        
-        factor = 0.12
+        #dac_offset = 0
+        #print(dac_offset)
+        #dac_offset *= 0.9
+        #dac_offset*=0.9
+        #print dac_offset
 
-        if freq < 1000:
-            factor=0.08
+        dac_val = dac + dac_offset
 
-        (idx, dac_val, f) = self.get_idx_and_dac_from_freq(freq+freq_offset*factor)
-        
         if self.m_last_sym == sym:
             dac_val = self.m_last_dac
 
@@ -316,6 +284,7 @@ class RefOsc2m:
         self.m_last_dac = dac_val
 
         return result
+
 
 class RadioCmdHandler:
     def __init__(self, band):

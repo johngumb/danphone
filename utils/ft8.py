@@ -5,6 +5,7 @@ import subprocess
 import os
 import string
 import csv
+import math
 
 cq_syms=[2, 5, 6, 0, 4, 1, 3, 5, 7, 3, 0, 0, 0, 3, 3, 6, 2, 7, 4, 3, 4, 0, 1, 1, 2, 2, 2, 1, 5, 6, 3, 2, 3, 1, 2, 0, 2, 5, 6, 0, 4, 1, 3, 7, 6, 4, 0, 4, 0, 6, 1, 4, 7, 6, 6, 2, 7, 2, 6, 0, 2, 0, 3, 7, 7, 2, 5, 0, 6, 0, 1, 6, 2, 5, 6, 0, 4, 1, 3]
 test_syms=[2, 5, 6, 0, 4, 1, 3, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 2, 5, 6, 0, 4, 1, 3, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 9, 8, 2, 5, 6, 0, 4, 1, 3]
@@ -134,56 +135,50 @@ def freq_to_dac(sym, freq, initial=False):
 
     return result
 
+def dv_to_f(dv):
+    #[a, b, c, d] = [  1.74150917e-01  -4.43158994e+03   3.69915130e+04  -6.49876296e+03]
+    f = (a * x) + (b/(x-c)) + d
+
+def f_to_dv(F):
+    #
+    # from dacdata dacdata-2m-step1-opamp-linear.csv by curve fitting
+    # using (a * x) + (b/(x-c)) + d
+    #
+    [a, b, c, d] = [1.74150917e-01,
+                    -4.43158994e+03,
+                    3.69915130e+04,
+                    -6.49876296e+03]
+
+    P=[a,b,c,d]
+#    x=5000
+#    y = testfunc(x,*P)
+#    print(y)
+
+    y=F
+    A=a
+    B=d - y - a * c
+    C=b-(d*c)+(y*c)
+
+    #test to prove we have correct quadratic parameters
+    #print(A*(x**2) + B*x + C)
+
+    #print (A,B,C)
+    #print(math.sqrt(B**2 - 4*A*C))
+
+    r = (-B + math.sqrt(B**2-(4*A*C)))/(2*A)
+
+    return r
+
 def freq_to_dac_max5216(sym, freq, initial=False):
     global g_last_freq
     global g_last_sym
     global g_base_freq
-    global g_base_dac
     global g_last_dac
-    global g_local_count_per_hz
+
+    dac = int(f_to_dv(freq))
 
     if initial:
-        with open('dacdata-2m-20step-144176.csv', 'rb') as csvfile:
-            reader = csv.reader(csvfile)
-            prev_freq = 0
-            rowcount = 0
-            rows = [ r for r in reader ]
-            for row in rows:
-                [dacv, dacf] = row
-
-                if freq<float(dacf):
-                    extent=50
-                    [dvl, dfl] = rows[rowcount-extent]
-                    [dvh, dfh] = rows[rowcount+extent]
-                    g_local_count_per_hz = (float(dvh)-float(dvl))/(float(dfh)-float(dfl))
-                    print g_local_count_per_hz
-        
-                    overshoot = float(dacf) - prev_freq
-                    overshoot_dac = overshoot * g_local_count_per_hz
-
-                    print freq, dacf
-                    g_base_freq = freq
-                    g_base_dac = int(dacv)+read_calfile("/home/john/2mcal")-overshoot_dac
-
-
-                    return ("M","", g_base_dac)
-                else:
-                    prev_freq = float(dacf)
-
-                rowcount += 1
-
-    count_per_hz = g_local_count_per_hz
-
-    if g_base_freq < 700:
-        count_per_hz = 5.83
-    elif g_base_freq >= 1900 and g_base_freq < 2400:
-        count_per_hz *= 1.1
-    elif g_base_freq >= 1050 and g_base_freq < 1200:
-        count_per_hz = 5.5
-
-    print "cph",count_per_hz
-
-    dac=g_base_dac + (freq-g_base_freq)* count_per_hz
+        return ("M","", dac)
 
     #
     # Equating a dac offset directly to a frequency
@@ -195,8 +190,9 @@ def freq_to_dac_max5216(sym, freq, initial=False):
     else:
         dac_offset = 0
 
-    print dac_offset
-
+#    dac_offset=0
+    #print dac_offset
+    #dac_offset *=2
     dac_val = dac + dac_offset
 
     if g_last_sym == sym:
@@ -321,13 +317,12 @@ def run_ft8(base_f):
         send_msg("EA320")  #160ms sync # working ok -24
 
         p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])
-
+    st=time.time()
 #    for i in test_syms3:
 #    for i in wsj2:
 #    for i in reply_syms:
-    st=time.time()
 #    print len(msg2)
-    for i in cq_syms:
+    for i in msg2:
         d = sym_to_dac(i)
         if sim:
             (c, v) = d
@@ -457,7 +452,7 @@ def measure():
 
 if __name__ == "__main__":
 
-    base_f=1475
+    base_f=1900
 
     run_ft8(base_f)
 
