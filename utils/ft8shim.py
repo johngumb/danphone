@@ -249,6 +249,7 @@ class RefOsc2m:
     def freq_to_dac(self, sym, freq):
 
         dac = int(f_to_dv(freq)) + self.m_caldata
+#        dac = math.ceil(f_to_dv(freq)) + self.m_caldata
 
         if not self.m_last_freq:
             self.m_last_freq = freq
@@ -262,20 +263,16 @@ class RefOsc2m:
         # seems fine.
         #
         if self.m_last_freq:
-            dac_offset = freq - self.m_last_freq
+            dac_offset = (freq - self.m_last_freq) * 0.7
         else:
             dac_offset = 0
 
-        #dac_offset = 0
         #print(dac_offset)
-        #dac_offset *= 0.9
-        #dac_offset*=0.9
-        #print dac_offset
 
         dac_val = dac + dac_offset
 
-        if self.m_last_sym == sym:
-            dac_val = self.m_last_dac
+#        if self.m_last_sym == sym:
+#            dac_val = self.m_last_dac
 
         result = ("M", "", int(dac_val))
 
