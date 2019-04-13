@@ -198,43 +198,6 @@ class RefOsc6m:
 
         return result
 
-def f_to_dv(F, band):
-    #
-    # from dacdata dacdata-2m-step1-opamp-linear.csv by curve fitting
-    # using (a * x) + (b/(x-c)) + d
-    #
-    # [a, b, c, d] = [1.74150917e-01,
-    #                 -4.43158994e+03,
-    #                 3.69915130e+04,
-    #                 -6.49876296e+03]
-
-#    [a, b, c, d] = [1.74150917e-01, -4.43158994e+03, 3.69915130e+04, -6.49876296e+03]
-    if band == "2m":
-        [a, b, c, d] = [1.73155253e-01, -1.76378121e+05, 3.30539038e+04, -6.43300940e+03]
-
-    if band == "4m":
-        [a, b, c, d] = [8.94132636e-02, -1.34659984e+07, 3.74200375e+03, -2.08969879e+03]
-
-    P=[a,b,c,d]
-#    x=5000
-#    y = testfunc(x,*P)
-#    print(y)
-
-    y=F
-    A=a
-    B=d - y - a * c
-    C=b-(d*c)+(y*c)
-
-    #test to prove we have correct quadratic parameters
-    #print(A*(x**2) + B*x + C)
-
-    #print (A,B,C)
-    #print(math.sqrt(B**2 - 4*A*C))
-
-    r = (-B + math.sqrt(B**2-(4*A*C)))/(2*A)
-
-    return r
-
 # uses max5216 DAC
 class RefOsc2m:
     def __init__(self, band, calfile):
@@ -252,20 +215,52 @@ class RefOsc2m:
 
         if band == "2m":
             self.m_fudge_factor = 0.7
-
+            self.m_params = [1.73155253e-01, -1.76378121e+05, 3.30539038e+04, -6.43300940e+03]
         if band == "4m":
             # look for drop to -16
             # 0.3 + (2.2-0.3)/2
             self.m_fudge_factor = 1.25
-
+            self.m_params = [8.94132636e-02, -1.34659984e+07, 3.74200375e+03, -2.08969879e+03]
 
     def set_base_freq(self, freq):
         return
 
+    def f_to_dv(self, F):
+        #
+        # from dacdata dacdata-2m-step1-opamp-linear.csv by curve fitting
+        # using (a * x) + (b/(x-c)) + d
+        #
+        # [a, b, c, d] = [1.74150917e-01,
+        #                 -4.43158994e+03,
+        #                 3.69915130e+04,
+        #                 -6.49876296e+03]
+
+    #    [a, b, c, d] = [1.74150917e-01, -4.43158994e+03, 3.69915130e+04, -6.49876296e+03]
+        [a,b,c,d] = self.m_params
+
+    #    x=5000
+    #    y = testfunc(x,*P)
+    #    print(y)
+
+        y=F
+        A=a
+        B=d - y - a * c
+        C=b-(d*c)+(y*c)
+
+        #test to prove we have correct quadratic parameters
+        #print(A*(x**2) + B*x + C)
+
+        #print (A,B,C)
+        #print(math.sqrt(B**2 - 4*A*C))
+
+        r = (-B + math.sqrt(B**2-(4*A*C)))/(2*A)
+
+        return r
+
     # maybe get rid of sym eventually?
     def freq_to_dac(self, sym, freq):
 
-        dac = int(f_to_dv(freq, self.m_band)) + self.m_caldata
+        dac = int(self.f_to_dv(freq)) + self.m_caldata
 #        dac = math.ceil(f_to_dv(freq)) + self.m_caldata
 
         if not self.m_last_freq:
