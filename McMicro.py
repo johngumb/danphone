@@ -518,6 +518,13 @@ class McMicro:
             result = self.m_last_status & 4
 
         #
+        # ignore any false readings
+        # if there's no PSU
+        #
+        if not self.power_supply_present():
+            result = 0
+
+        #
         # hack - really need somewhere to initialise stuff when
         # RF board comes up
         # Initialise reference oscillator DAC
