@@ -79,10 +79,8 @@ def inv_func(freq):
     # from dacdata dacdata-2m-step1-opamp-linear.csv by curve fitting
     # using (a * x) + (b/(x-c)) + d
     #
-    [a, b, c, d] = [1.74150917e-01,
-                    -4.43158994e+03,
-                    3.69915130e+04,
-                    -6.49876296e+03]
+    [a, b, c, d] = [1.74150917e-01, -4.43158994e+03, 3.69915130e+04,-6.49876296e+03]
+
 
     P=[a,b,c,d]
 #    x=5000
