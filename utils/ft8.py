@@ -23,7 +23,8 @@ g_base_freq = None
 g_base_dac = None
 g_last_dac = None
 g_local_count_per_hz = None
-    
+g_band = "4m"
+
 #{0: 1500.0,
 # 1: 1506.25,
 # 2: 1512.5,
@@ -140,14 +141,16 @@ def dv_to_f(dv):
     f = (a * x) + (b/(x-c)) + d
 
 def f_to_dv(F):
+    global g_band
     #
     # from dacdata dacdata-2m-step1-opamp-linear.csv by curve fitting
     # using (a * x) + (b/(x-c)) + d
     #
-    [a, b, c, d] = [1.74150917e-01,
-                    -4.43158994e+03,
-                    3.69915130e+04,
-                    -6.49876296e+03]
+    if g_band=="2m":
+        [a, b, c, d] = [1.74150917e-01, -4.43158994e+03, 3.69915130e+04, -6.49876296e+03]
+
+    if g_band=="4m":
+        [a, b, c, d] = [  8.94132636e-02, -1.34659984e+07, 3.74200375e+03, -2.08969879e+03]
 
     P=[a,b,c,d]
 #    x=5000
@@ -220,7 +223,7 @@ def send_msg(msg):
     g_server.listen(1)
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect("/tmp/mui-ext.s.2m")
+    s.connect("/tmp/mui-ext.s.%s" % g_band)
     s.send(msg)
     s.close()
 
