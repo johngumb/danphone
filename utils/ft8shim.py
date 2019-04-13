@@ -37,7 +37,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
     def get_radio_encoder(self, basefreq, band):
         self.clear_radio_encoder()
 
-        if band in ["6m", "2m", "70cm"]:
+        if band in ["6m","4m", "2m", "70cm"]:
             self.server.m_radio_cmd_encoder = RadioCmdEncoder()
             self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq, band)
 
@@ -198,15 +198,22 @@ class RefOsc6m:
 
         return result
 
-def f_to_dv(F):
+def f_to_dv(F, band):
     #
     # from dacdata dacdata-2m-step1-opamp-linear.csv by curve fitting
     # using (a * x) + (b/(x-c)) + d
     #
-    [a, b, c, d] = [1.74150917e-01,
-                    -4.43158994e+03,
-                    3.69915130e+04,
-                    -6.49876296e+03]
+    # [a, b, c, d] = [1.74150917e-01,
+    #                 -4.43158994e+03,
+    #                 3.69915130e+04,
+    #                 -6.49876296e+03]
+
+#    [a, b, c, d] = [1.74150917e-01, -4.43158994e+03, 3.69915130e+04, -6.49876296e+03]
+    if band == "2m":
+        [a, b, c, d] = [1.73155253e-01, -1.76378121e+05, 3.30539038e+04, -6.43300940e+03]
+
+    if band == "4m":
+        [a, b, c, d] = [8.94132636e-02, -1.34659984e+07, 3.74200375e+03, -2.08969879e+03]
 
     P=[a,b,c,d]
 #    x=5000
@@ -230,7 +237,7 @@ def f_to_dv(F):
 
 # uses max5216 DAC
 class RefOsc2m:
-    def __init__(self, datafile, calfile):
+    def __init__(self, band, calfile):
 
         if os.path.exists(calfile):
             with open(calfile) as caldata:
@@ -238,9 +245,19 @@ class RefOsc2m:
         else:
             self.m_caldata = 0
 
+        self.m_band = band
         self.m_last_freq = None
         self.m_last_sym = None
         self.m_last_dac = None
+
+        if band == "2m":
+            self.m_fudge_factor = 0.7
+
+        if band == "4m":
+            # look for drop to -16
+            # 0.3 + (2.2-0.3)/2
+            self.m_fudge_factor = 1.25
+
 
     def set_base_freq(self, freq):
         return
@@ -248,7 +265,7 @@ class RefOsc2m:
     # maybe get rid of sym eventually?
     def freq_to_dac(self, sym, freq):
 
-        dac = int(f_to_dv(freq)) + self.m_caldata
+        dac = int(f_to_dv(freq, self.m_band)) + self.m_caldata
 #        dac = math.ceil(f_to_dv(freq)) + self.m_caldata
 
         if not self.m_last_freq:
@@ -263,7 +280,7 @@ class RefOsc2m:
         # seems fine.
         #
         if self.m_last_freq:
-            dac_offset = (freq - self.m_last_freq) * 0.7
+            dac_offset = (freq - self.m_last_freq) * self.m_fudge_factor
         else:
             dac_offset = 0
 
@@ -369,6 +386,9 @@ class RadioCmdEncoder:
         if self.m_band == "6m":
             zero_rx = 0xC3E + cal_value(self.m_band) # for rx
             self.m_radio_cmd_handler.send_msg("D2%X" % zero_rx)
+        elif self.m_band == "4m":
+            zero_rx = 0xC370 + cal_value(self.m_band)
+            self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
         elif self.m_band in ["2m","70cm"]:
             zero_rx = 0xBEA0 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
@@ -388,9 +408,9 @@ class RadioCmdEncoder:
         # duck typing
         if band == "6m":
             self.m_refosc = RefOsc6m("dacdata-orig.csv", calfile)
-        elif band in ["2m","70cm"]:
+        elif band in ["4m", "2m", "70cm"]:
             # FIXME absolute paths
-            self.m_refosc = RefOsc2m("/home/john/dacdata-2m-step1.csv", calfile)
+            self.m_refosc = RefOsc2m(band, calfile)
 
         self.m_ft8trans = FT8symTranslator(basefreq)
 

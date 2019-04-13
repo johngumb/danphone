@@ -359,7 +359,7 @@ class TxSafetyTimer(wx.Timer):
         return
 
 def is_ft8(freq):
-    for f in ["50315","70155","144176"]:
+    for f in ["50315","70156","144176"]:
         if string.find(repr(freq), f) != -1:
             return True
     return False
