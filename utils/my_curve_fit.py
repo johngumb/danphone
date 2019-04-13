@@ -13,9 +13,10 @@ def fit():
     dlist=[]
     flist=[]
     #offset=25000
-    offset=11
+    offset=19
+    offseth=54852
 #    d0,f0=refosc_lookup[offset]
-    for [d,f] in refosc_lookup[offset:]:
+    for [d,f] in refosc_lookup[offset:offseth]:
         dlist.append(float(d))
         flist.append(float(f))
 
@@ -33,6 +34,7 @@ def fit():
     #r = [ testfunc(d,0,p[1],p[2],0) for d in dlist ]
     #e = [ testfunc(d,p[0],0,0,0) for d in dlist ]
     dr = [ f - rv for (f,rv) in zip(flist,r) ]
+    #plt.plot(dlist,flist,'r--')
     plt.plot(dlist,dr,'r--')
     #plt.scatter(dlist,dr,label='Data')
     plt.show()
@@ -102,5 +104,5 @@ def inv_func(freq):
     return r
 if __name__=="__main__":
     F=1000
-    print(inv_func(F))
-    #fit()
+    #print(inv_func(F))
+    fit()
