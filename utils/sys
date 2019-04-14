@@ -58,3 +58,7 @@ done
 #SNMPv2-SMI::enterprises.318.1.1.12.3.3.1.1.4.2 = INTEGER: 1
 #SNMPv2-SMI::enterprises.318.1.1.12.3.3.1.1.4.3 = INTEGER: 1
 #SNMPv2-SMI::enterprises.318.1.1.12.3.3.1.1.4.8 = INTEGER: 1
+if [ -z "$1" ]; then
+   skate
+   skate
+fi
