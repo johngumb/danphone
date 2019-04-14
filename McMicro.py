@@ -313,10 +313,13 @@ class McMicro:
         '''
         status update to mc micro - status string must be stripped
         '''
+        try:
+            self.m_last_status = int(statstr[-1],16)
+            if len(statstr) > 1:
+                self.m_temperature_mv = int(statstr[:-1],16)
 
-        self.m_last_status = int(statstr[-1],16)
-        if len(statstr) > 1:
-            self.m_temperature_mv = int(statstr[:-1],16)
+        except ValueError:
+            print "status ignored - not integer",statstr
 
     def set_power_supply_state(self, power_supply_state):
         self.m_power_supply_present = power_supply_state
@@ -563,6 +566,7 @@ class McMicro:
                 if os.path.exists(calfile):
                     with open(calfile) as caldata:
                         val+=int(caldata.read())
+                print "sending","M%04X" % val
                 self.m_hwif.enqueue("M%04X" % val)
 
             if not self.m_ftdi and self.m_hwif.server()=="dab":
