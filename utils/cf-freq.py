@@ -29,7 +29,7 @@ def send_msg(msg):
     g_server.listen(1)
     
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect("/tmp/mui-ext.s.2m")
+    s.connect("/tmp/mui-ext.s.4m")
     s.send(msg)
     s.close()
 
@@ -79,8 +79,8 @@ send_msg("ft8-txon")
 i=29200 #4m
 #i=55000 #4m top end
 #i=35400 #4m
-i=38600 #2m
-i=37350 #2m
+#i=38600 #2m
+#i=37350 #2m
 #i=45500 #2m top end
 #i=65534
 
@@ -148,5 +148,6 @@ while True:
     i+=1
     if i>=65536:
         break
+send_msg("ft8-txoff")
 stream.close()
 p.terminate()
