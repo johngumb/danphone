@@ -62,9 +62,9 @@ typedef union LONGDATA{                // Access LONGDATA as an
 LONGDATA rawValue;
 
 // uncomment one
-//#define SIXMETRES
+#define SIXMETRES
 //#define FOURMETRES
-#define TWOMETRES
+//#define TWOMETRES
 
 #define TESTING
 //#define OOBAND
@@ -483,8 +483,9 @@ void act_control(void)
         while(!power_on_bit);
 
 #ifdef SIXMETRES
+#ifdef SIXMETRES_OLD
         ref_dac_init();
-
+#endif
         init_squelch_potentiometer();
 #endif
     }
@@ -562,7 +563,7 @@ void write_ref_dac(const unsigned char cmd,
 
 #define REF_DAC_CMD(rdcmd) ((rdcmd)<<3)
 
-#ifdef SIXMETRES
+#ifdef SIXMETRES_OLD
 void ref_dac_init(void)
 {
 	// use specifed external reference from KXN1123AA
@@ -804,23 +805,25 @@ void act_set_power(const unsigned char powerstate)
         while(!power_on_bit);
 
 #if defined(SIXMETRES)
+#ifdef SIXMETRES_OLD
 #define REF_DAC_INIT_HI 0x0C
 #define REF_DAC_INIT_LO 0x3E
+#endif
+        init_squelch_potentiometer();
 
+        write_ref_dac(0x72, 0x00, 0x00); // TBD
 #elif defined(FOURMETRES)
         write_ref_dac(0x6F, 0xD0, 0x00); // TBD
 #elif defined(TWOMETRES)
         write_ref_dac(0x6F, 0xD0, 0x00);
 #endif
 
-#ifdef SIXMETRES
+#ifdef SIXMETRES_OLD
         ref_dac_init();
         write_ref_dac(REF_DAC_CMD(0), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
 
         write_ref_dac(REF_DAC_CMD(1), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
 #endif
-
-        init_squelch_potentiometer();
 
         baa();
     }
