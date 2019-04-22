@@ -212,6 +212,8 @@ class RefOsc2m:
         self.m_last_freq = None
         self.m_last_sym = None
         self.m_last_dac = None
+        self.m_delta_sym = None
+        self.m_same_sym_count = 0
 
         if band == "2m":
             self.m_fudge_factor = 0.7
@@ -220,8 +222,19 @@ class RefOsc2m:
             # look for drop to -16
             # 0.3 + (2.2-0.3)/2
             self.m_fudge_factor = 1.25
-            self.m_params = [8.94132636e-02, -1.34659984e+07, 3.74200375e+03, -2.08969879e+03]
 
+            #self.m_params = [8.94132636e-02, -1.34659984e+07, 3.74200375e+03, -2.08969879e+03]
+            # from dacdata-4m-step1.csv
+            #self.m_params = [9.10414222e-02, -7.04125513e+06, 1.11353326e+04, -2.27300009e+03]
+            # from dacdata-4m-random-step1-17apr.csv
+            #self.m_params = [8.94236390e-02, -1.22003827e+07, 5.56343324e+03, -2.09571465e+03]
+            self.m_params = [8.96216955e-02, -1.15263793e+07, 6.17739168e+03, -2.11715454e+03]
+
+        if band == "6m":
+            #self.m_fudge_factor = 2.9
+            # start 1.2 end 3.6
+            self.m_fudge_factor = 2.4
+            self.m_params = [5.53113481e-02, -7.48653896e+06, 7.24091607e+02, -6.11406818e+02]
     def set_base_freq(self, freq):
         return
 
@@ -279,9 +292,23 @@ class RefOsc2m:
         else:
             dac_offset = 0
 
+        if self.m_last_sym == sym:
+            self.m_same_sym_count +=1
+        else:
+            self.m_delta_sym = sym - self.m_last_sym
+            self.m_same_sym_count = 0
+
         #print(dac_offset)
 
         dac_val = dac + dac_offset
+
+        if self.m_same_sym_count > 1 and self.m_band == "2m":
+            fac = (20 * self.m_delta_sym)/self.m_same_sym_count
+            dac_val -= fac
+
+        if self.m_same_sym_count > 1 and self.m_band == "7m":
+            fac = (40 * self.m_delta_sym)/self.m_same_sym_count
+            dac_val -= fac
 
 #        if self.m_last_sym == sym:
 #            dac_val = self.m_last_dac
@@ -379,8 +406,8 @@ class RadioCmdEncoder:
         # HACK HACK FIXME zero rx should be done in one place
         # where we are for receive on DAC
         if self.m_band == "6m":
-            zero_rx = 0xC3E + cal_value(self.m_band) # for rx
-            self.m_radio_cmd_handler.send_msg("D2%X" % zero_rx)
+            zero_rx = 0xC300 + cal_value(self.m_band) # for rx
+            self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
         elif self.m_band == "4m":
             zero_rx = 0xBF80 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
@@ -395,17 +422,13 @@ class RadioCmdEncoder:
         # think about lifetime
         self.m_radio_cmd_handler=RadioCmdHandler(band)
 
+        # FIXME absolute paths
         if band == "70cm":
             calfile = "/home/john/2mcal"
         else:
             calfile = "/home/john/%scal" % band
 
-        # duck typing
-        if band == "6m":
-            self.m_refosc = RefOsc6m("dacdata-orig.csv", calfile)
-        elif band in ["4m", "2m", "70cm"]:
-            # FIXME absolute paths
-            self.m_refosc = RefOsc2m(band, calfile)
+        self.m_refosc = RefOsc2m(band, calfile)
 
         self.m_ft8trans = FT8symTranslator(basefreq)
 
@@ -417,8 +440,11 @@ class RadioCmdEncoder:
 
         if band == "6m":
             self.m_sync_cmd = "EA19F"
+        elif band == "4m":
+            self.m_sync_cmd = "EA1C0"
         else:
-            self.m_sync_cmd = "EA320"
+            #self.m_sync_cmd = "EA320"
+            self.m_sync_cmd = "EA280"
 
         self.m_band = band
 
@@ -440,6 +466,7 @@ class RadioCmdEncoder:
         #
         # send the symbol sequence
         #
+        st=time.time()
         for sym in symseq:
             if self.m_cancel_tx:
                 self.cancel_tx()
@@ -453,6 +480,7 @@ class RadioCmdEncoder:
 
         #self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
 
+        print("msg time",time.time() - st)
         if self.m_monitor:
             time.sleep(0.9)
             self.cancel_tx()

@@ -23,7 +23,8 @@ g_base_freq = None
 g_base_dac = None
 g_last_dac = None
 g_local_count_per_hz = None
-g_band = "4m"
+g_band = "6m"
+g_fudge = 2.1
 
 #{0: 1500.0,
 # 1: 1506.25,
@@ -150,7 +151,11 @@ def f_to_dv(F):
         [a, b, c, d] = [1.74150917e-01, -4.43158994e+03, 3.69915130e+04, -6.49876296e+03]
 
     if g_band=="4m":
-        [a, b, c, d] = [  8.94132636e-02, -1.34659984e+07, 3.74200375e+03, -2.08969879e+03]
+        #[a, b, c, d] = [  8.94132636e-02, -1.34659984e+07, 3.74200375e+03, -2.08969879e+03]
+        [a, b, c, d] = [9.10414222e-02, -7.04125513e+06, 1.11353326e+04, -2.27300009e+03]
+
+    if g_band=="6m":
+        [a, b, c, d] = [5.53113481e-02, -7.48653896e+06,  7.24091607e+02, -6.11406818e+02]
 
     P=[a,b,c,d]
 #    x=5000
@@ -177,6 +182,7 @@ def freq_to_dac_max5216(sym, freq, initial=False):
     global g_last_sym
     global g_base_freq
     global g_last_dac
+    global g_fudge
 
     dac = int(f_to_dv(freq))
 
@@ -189,7 +195,7 @@ def freq_to_dac_max5216(sym, freq, initial=False):
     # seems fine.
     #
     if g_last_freq:
-        dac_offset = freq - g_last_freq
+        dac_offset = (freq - g_last_freq) * g_fudge
     else:
         dac_offset = 0
 
@@ -455,7 +461,7 @@ def measure():
 
 if __name__ == "__main__":
 
-    base_f=1900
+    base_f=1200
 
     run_ft8(base_f)
 

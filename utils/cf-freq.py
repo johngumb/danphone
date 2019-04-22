@@ -9,7 +9,8 @@ import os
 import random
 import sys
 
-chunk = 1024*64
+chunk = 1024*256
+chunk = 1024*256
 
 g_server =  None
 
@@ -29,7 +30,7 @@ def send_msg(msg):
     g_server.listen(1)
     
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect("/tmp/mui-ext.s.4m")
+    s.connect("/tmp/mui-ext.s.6m")
     s.send(msg)
     s.close()
 
@@ -74,6 +75,8 @@ setup_response_socket(response_socket)
 
 send_msg("ft8-txon")
 
+# MC300 for home value for 6 metres
+
 #i=0xC3B8
 #i=29300 #4m
 i=29200 #4m
@@ -83,6 +86,8 @@ i=29200 #4m
 #i=37350 #2m
 #i=45500 #2m top end
 #i=65534
+i=18300 # 6m
+#i=48000 # 14p4
 
 def get_seed_array():
     a=[i for i in range(10)]
@@ -110,13 +115,16 @@ def lookup(i):
     return i
 
 #sys.exit(0)
-
+init=True
 # read some data
 data = stream.read(chunk)
 # play stream and find the frequency of each chunk
 while True:
     dacval=lookup(i)
     send_dac(dacval)
+
+    if init:
+        time.sleep(2)
 
     # read some data
     data = stream.read(chunk)
@@ -145,7 +153,7 @@ while True:
     a.write("%d,%f\n"% (dacval, thefreq))
     a.close()
 
-    i+=1
+    i+=32
     if i>=65536:
         break
 send_msg("ft8-txoff")

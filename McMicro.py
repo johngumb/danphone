@@ -548,12 +548,14 @@ class McMicro:
                 #self.m_hwif.enqueue("E2C56")
 
                 # 50MHz reception measured at 71.4MHz LO
-                val=0xC3E
+                #val=0xC3E
+                val=0xC300
                 calfile="/home/john/6mcal"
                 if os.path.exists(calfile):
                     with open(calfile) as caldata:
                         val+=int(caldata.read())
-                self.m_hwif.enqueue("D2%X" % val)
+                print "sending","M%04X" % val
+                self.m_hwif.enqueue("M%X" % val)
 
                 # squelch pot
                 self.m_hwif.enqueue("QD0")
@@ -577,6 +579,7 @@ class McMicro:
                 if os.path.exists(calfile):
                     with open(calfile) as caldata:
                         val+=int(caldata.read())
+                print "sending","M%04X" % val
                 self.m_hwif.enqueue("M%04X" % val)
 
             self.m_refosc_count += 1
