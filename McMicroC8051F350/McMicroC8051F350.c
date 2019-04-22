@@ -483,9 +483,6 @@ void act_control(void)
         while(!power_on_bit);
 
 #ifdef SIXMETRES
-#ifdef SIXMETRES_OLD
-        ref_dac_init();
-#endif
         init_squelch_potentiometer();
 #endif
     }
@@ -544,15 +541,15 @@ void act_sync_required(void)
     act_stbyte();
 }
 
-void write_ref_dac(const unsigned char cmd,
-                   const unsigned char d_hi,
+void write_ref_dac(const unsigned char d_hi,
+                   const unsigned char d_mid,
                    const unsigned char d_lo)
 {
 	dac_select_bit=0;
 
-	SPI_Byte_Write(cmd);
-
 	SPI_Byte_Write(d_hi);
+
+	SPI_Byte_Write(d_mid);
 
 	SPI_Byte_Write(d_lo);
 
@@ -561,20 +558,8 @@ void write_ref_dac(const unsigned char cmd,
     delay(10);
 }
 
-#define REF_DAC_CMD(rdcmd) ((rdcmd)<<3)
-
-#ifdef SIXMETRES_OLD
-void ref_dac_init(void)
-{
-	// use specifed external reference from KXN1123AA
-	write_ref_dac(REF_DAC_CMD(8), 0, 10);  // using register 8, VREF reg
-
-    // gain control register - 1x gain
-    write_ref_dac(REF_DAC_CMD(10), 0, 0);  // using register 10, gain control register
-}
-#endif
-
 // Write to Maxim MAX5216BGUA 16 bit DAC controlling 14.4MHz synth ref osc
+// KXN1123AA
 void act_ref_dac_maxim()
 {
 	unsigned int lowdata;
@@ -616,68 +601,6 @@ void act_ref_dac_maxim()
 
     // MAX5124-MAX5216.pdf, Table 2. Operating Mode Truth Table.
 	write_ref_dac(shifted_out, data_ptr[0], data_ptr[1]);
-
-    act_stbyte();
-}
-
-// Write to MCP48FEB22 12 bit DAC controlling 14.4MHz synth ref osc
-// 0x000 14.398925 MHz
-// 0xFFF 14.400251 MHz 4.2031V as measured on KXN1123AA input pin
-void act_ref_dac()
-{
-	unsigned char dacno, data_high, data_low;
-
-    // format of DAC command
-    // DNABC
-    // D: Dac command (that's how we got here so skip it)
-    // N: Dac number
-    //    0: DAC 0
-    //    1: DAC 1
-    //    2: Both
-    //    3: DAC 0 written with ABC, DAC 1 written with ABC-1
-    //    4: DAC 0 written with ABC, DAC 1 written with ABC+1
-    // A: top 4 bits of DAC value 0-F
-    // B: middle 4 bits of DAC value 0-F
-    // C: bottom 4 bits of DAC value 0-F
-
-    dacno = hexdigittobyte(str[1]);
-
-    data_high = hexdigittobyte(str[2]);
-
-    // must be 2 characters remaining
-    data_low = strtohex(&str[3]);
-
-    //printf("dacno %x\n",(unsigned) dacno);
-    //printf("data_high %x\n",(unsigned)  data_high);
-    //printf("data_low %x\n",(unsigned) data_low);
-
-    // 160ms sync for FT8?
-    if (TMR2RL)
-    {
-        while (g_t2_timeout);
-
-        g_t2_timeout=1;
-    }
-
-    if (dacno >= 2)
-    {
-        write_ref_dac(REF_DAC_CMD(0), data_high, data_low);
-
-        switch(dacno)
-        {
-            case 3:
-                data_low-=1;
-            break;
-
-            case 4:
-                data_low+=1;
-            break;
-        }
-        write_ref_dac(REF_DAC_CMD(1), data_high, data_low); 
-    }
-    else
-	    // using register "dacno", write a value to DAC specified
-        write_ref_dac(REF_DAC_CMD(dacno), data_high, data_low);
 
     act_stbyte();
 }
@@ -805,10 +728,6 @@ void act_set_power(const unsigned char powerstate)
         while(!power_on_bit);
 
 #if defined(SIXMETRES)
-#ifdef SIXMETRES_OLD
-#define REF_DAC_INIT_HI 0x0C
-#define REF_DAC_INIT_LO 0x3E
-#endif
         init_squelch_potentiometer();
 
         write_ref_dac(0x72, 0x00, 0x00); // TBD
@@ -816,13 +735,6 @@ void act_set_power(const unsigned char powerstate)
         write_ref_dac(0x6F, 0xD0, 0x00); // TBD
 #elif defined(TWOMETRES)
         write_ref_dac(0x6F, 0xD0, 0x00);
-#endif
-
-#ifdef SIXMETRES_OLD
-        ref_dac_init();
-        write_ref_dac(REF_DAC_CMD(0), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
-
-        write_ref_dac(REF_DAC_CMD(1), REF_DAC_INIT_HI, REF_DAC_INIT_LO);
 #endif
 
         baa();
@@ -1157,8 +1069,6 @@ void main (void)
 			partcmd('S', act_synth());
 
 			partcmd('T', act_ctcss());
-
-			partcmd('D', act_ref_dac());
 
             partcmd('E', act_sync_required());
 
