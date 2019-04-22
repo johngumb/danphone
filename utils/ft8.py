@@ -38,7 +38,7 @@ g_fudge = 2.1
 g_tones={}
 
 def cal(calfreq):
-    zero = freq_to_dac(0, calfreq, initial=True)
+    zero = freq_to_dac_max5216(0, calfreq, initial=True)
     send_dac(zero)
     send_msg("ft8-txon")
     time.sleep(20)
@@ -47,95 +47,6 @@ def cal(calfreq):
 def init_tones(basefreq):
     for i in range(8):
         g_tones[i]=i*6.25 + basefreq
-
-def freq_to_dac(sym, freq, initial=False):
-    global g_last_freq
-    global g_last_sym
-    global g_base_freq
-    global g_base_dac
-
-    if initial:
-        with open('dacdata-orig.csv', 'rb') as csvfile:
-            reader = csv.reader(csvfile)
-            for row in reader:
-                [dacv, dacf] = row
-                #dacv,dacf=row.split(',')
-                if freq<float(dacf)-2000:
-                    g_base_freq = freq
-                    g_base_dac = int(dacv)+read_calfile("/home/john/6mcal")
-                    return (2, g_base_dac)
-
-    #hz_per_count = 1.058
-    #hz_per_count = 1.046
-    #hz_per_count = 1.059
-#     if freq>=1400:
-# #        hz_per_count = 1.0585
-#         hz_per_count = 1.0956
-#     else:
-#         hz_per_count = 1.0585
-
-#    dac=neutral - ((2000-freq) * g_hz_per_count)
-
-    #hz_per_count = g_hz_per_count * 1.12
-
-    # working 24 nov
-    #hz_per_count = g_hz_per_count * 1.1
-
-    if g_base_freq >= 2300:
-        hz_per_count = 1.03
-    else:
-        hz_per_count = 1.05
-
-    dac=g_base_dac + (freq-g_base_freq)*hz_per_count
-
-    twice_dac = 2 * dac
-
-    if g_last_freq:
-        diff_offset = freq - g_last_freq
-    else:
-        diff_offset = 0
-
-    #17 nov twice_dac_offset=(2*(freq_offset+(diff_offset/4.2)+square_offset))/hz_per_count
-
-    #4.17 looks good 17 nov
-    if diff_offset>0:
-        factor=4.17
-    else:
-        factor=4.17
-
-    twice_dac_offset=(2*diff_offset/factor)/hz_per_count
-
-    if sym > 4 and g_last_sym >= 4:
-        twice_dac_offset += 2
-
-    twice_dac = int(round(twice_dac))
-
-    twice_dac_val = twice_dac + twice_dac_offset
-    if twice_dac_val % 2 == 0:
-        dac_val = twice_dac_val/2
-        dac_cmd = "2"
-    else:
-        # divisible by 2
-        twice_dac_val_minus_1_over_2 = int((twice_dac_val-1)/2)
-
-        # will overflow when 1 added at remote end?
-        if (twice_dac_val_minus_1_over_2 & 0xFF) == 0xFF:
-            dac_val = twice_dac_val_minus_1_over_2+2
-            # subtract one at remote
-            dac_cmd = "3"
-        else:
-            dac_val = twice_dac_val_minus_1_over_2
-            # add one at remote
-            dac_cmd = "4"
-
-    result = ("D", dac_cmd, dac_val)
-
-    #print result
-
-    g_last_freq = freq
-    g_last_sym = sym
-
-    return result
 
 def dv_to_f(dv):
     #[a, b, c, d] = [  1.74150917e-01  -4.43158994e+03   3.69915130e+04  -6.49876296e+03]
