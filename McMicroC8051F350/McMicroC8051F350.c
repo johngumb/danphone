@@ -166,9 +166,6 @@ unsigned long read_adc(void);
 #define POWER_POT_SELECT  {rf_power_pot_select_bit=0; delay(10);}
 #define POWER_POT_DESELECT rf_power_pot_select_bit=1
 
-//MCP4161-103E/SN, IC, DGTL POT, SNGL, 10K
-void init_squelch_potentiometer();
-
 void delay(unsigned int limit)
 {
     int i;
@@ -481,10 +478,6 @@ void act_control(void)
     if (val & SR_POWER)
     {
         while(!power_on_bit);
-
-#ifdef SIXMETRES
-        init_squelch_potentiometer();
-#endif
     }
 
     g_control_byte = val;
@@ -612,13 +605,7 @@ void init_pot_spi(void)
     SPI_Byte_Write(0x0F);    // Everything enabled/connected
 }
 
-void init_squelch_potentiometer(void)
-{
-    SQUELCH_POT_SELECT;
-    init_pot_spi();
-    SQUELCH_POT_DESELECT;
-}
-
+//MCP4161-103E/SN, IC, DGTL POT, SNGL, 10K
 void act_squelch_pot(void)
 {
 	unsigned char pot_data;
@@ -636,6 +623,7 @@ void act_squelch_pot(void)
 
     SQUELCH_POT_SELECT;
 
+    init_pot_spi();
     SPI_Byte_Write(0);     // volatile writes - address 0
     SPI_Byte_Write(pot_data);
 
@@ -650,7 +638,12 @@ void act_squelch_pot(void)
 
 void act_power_pot(void)
 {
-	unsigned char pot_data, read_low;
+	unsigned char pot_data, read_low, i;
+
+    // initialise power pot - setup
+    POWER_POT_SELECT;
+    init_pot_spi();
+    POWER_POT_DESELECT;
 
     // format of POT command
     // PAB
@@ -661,7 +654,8 @@ void act_power_pot(void)
     // must be 2 characters remaining
     pot_data = strtohex(&str[1]);
 
-    for (;;)
+#define POT_MAX_LOOP 10000
+    for (i=0;(i<POT_MAX_LOOP);i++)
     {
         POWER_POT_SELECT;
 
@@ -684,6 +678,11 @@ void act_power_pot(void)
             break;
 
         delay(10);
+    }
+
+    if (i==POT_MAX_LOOP)
+    {
+        printf("BG255\n");
     }
 
     act_stbyte();
@@ -727,9 +726,9 @@ void act_set_power(const unsigned char powerstate)
     {
         while(!power_on_bit);
 
-#if defined(SIXMETRES)
-        init_squelch_potentiometer();
+        printf("got power\n");
 
+#if defined(SIXMETRES)
         write_ref_dac(0x72, 0x00, 0x00); // TBD
 #elif defined(FOURMETRES)
         write_ref_dac(0x6F, 0xD0, 0x00); // TBD
@@ -1038,11 +1037,6 @@ void main (void)
     Timer2_Init();
 
     latch_init();
-
-    // initialise power pot - setup
-    POWER_POT_SELECT;
-    init_pot_spi();
-    POWER_POT_DESELECT;
 
     // come up powered on to allow ref osc to stabilise
     act_set_power(1);
