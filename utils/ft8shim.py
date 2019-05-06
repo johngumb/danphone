@@ -37,7 +37,7 @@ class FT4symTranslator:
         self.m_tones = {}
         for i in range(4):
             #self.m_tones[i]=i*23.4 + basefreq
-            self.m_tones[i]=i*30 + basefreq
+            self.m_tones[i]=i*29 + basefreq
 
     def sym_to_freq(self, sym):
         return self.m_tones[sym];
@@ -387,7 +387,7 @@ class RadioCmdEncoder:
                 self.m_sync_cmd = "E2868"
             else:
                 #self.m_sync_cmd = "EA320"
-                self.m_sync_cmd = "E2B68"
+                self.m_sync_cmd = "E2B48"
 
         self.m_band = band
         self.m_mode = mode
