@@ -32,14 +32,24 @@ class FT8symTranslator:
     def sym_to_freq(self, sym):
         return self.m_tones[sym];
 
+class FT4symTranslator:
+    def __init__(self, basefreq):
+        self.m_tones = {}
+        for i in range(4):
+            #self.m_tones[i]=i*23.4 + basefreq
+            self.m_tones[i]=i*33 + basefreq
+
+    def sym_to_freq(self, sym):
+        return self.m_tones[sym];
+
 class WsjtxListener(socketserver.BaseRequestHandler):
 
-    def get_radio_encoder(self, basefreq, band):
+    def get_radio_encoder(self, basefreq, band, mode):
         self.clear_radio_encoder()
 
         if band in ["6m","4m", "2m", "70cm"]:
             self.server.m_radio_cmd_encoder = RadioCmdEncoder()
-            self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq, band)
+            self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq, band, mode)
 
     def clear_radio_encoder(self):
         if self.server.m_radio_cmd_encoder:
@@ -70,7 +80,12 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             basefreq = int(basefreq_and_band[0])
             band = basefreq_and_band[1].strip()
 
-            self.get_radio_encoder(basefreq, band)
+            if len(basefreq_and_band)==3:
+                mode=basefreq_and_band[2].strip()
+            else:
+                mode="FT8"
+
+            self.get_radio_encoder(basefreq, band, mode)
 
             if not self.server.m_radio_cmd_encoder:
                 print("Band", band, "not supported")
@@ -331,7 +346,7 @@ class RadioCmdEncoder:
 
         self.m_cancel_tx = False
 
-    def prepare_for_symseq(self, basefreq, band):
+    def prepare_for_symseq(self, basefreq, band, mode):
 
         # think about lifetime
         self.m_radio_cmd_handler=RadioCmdHandler(band)
@@ -344,23 +359,38 @@ class RadioCmdEncoder:
 
         self.m_refosc = RefOsc2m(band, calfile)
 
-        self.m_ft8trans = FT8symTranslator(basefreq)
+        if mode == "FT8":
+            self.m_sym_to_freq_translator = FT8symTranslator(basefreq)
+
+        if mode == "FT4":
+            self.m_sym_to_freq_translator = FT4symTranslator(basefreq)
 
         self.m_refosc.set_base_freq(basefreq)
 
         zero_tx_dac = self.m_refosc.freq_to_dac(0, basefreq)
 
-        print(band)
+        print(band,mode)
 
-        if band == "6m":
-            self.m_sync_cmd = "EA19F"
-        elif band == "4m":
-            self.m_sync_cmd = "EA1C0"
-        else:
-            #self.m_sync_cmd = "EA320"
-            self.m_sync_cmd = "EA280"
+        if mode == "FT8":
+            if band == "6m":
+                self.m_sync_cmd = "EA19F"
+            elif band == "4m":
+                self.m_sync_cmd = "EA1C0"
+            else:
+                #self.m_sync_cmd = "EA320"
+                self.m_sync_cmd = "EA280"
+
+        if mode == "FT4":
+            if band == "6m":
+                self.m_sync_cmd = "E2868"
+            elif band == "4m":
+                self.m_sync_cmd = "E2868"
+            else:
+                #self.m_sync_cmd = "EA320"
+                self.m_sync_cmd = "E2B68"
 
         self.m_band = band
+        self.m_mode = mode
 
         # allow time to settle
         self.send_msg("ft8-txon")
@@ -386,7 +416,7 @@ class RadioCmdEncoder:
                 self.cancel_tx()
                 break;
 
-            symfreq = self.m_ft8trans.sym_to_freq(sym)
+            symfreq = self.m_sym_to_freq_translator.sym_to_freq(sym)
 
             d = self.m_refosc.freq_to_dac(sym, symfreq)
 
