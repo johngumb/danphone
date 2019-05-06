@@ -37,7 +37,7 @@ class FT4symTranslator:
         self.m_tones = {}
         for i in range(4):
             #self.m_tones[i]=i*23.4 + basefreq
-            self.m_tones[i]=i*33 + basefreq
+            self.m_tones[i]=i*30 + basefreq
 
     def sym_to_freq(self, sym):
         return self.m_tones[sym];
