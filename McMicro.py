@@ -558,7 +558,7 @@ class McMicro:
                 self.m_hwif.enqueue("M%X" % val)
 
                 # squelch pot
-                self.m_hwif.enqueue("QD0")
+                self.m_hwif.enqueue("QE0")
 
             if not self.m_ftdi and self.m_hwif.server()=="rudd":
                 # 14.4MHz on ref osc
