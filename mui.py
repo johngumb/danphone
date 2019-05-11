@@ -364,12 +364,23 @@ def is_ft8(freq):
             return True
     return False
 
+g_fan=False
 def log_temperature(rig, unconditional):
+    global g_fan
+
     (changed, temperature) = rig.take_temperature()
 
     if changed or unconditional:
         print time.asctime(),"temperature is","%3.2f" % temperature +"C"
 
+        if fourmetres():
+            if temperature > 22 and not g_fan:
+                self.m_rig.execute_rig_cmd("pin15on")
+                g_fan=True
+
+            if temperature < 20 and g_fan:
+                self.m_rig.execute_rig_cmd("pin15off")
+                g_fan=False
 
 class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
