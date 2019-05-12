@@ -375,11 +375,13 @@ def log_temperature(rig, unconditional):
 
         if fourmetres():
             if temperature > 22 and not g_fan:
-                self.m_rig.execute_rig_cmd("pin15on")
+                print "enabling fan"
+                rig.execute_rig_cmd("pin15on")
                 g_fan=True
 
             if temperature < 20 and g_fan:
-                self.m_rig.execute_rig_cmd("pin15off")
+                print "disabling fan"
+                rig.execute_rig_cmd("pin15off")
                 g_fan=False
 
 class StatusLEDtimer(wx.Timer):

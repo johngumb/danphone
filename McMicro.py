@@ -581,6 +581,7 @@ class McMicro:
                         val+=int(caldata.read())
                 print "sending","M%04X" % val
                 self.m_hwif.enqueue("M%04X" % val)
+                self.m_hwif.enqueue("pin15off")
 
             self.m_refosc_count += 1
         elif self.m_refosc_count == self.m_refosc_init_boundary and not result:
