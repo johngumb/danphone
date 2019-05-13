@@ -364,9 +364,11 @@ def is_ft8(freq):
             return True
     return False
 
-g_fan=False
+g_fan={6:False,4:False,2:False}
+g_6_fan_snmpset="snmpset -v1 -c private apc.gumb.private 1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.5 i "
 def log_temperature(rig, unconditional):
     global g_fan
+    global g_6_fan_snmpset
 
     (changed, temperature) = rig.take_temperature()
 
@@ -374,15 +376,26 @@ def log_temperature(rig, unconditional):
         print time.asctime(),"temperature is","%3.2f" % temperature +"C"
 
         if fourmetres():
-            if temperature > 22 and not g_fan:
+            if temperature > 22 and not g_fan[4]:
                 print "enabling fan"
                 rig.execute_rig_cmd("pin15on")
-                g_fan=True
+                g_fan[4]=True
 
-            if temperature < 20 and g_fan:
+            if temperature < 20 and g_fan[4]:
                 print "disabling fan"
                 rig.execute_rig_cmd("pin15off")
-                g_fan=False
+                g_fan[4]=False
+
+        if sixmetres():
+            if temperature > 22 and not g_fan[6]:
+                print "enabling fan"
+                os.system(g_6_fan_snmpset + "1\n")
+                g_fan[6]=True
+
+            if temperature < 20 and g_fan[6]:
+                print "disabling fan"
+                os.system(g_6_fan_snmpset + "2\n")
+                g_fan[6]=False
 
 class StatusLEDtimer(wx.Timer):
     def __init__(self,target,dur=500):
@@ -1252,6 +1265,7 @@ class MyApp(wx.App):
 if __name__=="__main__":
     try:
         os.system("lsmod | grep -q ftdi_sio && while ! rmmod ftdi_sio; do sleep 1; done")
+        os.system(g_6_fan_snmpset + "2\n")
         app = MyApp(clearSigInt=True)
         app.MainLoop()
         closedown()
