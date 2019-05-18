@@ -33,11 +33,15 @@ class FT8symTranslator:
         return self.m_tones[sym];
 
 class FT4symTranslator:
-    def __init__(self, basefreq):
+    def __init__(self, basefreq, strict=True):
         self.m_tones = {}
+        if strict:
+            tonesep=23.4
+        else:
+            tonesep=29
         for i in range(4):
             #self.m_tones[i]=i*23.4 + basefreq
-            self.m_tones[i]=i*29 + basefreq
+            self.m_tones[i]=i*tonesep + basefreq
 
     def sym_to_freq(self, sym):
         return self.m_tones[sym];
@@ -126,7 +130,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
 
 # uses max5216 DAC
 class RefOsc2m:
-    def __init__(self, band, calfile):
+    def __init__(self, band, calfile, mode):
 
         if os.path.exists(calfile):
             with open(calfile) as caldata:
@@ -142,12 +146,19 @@ class RefOsc2m:
         self.m_same_sym_count = 0
 
         if band == "2m":
-            self.m_fudge_factor = 0.7
+            if mode == "FT4":
+                self.m_fudge_factor = 1.9
+            else:
+                self.m_fudge_factor = 0.7
             self.m_params = [1.73155253e-01, -1.76378121e+05, 3.30539038e+04, -6.43300940e+03]
         if band == "4m":
             # look for drop to -16
             # 0.3 + (2.2-0.3)/2
-            self.m_fudge_factor = 1.25
+
+            if mode == "FT4":
+                self.m_fudge_factor = 1.9
+            else:
+                self.m_fudge_factor = 1.25
 
             #self.m_params = [8.94132636e-02, -1.34659984e+07, 3.74200375e+03, -2.08969879e+03]
             # from dacdata-4m-step1.csv
@@ -159,7 +170,10 @@ class RefOsc2m:
         if band == "6m":
             #self.m_fudge_factor = 2.9
             # start 1.2 end 3.6
-            self.m_fudge_factor = 2.4
+            if mode == "FT4":
+                self.m_fudge_factor = 3.1
+            else:
+                self.m_fudge_factor = 2.4
             #self.m_params = [5.53113481e-02, -7.48653896e+06, 7.24091607e+02, -6.11406818e+02]
             self.m_params = [5.40635806e-02, -1.37705324e+07, -6.69474575e+03, -4.57521898e+02]
             #[5.64278797e-02, -4.57861528e+06,  5.82838641e+03, -7.13670945e+02]
@@ -231,9 +245,9 @@ class RefOsc2m:
 
         dac_val = dac + dac_offset
 
-        if self.m_same_sym_count > 1 and self.m_band == "2m":
-            fac = (20 * self.m_delta_sym)/self.m_same_sym_count
-            dac_val -= fac
+        # if self.m_same_sym_count > 1 and self.m_band == "2m":
+        #     fac = (20 * self.m_delta_sym)/self.m_same_sym_count
+        #     dac_val -= fac
 
         if self.m_same_sym_count > 1 and self.m_band == "7m":
             fac = (40 * self.m_delta_sym)/self.m_same_sym_count
@@ -287,6 +301,9 @@ class RadioCmdHandler:
         datagram = conn.recv(1024)
         assert(datagram==asciimsg)
         #print "got response",datagram
+
+g_totmsg = 0
+g_nmsg = 0
 
 class RadioCmdEncoder:
     def __init__(self):
@@ -357,7 +374,7 @@ class RadioCmdEncoder:
         else:
             calfile = "/home/john/%scal" % band
 
-        self.m_refosc = RefOsc2m(band, calfile)
+        self.m_refosc = RefOsc2m(band, calfile, mode)
 
         if mode == "FT8":
             self.m_sym_to_freq_translator = FT8symTranslator(basefreq)
@@ -367,7 +384,12 @@ class RadioCmdEncoder:
 
         self.m_refosc.set_base_freq(basefreq)
 
-        zero_tx_dac = self.m_refosc.freq_to_dac(0, basefreq)
+        self.m_mark_start_end = False
+
+        if self.m_mark_start_end:
+            self.m_zero_tx_dac = self.m_refosc.freq_to_dac(2, basefreq+50)
+        else:
+            self.m_zero_tx_dac = self.m_refosc.freq_to_dac(0, basefreq)
 
         print(band,mode)
 
@@ -382,12 +404,14 @@ class RadioCmdEncoder:
 
         if mode == "FT4":
             if band == "6m":
-                self.m_sync_cmd = "E2868"
+                #self.m_sync_cmd = "E2B24" # GOOD
+                self.m_sync_cmd = "E2B40"
             elif band == "4m":
-                self.m_sync_cmd = "E2868"
+                self.m_sync_cmd = "E2B40"
             else:
                 #self.m_sync_cmd = "EA320"
-                self.m_sync_cmd = "E2B48"
+                #self.m_sync_cmd = "E2B48" # GOOD
+                self.m_sync_cmd = "E2B50"
 
         self.m_band = band
         self.m_mode = mode
@@ -396,13 +420,13 @@ class RadioCmdEncoder:
         self.send_msg("ft8-txon")
         self.m_tx_on = True
 
-        self.send_dac(zero_tx_dac)
+        self.send_dac(self.m_zero_tx_dac)
+        if self.m_monitor:
+            self.m_recproc = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', self.m_recfile ])
 
 
     def send_symseq(self, symseq):
-
-        if self.m_monitor:
-            self.m_recproc = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', self.m_recfile ])
+        global g_totmsg, g_nmsg
 
         # turn on 160ms sync on dac commands
         self.m_radio_cmd_handler.send_msg(self.m_sync_cmd)
@@ -424,7 +448,15 @@ class RadioCmdEncoder:
 
         #self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
 
+        msgtime=time.time() - st
+        g_totmsg+=msgtime
+        g_nmsg+=1
         print("msg time",time.time() - st)
+        print("av. msg time",g_totmsg/g_nmsg)
+
+        if self.m_mark_start_end:
+            self.send_dac(self.m_zero_tx_dac)
+
         if self.m_monitor:
             time.sleep(0.9)
             self.cancel_tx()
@@ -480,7 +512,7 @@ if __name__ == "__main__":
     wsj_listen_sock = "/tmp/testsock"
 
     #establish_wsjtx_listener(wsj_listen_sock);
-    r2m = RefOsc2m("dacdata.csv","/tmp/nullcalfile")
+    #r2m = RefOsc2m("dacdata.csv","/tmp/nullcalfile")
 
     establish_wsjtx_listener(wsj_listen_sock);
     #r2m = RefOsc2m("dacdata.csv","/tmp/nullcalfile")
