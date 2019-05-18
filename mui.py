@@ -1265,7 +1265,8 @@ class MyApp(wx.App):
 if __name__=="__main__":
     try:
         os.system("lsmod | grep -q ftdi_sio && while ! rmmod ftdi_sio; do sleep 1; done")
-        os.system(g_6_fan_snmpset + "2\n")
+        if sixmetres():
+            os.system(g_6_fan_snmpset + "2\n")
         app = MyApp(clearSigInt=True)
         app.MainLoop()
         closedown()
