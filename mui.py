@@ -359,7 +359,7 @@ class TxSafetyTimer(wx.Timer):
         return
 
 def is_ft8(freq):
-    for f in ["50315","70156","144176"]:
+    for f in ["50315","50320","70156","144176","144172"]:
         if string.find(repr(freq), f) != -1:
             return True
     return False
@@ -1266,7 +1266,7 @@ if __name__=="__main__":
     try:
         os.system("lsmod | grep -q ftdi_sio && while ! rmmod ftdi_sio; do sleep 1; done")
         if sixmetres():
-            os.system(g_6_fan_snmpset + "2\n")
+            os.system(g_6_fan_snmpset + "1\n")
         app = MyApp(clearSigInt=True)
         app.MainLoop()
         closedown()
