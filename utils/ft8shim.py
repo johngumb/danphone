@@ -302,8 +302,8 @@ class RadioCmdHandler:
         assert(datagram==asciimsg)
         #print "got response",datagram
 
-g_totmsg = 0
-g_nmsg = 0
+g_totmsg = {}
+g_nmsg = {}
 
 class RadioCmdEncoder:
     def __init__(self):
@@ -449,10 +449,16 @@ class RadioCmdEncoder:
         #self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
 
         msgtime=time.time() - st
-        g_totmsg+=msgtime
-        g_nmsg+=1
+        if (self.m_mode,self.m_band) in g_totmsg:
+            g_totmsg[self.m_mode,self.m_band]+=msgtime
+            g_nmsg[self.m_mode,self.m_band]+=1
+        else:
+            g_totmsg[self.m_mode,self.m_band]=msgtime
+            g_nmsg[self.m_mode,self.m_band]=1
+
         print("msg time",time.time() - st)
-        print("av. msg time",g_totmsg/g_nmsg)
+        for k in g_totmsg.keys():
+            print(k,"av. msg time",g_totmsg[k]/g_nmsg[k])
 
         if self.m_mark_start_end:
             self.send_dac(self.m_zero_tx_dac)
