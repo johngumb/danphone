@@ -369,6 +369,8 @@ g_6_fan_snmpset="snmpset -v1 -c private apc.gumb.private 1.3.6.1.4.1.318.1.1.12.
 def log_temperature(rig, unconditional):
     global g_fan
     global g_6_fan_snmpset
+    t_hi = 24
+    t_lo = 22
 
     (changed, temperature) = rig.take_temperature()
 
@@ -376,23 +378,23 @@ def log_temperature(rig, unconditional):
         print time.asctime(),"temperature is","%3.2f" % temperature +"C"
 
         if fourmetres():
-            if temperature > 22 and not g_fan[4]:
+            if temperature > t_hi and not g_fan[4]:
                 print "enabling fan"
                 rig.execute_rig_cmd("pin15on")
                 g_fan[4]=True
 
-            if temperature < 20 and g_fan[4]:
+            if temperature < t_lo and g_fan[4]:
                 print "disabling fan"
                 rig.execute_rig_cmd("pin15off")
                 g_fan[4]=False
 
         if sixmetres():
-            if temperature > 22 and not g_fan[6]:
+            if temperature > t_hi and not g_fan[6]:
                 print "enabling fan"
                 os.system(g_6_fan_snmpset + "1\n")
                 g_fan[6]=True
 
-            if temperature < 20 and g_fan[6]:
+            if temperature < t_lo and g_fan[6]:
                 print "disabling fan"
                 os.system(g_6_fan_snmpset + "2\n")
                 g_fan[6]=False
@@ -915,11 +917,7 @@ class MyFrame(wx.Frame):
 
     def onButtonTxPowerLevel(self,event):
         if self.m_button_tx_power_level.GetValue():
-            if (sixmetres() or False) and self.m_ext_alarm_button.GetValue():
-                self.m_button_tx_power_level.SetValue(False)
-                self.m_rig.set_tx_power_low()
-            else:
-                self.m_rig.set_tx_power_high()
+            self.m_rig.set_tx_power_high()
         else:
             self.m_rig.set_tx_power_low()
 
@@ -1006,9 +1004,6 @@ class MyFrame(wx.Frame):
             time.sleep(0.1)
 
         if self.m_ext_alarm_button.GetValue():
-            if sixmetres() or False:
-                self.m_button_tx_power_level.SetValue(False)
-                self.onButtonTxPowerLevel(event)
             self.m_rig.enable_ext_alarm()
         else:
             self.m_rig.disable_ext_alarm()
