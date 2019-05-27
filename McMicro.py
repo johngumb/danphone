@@ -231,7 +231,7 @@ class McMicro:
 
     def set_tx_power_low(self):
         if self.m_hwif.server()=="skate":
-            self.m_hwif.enqueue("P60")
+            self.m_hwif.enqueue("P30")
         if self.m_hwif.server()=="rudd":
             self.m_hwif.enqueue("P28")
         else:
