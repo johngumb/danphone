@@ -395,7 +395,8 @@ class RadioCmdEncoder:
 
         if mode == "FT8":
             if band == "6m":
-                self.m_sync_cmd = "EA19F"
+                #self.m_sync_cmd = "EA1A1"
+                self.m_sync_cmd = "EA200"
             elif band == "4m":
                 self.m_sync_cmd = "EA1C0"
             else:
