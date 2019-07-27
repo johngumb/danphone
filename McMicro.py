@@ -221,9 +221,9 @@ class McMicro:
         if self.m_hwif.server()=="skate":
             # 100W with amp
             # 5W without
-            self.m_hwif.enqueue("P31")
+            self.m_hwif.enqueue("P48")
         elif self.m_hwif.server()=="rudd":
-            self.m_hwif.enqueue("PB0")
+            self.m_hwif.enqueue("PA0")
         else:
             self.m_shiftreg.clearbit(self.SR_TX_POWER_HI_LO)
 
@@ -234,8 +234,8 @@ class McMicro:
     def set_tx_power_low(self):
         if self.m_hwif.server()=="skate":
             #50W with amp
-            #2W without
-            self.m_hwif.enqueue("P06")
+            #3W without
+            self.m_hwif.enqueue("P16")
         if self.m_hwif.server()=="rudd":
             self.m_hwif.enqueue("P28")
         else:
