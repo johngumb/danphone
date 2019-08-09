@@ -36,7 +36,8 @@ class FT4symTranslator:
     def __init__(self, basefreq, strict=True):
         self.m_tones = {}
         if strict:
-            tonesep=23.4
+            #tonesep=23.4
+            tonesep=20.8333
         else:
             tonesep=29
         for i in range(4):
@@ -174,9 +175,10 @@ class RefOsc2m:
                 self.m_fudge_factor = 3.1
             else:
                 self.m_fudge_factor = 2.4
+
             #self.m_params = [5.53113481e-02, -7.48653896e+06, 7.24091607e+02, -6.11406818e+02]
-            self.m_params = [5.40635806e-02, -1.37705324e+07, -6.69474575e+03, -4.57521898e+02]
-            #[5.64278797e-02, -4.57861528e+06,  5.82838641e+03, -7.13670945e+02]
+            self.m_params = [5.40635806e-02, -1.37705324e+07, -6.69474575e+03, -4.57521898e+02] # works 19bB 1475
+            #self.m_params = [5.64278797e-02, -4.57861528e+06,  5.82838641e+03, -7.13670945e+02]
 
     def set_base_freq(self, freq):
         return
@@ -304,6 +306,13 @@ class RadioCmdHandler:
 
 g_totmsg = {}
 g_nmsg = {}
+g_sync_delta = {}
+g_target_time={}
+g_target_time["FT8"]=12.66
+g_target_time["FT4"]=4.99
+for mode in ["FT8","FT4"]:
+    for band in ["6m","4m","2m"]:
+        g_sync_delta[mode, band]=0
 
 class RadioCmdEncoder:
     def __init__(self):
@@ -392,27 +401,30 @@ class RadioCmdEncoder:
             self.m_zero_tx_dac = self.m_refosc.freq_to_dac(0, basefreq)
 
         print(band,mode)
+        print(g_sync_delta)
 
         if mode == "FT8":
             if band == "6m":
                 #self.m_sync_cmd = "EA1A1"
-                self.m_sync_cmd = "EA200"
+#                self.m_sync_cmd = "EA1FF"
+#                self.m_sync_cmd = "EA240" # try slightly longer than 12.66s.
+                self.m_sync_base = 0xA1E0
             elif band == "4m":
-                self.m_sync_cmd = "EA1C0"
+                self.m_sync_base = 0xA1C0
             else:
-                #self.m_sync_cmd = "EA320"
-                self.m_sync_cmd = "EA280"
+                #self.m_sync_base = "EA320"
+                self.m_sync_base = 0xA290
 
         if mode == "FT4":
             if band == "6m":
-                #self.m_sync_cmd = "E2B24" # GOOD
-                self.m_sync_cmd = "E2B40"
+                self.m_sync_base = 0x3010
             elif band == "4m":
-                self.m_sync_cmd = "E2B40"
+                self.m_sync_base = 0x3010
             else:
-                #self.m_sync_cmd = "EA320"
-                #self.m_sync_cmd = "E2B48" # GOOD
-                self.m_sync_cmd = "E2B50"
+                self.m_sync_base = 0x3010
+
+        self.m_sync_cmd = "E%04X" % (self.m_sync_base + g_sync_delta[mode,band])
+        print(self.m_sync_cmd)
 
         self.m_band = band
         self.m_mode = mode
@@ -456,6 +468,18 @@ class RadioCmdEncoder:
         else:
             g_totmsg[self.m_mode,self.m_band]=msgtime
             g_nmsg[self.m_mode,self.m_band]=1
+
+        if msgtime > g_target_time[self.m_mode]+0.02:
+            print("gt")
+            g_sync_delta[self.m_mode,self.m_band]-=16
+        else:
+            print("eq")
+
+        if msgtime < g_target_time[self.m_mode]-0.02:
+            print("lt")
+            g_sync_delta[self.m_mode,self.m_band]+=16
+        else:
+            print("eq")
 
         print("msg time",time.time() - st)
         for k in g_totmsg.keys():
