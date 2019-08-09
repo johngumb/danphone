@@ -152,8 +152,6 @@ void pulsebithigh(const char latch_id);
 
 void write_synth_spi(const unsigned int *);
 
-void ref_dac_init(void);
-
 unsigned long read_adc(void);
 
 // delay() between dac_select_bit and synth_latch_bit so we are guaranteed
