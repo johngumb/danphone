@@ -410,7 +410,7 @@ class RadioCmdEncoder:
 #                self.m_sync_cmd = "EA240" # try slightly longer than 12.66s.
                 self.m_sync_base = 0xA1E0
             elif band == "4m":
-                self.m_sync_base = 0xA1C0
+                self.m_sync_base = 0xA1B0
             else:
                 #self.m_sync_base = "EA320"
                 self.m_sync_base = 0xA290
