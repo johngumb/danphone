@@ -456,10 +456,11 @@ class StatusLEDtimer(wx.Timer):
         #
         #if self.target.m_tx and not self.target.m_devid[0]=="cli":
         if self.target.m_rig.m_tx_on:
-            if self.target.m_rig.get_tx_pa_state():
-                self.target.m_squelch_led.SetState(5)
-            else:
-                self.target.m_squelch_led.SetState(6)
+            if self.target.m_rig.locked():
+                if self.target.m_rig.get_tx_pa_state():
+                    self.target.m_squelch_led.SetState(5)
+                else:
+                    self.target.m_squelch_led.SetState(6)
 
             #
             # HACK not sure what wx.WakeUpIdle does
@@ -644,6 +645,7 @@ class MyFrame(wx.Frame):
             self.m_step_selected = "5"
         elif twometres():
             self.m_step_selected = "8"
+            #self.m_step_selected = "12.5"
         else:
             self.m_step_selected = "12.5"
 
@@ -665,6 +667,7 @@ class MyFrame(wx.Frame):
                 self.m_freq=50.315E6
             elif twometres():
                 self.m_freq=144.176E6
+                #self.m_freq=145.7375E6
             else:
                 self.m_freq=70.45E6
             f.SetDefaultValue( self.m_freq /1E6)
@@ -1260,8 +1263,8 @@ class MyApp(wx.App):
 if __name__=="__main__":
     try:
         os.system("lsmod | grep -q ftdi_sio && while ! rmmod ftdi_sio; do sleep 1; done")
-        if sixmetres():
-            os.system(g_6_fan_snmpset + "1\n")
+#        if sixmetres():
+#            os.system(g_6_fan_snmpset + "1\n")
         app = MyApp(clearSigInt=True)
         app.MainLoop()
         closedown()
