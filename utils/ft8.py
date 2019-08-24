@@ -66,7 +66,8 @@ def f_to_dv(F):
         [a, b, c, d] = [9.10414222e-02, -7.04125513e+06, 1.11353326e+04, -2.27300009e+03]
 
     if g_band=="6m":
-        [a, b, c, d] = [5.53113481e-02, -7.48653896e+06,  7.24091607e+02, -6.11406818e+02]
+        #[a, b, c, d] = [5.53113481e-02, -7.48653896e+06,  7.24091607e+02, -6.11406818e+02]
+        [a, b, c, d] = [5.40635806e-02, -1.37705324e+07, -6.69474575e+03, -4.57521898e+02]
 
     P=[a,b,c,d]
 #    x=5000
@@ -234,7 +235,8 @@ def run_ft8(base_f):
         #send_msg("EA340")  #160ms sync
         #send_msg("EA280")  #160ms sync # working ok -24
         #send_msg("EA240")  #160ms sync # working ok -24
-        send_msg("EA320")  #160ms sync # working ok -24
+        #send_msg("EA320")  #160ms sync # working ok -24
+        send_msg("EA200")
 
         p = subprocess.Popen(['jack_capture', '-as', '--port', 'sdr_rx:ol', recfile ])
     st=time.time()
