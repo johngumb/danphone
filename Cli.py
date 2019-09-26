@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenPMR.  If not, see <http://www.gnu.org/licenses/>.
 
-import telnetlib
 import serial
 import time
 import sys
@@ -31,8 +30,6 @@ class SerialCLI:
 
 class TelnetCLI:
     def __init__(self, mcmicro, server_transport_addr):
-
-#        self.m_tn = telnetlib.Telnet("skate",2217)
 
         self.m_default_timeout = 0.5
 
