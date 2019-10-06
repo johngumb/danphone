@@ -364,10 +364,10 @@ class RadioCmdEncoder:
             zero_rx = 0xC300 + cal_value(self.m_band) # for rx
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
         elif self.m_band == "4m":
-            zero_rx = 0xBF80 + cal_value(self.m_band)
+            zero_rx = 0xC010 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
         elif self.m_band in ["2m","70cm"]:
-            zero_rx = 0xBF00 + cal_value(self.m_band)
+            zero_rx = 0xBED4 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
 
         self.m_cancel_tx = False
