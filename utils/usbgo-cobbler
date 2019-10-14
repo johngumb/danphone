@@ -1,0 +1,6 @@
+rmmod ftdi_sio
+rmmod usbserial
+modprobe usbip_common_mod
+modprobe usbip
+/usr/local/sbin/usbipd -D
+/usr/local/sbin/usbip_bind_driver --usbip 2-1
