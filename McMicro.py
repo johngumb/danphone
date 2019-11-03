@@ -221,7 +221,7 @@ class McMicro:
         if self.m_hwif.server()=="skate":
             # 100W with amp
             # 5W without
-            self.m_hwif.enqueue("P48")
+            self.m_hwif.enqueue("P38")
         elif self.m_hwif.server()=="rudd":
             self.m_hwif.enqueue("PA0")
         else:
@@ -567,7 +567,8 @@ class McMicro:
             if not self.m_ftdi and self.m_hwif.server()=="rudd":
                 # 14.4MHz on ref osc
 
-                val=0xBED4
+                # 19.3C
+                val=0xBEC4
                 calfile="/home/john/2mcal"
                 if os.path.exists(calfile):
                     with open(calfile) as caldata:
