@@ -458,6 +458,7 @@ class StatusLEDtimer(wx.Timer):
         if self.target.m_rig.m_tx_on:
             if self.target.m_rig.locked():
                 if self.target.m_rig.get_tx_pa_state():
+                    self.target.m_led2.SetState(2) # green
                     self.target.m_squelch_led.SetState(5)
                 else:
                     self.target.m_squelch_led.SetState(6)
