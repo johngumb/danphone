@@ -258,7 +258,7 @@ class ScanTimer(wx.Timer):
         self.m_idx=0
 
         if sixmetres():
-            self.m_freqs = (51.51, 50.315, 51.51, 50.315,)
+            self.m_freqs = (51.51, 50.315, 51.51, 50.315, 50.84, 50.84, 50.81, 50.81)
             if False:
                 freqs = [50.53]
                 f = 50.75
@@ -277,7 +277,7 @@ class ScanTimer(wx.Timer):
             freqs = [145.5]
             f = 145.6
             i = 0
-            if False:
+            if True:
                 while f < 145.79:
                     if i != 3: # avoid 146.6375 DMR
                         freqs.append(f)
@@ -461,6 +461,9 @@ class StatusLEDtimer(wx.Timer):
                     self.target.m_squelch_led.SetState(5)
                 else:
                     self.target.m_squelch_led.SetState(6)
+            else:
+                # red
+                self.target.m_led2.SetState(0)
 
             #
             # HACK not sure what wx.WakeUpIdle does
