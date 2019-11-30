@@ -568,7 +568,7 @@ class McMicro:
                 # 14.4MHz on ref osc
 
                 # 19.3C
-                val=0xBEC4
+                val=0xBF30
                 calfile="/home/john/2mcal"
                 if os.path.exists(calfile):
                     with open(calfile) as caldata:

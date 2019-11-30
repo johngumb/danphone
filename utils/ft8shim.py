@@ -152,6 +152,7 @@ class RefOsc2m:
             else:
                 self.m_fudge_factor = 0.7
             self.m_params = [1.73155253e-01, -1.76378121e+05, 3.30539038e+04, -6.43300940e+03]
+            #self.m_params = [ 1.73352048e-01, -8.24595903e+04,  3.83945993e+04, -6.44460949e+03] # 7 oct 2019
         if band == "4m":
             # look for drop to -16
             # 0.3 + (2.2-0.3)/2
@@ -367,7 +368,7 @@ class RadioCmdEncoder:
             zero_rx = 0xC010 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
         elif self.m_band in ["2m","70cm"]:
-            zero_rx = 0xBED4 + cal_value(self.m_band)
+            zero_rx = 0xBF30 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
 
         self.m_cancel_tx = False
