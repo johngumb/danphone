@@ -12,7 +12,7 @@ import math
 
 def cal_value(band):
     val = 0
-    if band == "70cm":
+    if band in ["10m", "70cm"]:
         actband = "2m"
     else:
         actband = band
@@ -52,7 +52,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
     def get_radio_encoder(self, basefreq, band, mode):
         self.clear_radio_encoder()
 
-        if band in ["6m","4m", "2m", "70cm"]:
+        if band in ["10m", "6m","4m", "2m", "70cm"]:
             self.server.m_radio_cmd_encoder = RadioCmdEncoder()
             self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq, band, mode)
 
@@ -146,7 +146,7 @@ class RefOsc2m:
         self.m_delta_sym = None
         self.m_same_sym_count = 0
 
-        if band == "2m":
+        if band in ["10m", "2m", "70cm"]:
             if mode == "FT4":
                 self.m_fudge_factor = 1.9
             else:
@@ -292,7 +292,7 @@ class RadioCmdHandler:
         self.m_response_server.listen(1)
         asciimsg = msg.encode('ascii')
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        if self.m_band == "70cm":
+        if self.m_band in ["10m", "70cm"]:
             radband = "2m"
         else:
             radband = self.m_band
@@ -312,7 +312,7 @@ g_target_time={}
 g_target_time["FT8"]=12.66
 g_target_time["FT4"]=4.99
 for mode in ["FT8","FT4"]:
-    for band in ["6m","4m","2m"]:
+    for band in ["10m", "6m","4m","2m", "70cm"]:
         g_sync_delta[mode, band]=0
 
 class RadioCmdEncoder:
@@ -367,8 +367,8 @@ class RadioCmdEncoder:
         elif self.m_band == "4m":
             zero_rx = 0xC010 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
-        elif self.m_band in ["2m","70cm"]:
-            zero_rx = 0xBF30 + cal_value(self.m_band)
+        elif self.m_band in ["10m", "2m","70cm"]:
+            zero_rx = 0xBF20 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
 
         self.m_cancel_tx = False
@@ -379,7 +379,7 @@ class RadioCmdEncoder:
         self.m_radio_cmd_handler=RadioCmdHandler(band)
 
         # FIXME absolute paths
-        if band == "70cm":
+        if band in ["10m", "70cm"]:
             calfile = "/home/john/2mcal"
         else:
             calfile = "/home/john/%scal" % band
