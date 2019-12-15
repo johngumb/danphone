@@ -1,0 +1,95 @@
+#!/bin/dash
+killall sdr-core
+
+# binaries
+USBSOFTROCK=/usr/local/bin/usbsoftrock
+SDR_CORE=/usr/local/bin/sdr-core
+SDR_SHELL=/usr/local/bin/sdr-shell
+
+# Use usbsoftrock to fetch calibration information from the Si570,
+# or calibrate it from a stored value
+#SI570_CALIBRATE=yes
+# SI570_FXTAL=114.285
+
+# ALSA name of the sound card your SDR is on
+#SDR_ALSA_DEV=hw:S51
+
+# Bitrate of your SDR capture card
+SDR_BITRATE=32000
+
+# Set this if your SDR capture card is 16-bit only
+#SDR_16BIT=yes
+
+# I and Q channel IDs -- these correspond to "left" and "right" later
+SDR_I=1
+SDR_Q=2
+
+# Configuration parameters for the playback device
+PLAYBACK_ALSA_DEV=hw:0
+PLAYBACK_BITRATE=32000
+
+# jack configuration options
+JACK_REALTIME=yes
+JACK_BUFFERS=256
+
+#
+# Below this point is the actual shell script itself.  Hopefully
+# everything you need to edit is in the configuration variables
+# above!
+#
+if false; then
+if [ x$SI570_CALIBRATE = xyes ]; then
+    SI570_FXTAL=`usbsoftrock calibrate | awk '/^fXTALL/ { print $3 }'`
+fi
+if [ x$SI570_FXTAL = x ]; then
+    SI570_FXTAL=114.285
+fi
+usbsoftrock -x $SI570_FXTAL -d &
+usbsoftrock_pid=$!
+
+if [ x$JACK_REALTIME = xyes ]; then
+    JACKRTOPTS="-R -P60"
+fi
+if [ x$SDR_16BIT = xyes ]; then
+    JACKSNDOPTS="-S"
+fi
+jackd $JACKRTOPTS -m -dalsa -C$SDR_ALSA_DEV -P$SDR_ALSA_DEV -o2 \
+      -r$SDR_BITRATE -p$JACK_BUFFERS -n3 $JACKSNDOPTS &
+jackd_pid=$!
+
+sleep 1
+
+jack_load sdr_out audioadapter -i \
+          "-d$PLAYBACK_ALSA_DEV -r$PLAYBACK_BITRATE -p$JACK_BUFFERS -n2"
+
+sleep 1
+fi
+
+# Used for both sdr-core and sdr-shell
+export SDR_DEFRATE=$SDR_BITRATE
+
+$SDR_CORE --spectrum --metering --client-name=sdr_rx \
+          --buffsize=$JACK_BUFFERS --ringmult=4 &
+sdrcore_pid=$!
+
+sleep 1
+
+#jack_connect system:capture_$SDR_I sdr_rx:il
+#jack_connect system:capture_$SDR_Q sdr_rx:ir
+
+cmd=jack_connect
+${cmd} chub:from_slave_1 sdr_rx:ir
+${cmd} chub:from_slave_2 sdr_rx:il
+
+#jack_connect sdr_rx:ol system:playback_1
+#jack_connect sdr_rx:or system:playback_2
+
+sleep 1
+
+if false; then
+$SDR_SHELL
+
+kill $usbsoftrock_pid > /dev/null
+kill $sdrcore_pid > /dev/null
+kill $jackd_pid > /dev/null
+fi
