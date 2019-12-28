@@ -457,8 +457,8 @@ class StatusLEDtimer(wx.Timer):
         #if self.target.m_tx and not self.target.m_devid[0]=="cli":
         if self.target.m_rig.m_tx_on:
             if self.target.m_rig.locked():
+                self.target.m_led2.SetState(2) # green
                 if self.target.m_rig.get_tx_pa_state():
-                    self.target.m_led2.SetState(2) # green
                     self.target.m_squelch_led.SetState(5)
                 else:
                     self.target.m_squelch_led.SetState(6)
@@ -1052,6 +1052,10 @@ class MyFrame(wx.Frame):
             self.onButtonTransmitAction(event)
 
     def onButtonPin1(self,event):
+        # make sure we don't over drive the 10m transverter
+        if twometres() and self.m_pin1_control.GetValue():
+            self.m_button_tx_power_level.SetValue(False)
+
         self.m_rig.set_pin1(self.m_pin1_control.GetValue())
 
     def onButtonTransmitAction(self,event):
