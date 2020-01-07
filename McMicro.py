@@ -438,7 +438,7 @@ class McMicro:
 
         if (freq >= 50.72E6) and (freq <= 50.88E6):
             tx_offset = 5E5
-        elif (freq >= 145.6E6) and (freq <= 145.8E6):
+        elif (freq >= 145.6E6) and (freq <= 145.8E6) and not os.path.exists("/tmp/noshift"):
             tx_offset = -6E5
         else:
             tx_offset = 0
