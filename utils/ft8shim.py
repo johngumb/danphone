@@ -10,14 +10,18 @@ import math
 
 # TODO calibrate dac freq based on beat freq received from FCD???
 
-def cal_value(band):
-    val = 0
+def radio_band(band):
     if band in ["10m", "70cm"]:
         actband = "2m"
     else:
         actband = band
 
-    calfile="/home/john/%scal" % actband
+    return actband
+
+def cal_value(band):
+    val = 0
+
+    calfile="/home/john/%scal" % radio_band(band)
     if os.path.exists(calfile):
         with open(calfile) as caldata:
             val = int(caldata.read())
@@ -140,13 +144,14 @@ class RefOsc2m:
             self.m_caldata = 0
 
         self.m_band = band
+        self.m_radio_band = radio_band(band)
         self.m_last_freq = None
         self.m_last_sym = None
         self.m_last_dac = None
         self.m_delta_sym = None
         self.m_same_sym_count = 0
 
-        if band in ["10m", "2m", "70cm"]:
+        if radio_band(band) == "2m":
             if mode == "FT4":
                 self.m_fudge_factor = 1.9
             else:
@@ -312,7 +317,7 @@ g_target_time={}
 g_target_time["FT8"]=12.66
 g_target_time["FT4"]=4.99
 for mode in ["FT8","FT4"]:
-    for band in ["10m", "6m","4m","2m", "70cm"]:
+    for band in ["6m","4m","2m"]:
         g_sync_delta[mode, band]=0
 
 class RadioCmdEncoder:
@@ -424,11 +429,12 @@ class RadioCmdEncoder:
             else:
                 self.m_sync_base = 0x3010
 
-        self.m_sync_cmd = "E%04X" % (self.m_sync_base + g_sync_delta[mode,band])
-        print(self.m_sync_cmd)
-
-        self.m_band = band
         self.m_mode = mode
+        self.m_band = band
+        self.m_radio_band = radio_band(band)
+
+        self.m_sync_cmd = "E%04X" % (self.m_sync_base + g_sync_delta[mode, self.m_radio_band])
+        print(self.m_sync_cmd)
 
         # allow time to settle
         self.send_msg("ft8-txon")
@@ -463,22 +469,22 @@ class RadioCmdEncoder:
         #self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
 
         msgtime=time.time() - st
-        if (self.m_mode,self.m_band) in g_totmsg:
-            g_totmsg[self.m_mode,self.m_band]+=msgtime
-            g_nmsg[self.m_mode,self.m_band]+=1
+        if (self.m_mode,self.m_radio_band) in g_totmsg:
+            g_totmsg[self.m_mode,self.m_radio_band]+=msgtime
+            g_nmsg[self.m_mode,self.m_radio_band]+=1
         else:
-            g_totmsg[self.m_mode,self.m_band]=msgtime
-            g_nmsg[self.m_mode,self.m_band]=1
+            g_totmsg[self.m_mode,self.m_radio_band]=msgtime
+            g_nmsg[self.m_mode,self.m_radio_band]=1
 
         if msgtime > g_target_time[self.m_mode]+0.02:
             print("gt")
-            g_sync_delta[self.m_mode,self.m_band]-=16
+            g_sync_delta[self.m_mode,self.m_radio_band]-=16
         else:
             print("eq")
 
         if msgtime < g_target_time[self.m_mode]-0.02:
             print("lt")
-            g_sync_delta[self.m_mode,self.m_band]+=16
+            g_sync_delta[self.m_mode,self.m_radio_band]+=16
         else:
             print("eq")
 
