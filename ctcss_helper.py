@@ -11,8 +11,8 @@ def get_ctcss(tx_freq):
             result = 67.0
         elif tx_freq in [145.025E6]: # MH
             result = 88.5
-        elif tx_freq in [145.0625E6]: # CO
-            result = 77.0
+        elif tx_freq in [145.0625E6]: # SO - new S'oton repeater
+            result = 71.9
         elif tx_freq in [145.075E6, 145.1625E6, 145.050E6, 145.1E6, 70.3625E6]: # RD, NE, WH, VA, FLY
             result = 118.8
 #            result = 110.9
@@ -28,9 +28,10 @@ def get_ctcss(tx_freq):
 #            result = 110.9           #DA
         elif tx_freq in [145.1375E6]: # AL
             result = 77.0
-        elif tx_freq in [145.1875E6]: # JB, BF
-            result = 77.0
-#            result = 103.5
+        elif tx_freq in [145.1875E6]: # JB, BF, EB
+            result = 77.0 # BF
+            #result = 88.5 # EB
+#            result = 103.5 # JB
         elif tx_freq in [145.0E6]: # 
 #            result = 88.5
 #            result = 94.8 # WR
