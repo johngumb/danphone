@@ -359,7 +359,7 @@ class TxSafetyTimer(wx.Timer):
         return
 
 def is_ft8(freq):
-    for f in ["50315","50320","70156","144176","144172"]:
+    for f in ["50315","50320","70156","144176","144172","144076"]:
         if string.find(repr(freq), f) != -1:
             return True
     return False
@@ -870,7 +870,8 @@ class MyFrame(wx.Frame):
             self.m_rig.disable_status_polling()
             self.m_rig.enable_tx(enable_tx_audio=False)
         elif data in "pa-on":
-            self.m_rig.enable_pa()
+            if sys.argv[-1]=="p":
+                self.m_rig.enable_pa()
         elif data in "ft8-txoff":
             self.m_rig.enable_status_polling()
             self.m_rig.disable_tx()
@@ -922,7 +923,7 @@ class MyFrame(wx.Frame):
 
         return
 
-    def onButtonTxPowerLevel(self,event):
+    def onButtonTxPowerLevel(self, _event):
         if self.m_button_tx_power_level.GetValue():
             self.m_rig.set_tx_power_high()
         else:
@@ -1055,6 +1056,7 @@ class MyFrame(wx.Frame):
         # make sure we don't over drive the 10m transverter
         if twometres() and self.m_pin1_control.GetValue():
             self.m_button_tx_power_level.SetValue(False)
+            self.onButtonTxPowerLevel(None)
 
         self.m_rig.set_pin1(self.m_pin1_control.GetValue())
 
