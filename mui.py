@@ -877,6 +877,10 @@ class MyFrame(wx.Frame):
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()
             log_temperature(self.m_rig, True)
+        elif data.find("setband")==0:
+            self.setband(data.split(' ')[-1])
+        elif data.find("pin1")==0:
+            self.setpin1(data.split(' ')[-1])
         else:
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()
@@ -1235,6 +1239,45 @@ class MyFrame(wx.Frame):
         sizer_1.Fit(self)
         sizer_1.SetSizeHints(self)
         self.Layout()
+
+    def nextband(self):
+        if fourmetres():
+            self.m_rig.execute_rig_cmd("pin1on")
+            time.sleep(0.2)
+            self.m_rig.execute_rig_cmd("pin1off")
+            time.sleep(0.2)
+
+    def setband(self,band):
+        if fourmetres():
+            bandseq = ["6m", "4m", "unused", "2m"]
+            bandfile = "/tmp/band"
+            reqidx = bandseq.index(band)
+
+            if not os.path.exists(bandfile):
+                curidx = 0
+                clicks = reqidx + 1
+            else:
+                with open(bandfile) as f:
+                    curband=f.read()
+                    curidx = bandseq.index(curband)
+                    clicks = (reqidx - curidx) % len (bandseq)
+
+            for i in range(clicks):
+                self.nextband()
+
+            with open(bandfile,"w") as f:
+                f.write(band)
+
+    def setpin1(self, state):
+        '''
+        10m transverter on/off
+        '''
+        if twometres():
+            if state == "on":
+                self.m_pin1_control.SetValue(True)
+            else:
+                self.m_pin1_control.SetValue(False)
+            self.onButtonPin1(None)
 
 def jack_recfifo():
     global g_audioserver

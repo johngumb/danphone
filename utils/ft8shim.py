@@ -51,6 +51,12 @@ class FT4symTranslator:
     def sym_to_freq(self, sym):
         return self.m_tones[sym];
 
+def send_dgram_msg_to_radio(msg, radio):
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.connect(radio)
+        s.sendall(msg.encode("ascii"))
+        s.close()
+
 class WsjtxListener(socketserver.BaseRequestHandler):
 
     def get_radio_encoder(self, basefreq, band, mode):
@@ -115,6 +121,35 @@ class WsjtxListener(socketserver.BaseRequestHandler):
                 print("ignoring",req,"not prepared")
 
             self.clear_radio_encoder()
+
+        elif req.find('BA')==0:
+            band = req[2:]
+            mode = None
+            print(band)
+            if band in ["2m", "10m"]:
+                fr = -8000
+                mode = "LSB"
+            if band in ["4m", "6m"]:
+                fr = -4000
+                mode = "USB"
+            if mode:
+                sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+                oscmsg = "setOsc %d" % fr
+                modemsg = "setMode %s" % mode
+                sock.sendto(oscmsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
+                sock.sendto(modemsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
+                sock.close()
+
+            msg = "setband %s" % radio_band(band)
+            send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.4m")
+
+            if band in ["10m", "2m"]:
+                if band == "2m":
+                    pin1state = "off"
+                else:
+                    pin1state = "on"
+                msg = "pin1 %s" % pin1state
+                send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.2m")
 
         # PTT control  message
         elif req.find("TX")==0:
