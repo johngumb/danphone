@@ -10,6 +10,9 @@ import math
 
 # TODO calibrate dac freq based on beat freq received from FCD???
 
+g_valid_bands = ["10m", "6m","4m", "2m", "70cm"]
+g_transvert_offsets={"10m":116E6, "70cm": -288E6}
+
 def radio_band(band):
     if band in ["10m", "70cm"]:
         actband = "2m"
@@ -52,17 +55,33 @@ class FT4symTranslator:
         return self.m_tones[sym];
 
 def send_dgram_msg_to_radio(msg, radio):
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.connect(radio)
-        s.sendall(msg.encode("ascii"))
-        s.close()
+    rsockname = "/tmp/ft8response"
+    if os.path.exists(rsockname):
+        os.remove(rsockname)
+    r = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    r.bind(rsockname)
+    r.listen(1)
+
+    # send to radio
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.connect(radio)
+    asciimsg = msg.encode('ascii')
+    s.sendall(asciimsg)
+    s.close()
+
+    # sync with response
+    conn, addr = r.accept()
+    datagram = conn.recv(1024)
+    assert(datagram==asciimsg)
+    r.close()
+    os.remove(rsockname)
 
 class WsjtxListener(socketserver.BaseRequestHandler):
 
     def get_radio_encoder(self, basefreq, band, mode):
         self.clear_radio_encoder()
 
-        if band in ["10m", "6m","4m", "2m", "70cm"]:
+        if band in g_valid_bands:
             self.server.m_radio_cmd_encoder = RadioCmdEncoder()
             self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq, band, mode)
 
@@ -140,8 +159,11 @@ class WsjtxListener(socketserver.BaseRequestHandler):
                 sock.sendto(modemsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
                 sock.close()
 
-            msg = "setband %s" % radio_band(band)
-            send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.4m")
+            if band in g_valid_bands:
+                msg = "setband %s" % radio_band(band)
+                send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.4m")
+            else:
+                print("invalid band",band)
 
             if band in ["10m", "2m"]:
                 if band == "2m":
@@ -150,6 +172,20 @@ class WsjtxListener(socketserver.BaseRequestHandler):
                     pin1state = "on"
                 msg = "pin1 %s" % pin1state
                 send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.2m")
+        elif req.find('FR')==0:
+            (freqstr,mode,band) = req[2:].split(',')
+            freq = int(freqstr)
+
+            if mode in ["FT8","FT4"]:
+                freq += 2000
+
+            if mode in ["FT8","FT4"]:
+                # only set freq for FT8/FT4 atm
+                if band in g_transvert_offsets:
+                    freq += g_transvert_offsets[band]
+
+                radband = radio_band(band)
+                send_dgram_msg_to_radio("setfreq %d" % freq, "/tmp/mui-ext.s.%s" % radband)
 
         # PTT control  message
         elif req.find("TX")==0:

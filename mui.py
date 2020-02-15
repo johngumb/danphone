@@ -643,7 +643,16 @@ class MyFrame(wx.Frame):
 
         self.m_squelch_led=ledthing.LED(self,ID_LED_SQUELCH)
 
-        steps=["Auto","4","5","6.25","8","10","12.5"]
+        self.m_steps=["Auto","4","5","6.25","8","10","12.5"]
+
+        self.m_intsteps=[]
+        for s in self.m_steps:
+            try:
+                v = int(s)
+                self.m_intsteps.append(v)
+            except ValueError:
+                pass
+        self.m_intsteps.sort(reverse=True)
 
         if sixmetres():
             self.m_step_selected = "5"
@@ -653,13 +662,13 @@ class MyFrame(wx.Frame):
         else:
             self.m_step_selected = "12.5"
 
-        self.m_step = float( self.m_step_selected ) * 1000
+        self.m_step = float(self.m_step_selected) * 1000
 
         self.m_rig.set_step(self.m_step)
 
 #        self.m_spin_ctrl_squelch_level = FS.FloatSpin(self, ID_SPIN_2)
 
-        self.m_step_combo = wx.ComboBox(self, -1, self.m_step_selected, choices=steps,size=(120, 27) )
+        self.m_step_combo = wx.ComboBox(self, -1, self.m_step_selected, choices=self.m_steps,size=(120, 27) )
 
         self.m_digits = 5
 #        print dir(self.m_spin_ctrl_2 )
@@ -879,6 +888,8 @@ class MyFrame(wx.Frame):
             log_temperature(self.m_rig, True)
         elif data.find("setband")==0:
             self.setband(data.split(' ')[-1])
+        elif data.find("setfreq")==0:
+            self.setfreq(data.split(' ')[-1])
         elif data.find("pin1")==0:
             self.setpin1(data.split(' ')[-1])
         else:
@@ -1278,6 +1289,33 @@ class MyFrame(wx.Frame):
             else:
                 self.m_pin1_control.SetValue(False)
             self.onButtonPin1(None)
+
+    def setfreq(self,freqstr):
+        freq = int(freqstr)
+        reqstep = None
+
+        # choose best step
+        for step in self.m_intsteps:
+            if (freq/1000) % step == 0:
+                reqstep = step
+                break
+
+        assert(reqstep)
+
+        self.m_spin_ctrl_2.SetValue(freq/1E6)
+
+        self.m_step_selected = repr(reqstep)
+
+        self.m_step_combo.SetStringSelection(self.m_step_selected)
+
+        self.m_step = float(self.m_step_selected) * 1000
+
+        self.m_rig.set_step(self.m_step)
+        self.m_rig.set_rx_freq(freq)
+        self.m_rig.set_tx_freq(freq)
+
+        return
+
 
 def jack_recfifo():
     global g_audioserver
