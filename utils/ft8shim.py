@@ -144,7 +144,6 @@ class WsjtxListener(socketserver.BaseRequestHandler):
         elif req.find('BA')==0:
             band = req[2:]
             mode = None
-            print(band)
             if band in ["2m", "10m"]:
                 fr = -8000
                 mode = "LSB"
