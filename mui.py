@@ -1254,9 +1254,9 @@ class MyFrame(wx.Frame):
     def nextband(self):
         if fourmetres():
             self.m_rig.execute_rig_cmd("pin1on")
-            time.sleep(0.2)
+            time.sleep(0.1)
             self.m_rig.execute_rig_cmd("pin1off")
-            time.sleep(0.2)
+            time.sleep(0.1)
 
     def setband(self,band):
         if fourmetres():
@@ -1302,7 +1302,8 @@ class MyFrame(wx.Frame):
 
         assert(reqstep)
 
-        self.m_spin_ctrl_2.SetValue(freq/1E6)
+        self.m_freq = freq
+        self.m_spin_ctrl_2.SetValue(self.m_freq/1E6)
 
         self.m_step_selected = repr(reqstep)
 
