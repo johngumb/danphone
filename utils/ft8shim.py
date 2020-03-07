@@ -10,11 +10,11 @@ import math
 
 # TODO calibrate dac freq based on beat freq received from FCD???
 
-g_valid_bands = ["10m", "6m","4m", "2m", "70cm"]
-g_transvert_offsets={"10m":116E6, "70cm": -288E6}
+g_valid_bands = ["12m", "10m", "6m","4m", "2m", "70cm"]
+g_transvert_offsets={"12m":116E6, "10m":116E6, "70cm": -288E6}
 
 def radio_band(band):
-    if band in ["10m", "70cm"]:
+    if band in ["12m", "10m", "70cm"]:
         actband = "2m"
     else:
         actband = band
@@ -144,8 +144,11 @@ class WsjtxListener(socketserver.BaseRequestHandler):
         elif req.find('BA')==0:
             band = req[2:]
             mode = None
-            if band in ["2m", "10m"]:
-                fr = -8000
+            if band in ["12m", "2m", "10m"]:
+                if band == "12m":
+                    fr = -7000
+                else:
+                    fr = -8000
                 mode = "LSB"
             if band in ["4m", "6m"]:
                 fr = -4000
@@ -164,7 +167,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             else:
                 print("invalid band",band)
 
-            if band in ["10m", "2m"]:
+            if band in ["12m", "70cm", "10m", "2m"]:
                 if band == "2m":
                     pin1state = "off"
                 else:
@@ -176,7 +179,10 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             freq = int(freqstr)
 
             if mode in ["FT8","FT4"]:
-                freq += 2000
+                if band == "12m":
+                    freq += 1000
+                else:
+                    freq += 2000
 
             if mode in ["FT8","FT4"]:
                 # only set freq for FT8/FT4 atm
@@ -367,7 +373,7 @@ class RadioCmdHandler:
         self.m_response_server.listen(1)
         asciimsg = msg.encode('ascii')
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        if self.m_band in ["10m", "70cm"]:
+        if self.m_band in ["12m", "10m", "70cm"]:
             radband = "2m"
         else:
             radband = self.m_band
@@ -442,7 +448,7 @@ class RadioCmdEncoder:
         elif self.m_band == "4m":
             zero_rx = 0xC010 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
-        elif self.m_band in ["10m", "2m","70cm"]:
+        elif self.m_band in ["12m", "10m", "2m","70cm"]:
             zero_rx = 0xBF20 + cal_value(self.m_band)
             self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
 
@@ -454,7 +460,7 @@ class RadioCmdEncoder:
         self.m_radio_cmd_handler=RadioCmdHandler(band)
 
         # FIXME absolute paths
-        if band in ["10m", "70cm"]:
+        if band in ["12m", "10m", "70cm"]:
             calfile = "/home/john/2mcal"
         else:
             calfile = "/home/john/%scal" % band
@@ -622,6 +628,7 @@ if __name__ == "__main__":
     #establish_wsjtx_listener(wsj_listen_sock);
     #r2m = RefOsc2m("dacdata.csv","/tmp/nullcalfile")
 
+    os.system("setagc")
     establish_wsjtx_listener(wsj_listen_sock);
     #r2m = RefOsc2m("dacdata.csv","/tmp/nullcalfile")
 
