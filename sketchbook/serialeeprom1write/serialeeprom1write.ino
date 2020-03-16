@@ -188,9 +188,11 @@ byte unmodified_245RLQ0859[]={0xEB,0x03,0x35,0x13,0x3D,0x00,0x00,0x00,0x00,0x00,
 0xD9,0x67,0x1E,0x5A,0x15,0x46,0xD9,0x67,0x1E,0x5A,0x15,0x46,0xD9,0x67,0x1E,0x5A,
 0x15,0x46,0xD9,0x67,0x1E,0x5A,0x15,0x46,0xFF,0xFF,0xFF,0x3E,0xFF,0x01,0x08,0x59};
 
-byte *edata;
+#define BANK_LEN 256
+#define FULL_EELEN (BANK_LEN*2)
 
-void i2c_eeprom_write_byte( int deviceaddress, unsigned int eeaddress, byte data ) {
+void i2c_eeprom_write_byte(int deviceaddress, unsigned int eeaddress, byte data)
+{
     int rdata = data;
     Wire.beginTransmission(deviceaddress);
     //Wire.write((int)(eeaddress >> 8)); // MSB
@@ -201,7 +203,8 @@ void i2c_eeprom_write_byte( int deviceaddress, unsigned int eeaddress, byte data
 
 // WARNING: address is a page address, 6-bit end will wrap around
 // also, data can be maximum of about 30 bytes, because the Wire library has a buffer of 32 bytes
-void i2c_eeprom_write_page( int deviceaddress, unsigned int eeaddresspage, byte* data, byte length ) {
+void i2c_eeprom_write_page(int deviceaddress, unsigned int eeaddresspage, byte* data, byte length)
+{
     Wire.beginTransmission(deviceaddress);
     Wire.write((int)(eeaddresspage >> 8)); // MSB
     Wire.write((int)(eeaddresspage & 0xFF)); // LSB
@@ -211,7 +214,8 @@ void i2c_eeprom_write_page( int deviceaddress, unsigned int eeaddresspage, byte*
     Wire.endTransmission();
 }
 
-byte i2c_eeprom_read_byte( int deviceaddress, unsigned int eeaddress ) {
+byte i2c_eeprom_read_byte(int deviceaddress, unsigned int eeaddress)
+{
     byte rdata = 0xFF;
     Wire.beginTransmission(deviceaddress);
     //Wire.write((int)(eeaddress >> 8)); // MSB
@@ -223,7 +227,8 @@ byte i2c_eeprom_read_byte( int deviceaddress, unsigned int eeaddress ) {
 }
 
 // maybe let's not read more than 30 or 32 bytes at a time!
-void i2c_eeprom_read_buffer( int deviceaddress, unsigned int eeaddress, byte *buffer, int length ) {
+void i2c_eeprom_read_buffer(int deviceaddress, unsigned int eeaddress, byte *buffer, int length)
+{
     Wire.beginTransmission(deviceaddress);
     Wire.write((int)(eeaddress >> 8)); // MSB
     Wire.write((int)(eeaddress & 0xFF)); // LSB
@@ -252,14 +257,15 @@ void setup()
     
 }
 
-#define EELEN 256
-
-byte find_i2caddrs(byte *i2caddrs)
+byte *find_i2caddrs()
 {
   byte i=0;
   byte i2caddr=1;
+  static byte i2caddrs[5];
 
-  while (i2caddr)
+  memset(i2caddrs, 0xFF, sizeof(i2caddrs));
+
+  while (i2caddr) // wrap at 256 == 0
   {
     byte b=0xFF;
 
@@ -274,10 +280,10 @@ byte find_i2caddrs(byte *i2caddrs)
     i2caddr++;
   }
 
-  return i;
+  return i2caddrs;
 }
 
-void readeeprom(byte i2caddr, byte *data)
+void read_bank(byte i2caddr, byte *data)
 {
    int addr=0; //first address
     byte printed=0;
@@ -288,7 +294,7 @@ void readeeprom(byte i2caddr, byte *data)
     byte failed;
     byte b;
 
-    while (addr<EELEN)
+    while (addr<BANK_LEN)
     {
         failed=true;
         while (failed)
@@ -325,6 +331,7 @@ void readeeprom(byte i2caddr, byte *data)
     addr=0;
 }
 
+#if 0
 void checkeprom()
 {
    int addr=0; //first address
@@ -350,7 +357,7 @@ void checkeprom()
     Serial.println();
  
     delay(1000);
-    while (addr<EELEN)
+    while (addr<BANK_LEN)
     {
         if (b!=edata[addr])
         {
@@ -364,18 +371,12 @@ void checkeprom()
     Serial.println(" ");
     delay(10000);
 }
+#endif
 
-void writeeprom(byte *data)
+bool check_for_valid_data(const byte *data)
 {
-   int addr=0; //first address
-    Serial.println("starting write");
-    //byte i2caddr=0xA0;
-    //byte i2caddr=0x51;
-    byte i2caddr=0x50;
-    byte b=0xFF;
-    byte printed=0;
-    byte ok=false;
-    
+    bool ok=false;
+
     for (int j=1; j<30; j++)
     {
       if (data[j] != 0xFF)
@@ -383,13 +384,24 @@ void writeeprom(byte *data)
       break;
     }
 
-    if (!ok)
+    return ok;
+}
+
+void write_bank(byte i2caddr, const byte *data)
+{
+    int addr=0; //first address
+    byte b=0xFF;
+
+    Serial.print("starting write");
+    Serial.println(i2caddr, HEX);
+
+    if (!check_for_valid_data(data))
     {
-      Serial.println("data is not ok");
+      Serial.println("write: data is not ok");
       return;
     }
  
-    while ((addr<EELEN) && ok )
+    while (addr<BANK_LEN)
     {
         i2c_eeprom_write_byte(i2caddr, addr, data[addr]); 
         delay(100);
@@ -403,34 +415,92 @@ void writeeprom(byte *data)
         
         addr++; //increase address
     }
-    addr=0;
-    Serial.println(" ");
-    //delay(10000);
 }
 
-byte calc_checksum(byte *edata, int datalen)
+byte calc_checksum(byte *edata, byte banks)
 {
-  byte csum=0, res;
-  int top=((datalen==512) ? 254 : 255);
+  byte csum=0;
+  int top=((banks==2) ? (BANK_LEN-2) : (BANK_LEN-1));
 
-  for (int i=1; i<datalen; i++)
-  csum +=edata[i];
+  for (int i=1; (i<(BANK_LEN * banks)); i++)
+      csum += edata[i];
 
-  res=top-csum;
-
-  return res;
+  return top-csum;
 }
 
-#define FULL_EELEN (EELEN*2)
-byte data_store[FULL_EELEN];
+byte read_eeprom(byte *data)
+{
+  byte *i2caddrs;
+  byte *ptr=data;
+  byte csum;
+  byte i;
+
+  i2caddrs = find_i2caddrs();
+
+  Serial.println("read_eeprom: i2caddrs:");
+
+  if (!i2caddrs)
+      return 0;
+
+  for (i=0; (i2caddrs[i] != 0xFF); i++)
+  {
+    Serial.println(i2caddrs[i], HEX);
+  }
+
+  for (i=0; (i2caddrs[i] != 0xFF); i++)
+  {
+    read_bank(i2caddrs[i], ptr);
+    ptr += BANK_LEN;
+  }
+
+  csum = calc_checksum(data, i);
+
+  Serial.println("checksum");
+  Serial.println(csum, HEX);
+
+  return i;
+}
+
+bool write_eeprom(const byte *data, const byte banks)
+{
+  byte *i2caddrs;
+  const byte *ptr=data;
+  byte csum;
+  byte i;
+
+  i2caddrs = find_i2caddrs();
+
+  if (!i2caddrs)
+      return false;
+
+  Serial.println("write_eeprom: i2caddrs:");
+
+  for (i=0; (i2caddrs[i] != 0xFF); i++)
+  {
+    Serial.println(i2caddrs[i], HEX);
+  }
+
+  if (i != banks)
+  {
+      Serial.println("banks found does not match banks requested");
+      return false;
+  }
+
+  for (i=0; (i<banks); i++, ptr+=BANK_LEN)
+  {
+      write_bank(i2caddrs[i], ptr);
+  }
+
+  return true;
+}
+
 void loop()
 {
-  byte csum;
+
   byte written=false;
   byte *data=cd_400_425;
-  byte i2caddrs[5];
-  byte ni2caddrs;
-  byte *ptr;
+  byte data_store[FULL_EELEN];
+  byte banks;
 
 #if 0
   //Serial.print(edata[202], HEX);
@@ -452,30 +522,20 @@ void loop()
 #if 0
   if (!written)
   {
-    writeeprom(data);
+    write_bank(data);
     written=true;
   }
 #endif
   //checkeprom();
   //checkeprom();
 
-  ni2caddrs = find_i2caddrs(i2caddrs);
+  banks = read_eeprom(data_store);
 
-  Serial.println("i2caddrs");
-  for (int i=0; (i<ni2caddrs); i++)
-    Serial.println(i2caddrs[i], HEX);
-
-  ptr = data_store;
-  for (int i=0; (i<ni2caddrs); i++)
+  if (false)
   {
-    readeeprom(i2caddrs[i], ptr);
-    ptr += EELEN;
+      write_eeprom(data_store, banks);
+      written = true;
   }
-
-  csum = calc_checksum(data_store, EELEN * ni2caddrs);
-
-  Serial.println("checksum");
-  Serial.println(csum, HEX);
 
   delay(10000);
 }
