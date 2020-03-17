@@ -220,6 +220,18 @@ byte mine_simons_ch4_ctcss_enc_245RPS0647[] = {0xC8,0x23,0x0E,0x25,0x54,0x27,0xC
 0x85,0x19,0x24,0x05,0x6F,0x04,0x85,0x19,0x34,0x05,0x6F,0x14,0x85,0x19,0x18,0x05,
 0x6E,0x48,0x85,0x19,0x40,0x05,0x6F,0x20,0xFF,0xFF,0xFF,0x3E,0xFF,0x00,0x04,0x53,};
 
+byte testdata[]={
+0xCC,0x00,0xF3,0xCC,0xC1,0x01,0x70,0x70,0x70,0x70,0x70,0x00,0x01,0x70,0x70,0x70,
+0x70,0x70,0x00,0x01,0x70,0x70,0x70,0x70,0x70,0x00,0x01,0x71,0x70,0x70,0x71,0x70,
+0x00,0x01,0x70,0x70,0x70,0x70,0x70,0x00,0x01,0x70,0x70,0x70,0x70,0x70,0x00,0x01,
+0x70,0x70,0x70,0x70,0x70,0x00,0x01,0x70,0x70,0x70,0x70,0x70,0x00,0x01,0x70,0x70,
+0x70,0x70,0x70,0x00,0x16,0x81,0x12,0x01,0xDD,0x19,0x40,0x5D,0x6F,0x20,0xDD,0x19,
+0x40,0x5D,0x6F,0x20,0xDD,0x19,0x40,0x5D,0x6F,0x20,0xDD,0x19,0x40,0x5D,0x6F,0x20,
+0xDD,0x19,0x40,0x5D,0x6F,0x20,0xDD,0x19,0x40,0x5D,0x6F,0x20,0xDD,0x19,0x40,0x5D,
+0x6F,0x20,0xDD,0x19,0x40,0x5D,0x6F,0x20,0x00,0xFF,0xFF,0x3E,0x06,0x00,0x00,0x00,};
+//checksum
+//C8
+
 #define BANK_LEN 256
 #define FULL_EELEN (BANK_LEN*2)
 
@@ -382,7 +394,6 @@ int read_bank(byte i2caddr, byte *data)
           
         addr++;
     }
-    addr=0;
 
     return bank_length;
 }
@@ -443,10 +454,10 @@ bool check_for_valid_data(const byte *data)
     return ok;
 }
 
-void write_bank(byte i2caddr, const byte *data)
+int write_bank(byte i2caddr, const byte *data)
 {
     int addr=0; //first address
-    byte b=0xFF;
+    int bank_length;
 
     Serial.print("starting write");
     Serial.println(i2caddr, HEX);
@@ -454,10 +465,12 @@ void write_bank(byte i2caddr, const byte *data)
     if (!check_for_valid_data(data))
     {
       Serial.println("write: data is not ok");
-      return;
+      return 0;
     }
- 
-    while (addr<BANK_LEN)
+
+    bank_length = bank_len(i2caddr);
+
+    while (addr<bank_length)
     {
         i2c_eeprom_write_byte(i2caddr, addr, data[addr]); 
         delay(100);
@@ -471,13 +484,15 @@ void write_bank(byte i2caddr, const byte *data)
         
         addr++; //increase address
     }
+
+  return bank_length;
 }
 
 byte calc_checksum(byte *edata, int length)
 {
   byte csum=0;
 
-  for (int i=1; (i<length); i++)
+  for (int i=1; i<length; i++)
       csum += edata[i];
 
   return 255-csum;
@@ -509,7 +524,7 @@ byte read_eeprom(byte *data)
     ptr += read_bank(i2caddrs[i], ptr);
   }
 
-  csum = calc_checksum(data, ptr-data);
+  csum = calc_checksum(data, ptr - data);
 
   Serial.println("checksum");
   Serial.println(csum, HEX);
@@ -517,12 +532,13 @@ byte read_eeprom(byte *data)
   return i;
 }
 
-bool write_eeprom(const byte *data, const byte banks)
+bool write_eeprom(const byte *data, const int datalen)
 {
   byte *i2caddrs;
-  const byte *ptr=data;
   byte csum;
   byte i;
+  int capacity = 0;
+  int remaining = datalen;
 
   i2caddrs = find_i2caddrs();
 
@@ -533,18 +549,28 @@ bool write_eeprom(const byte *data, const byte banks)
 
   for (i=0; (i2caddrs[i] != 0xFF); i++)
   {
+    capacity += bank_len(i2caddrs[i]);
     Serial.println(i2caddrs[i], HEX);
   }
 
-  if (i != banks)
+  if (capacity < datalen)
   {
-      Serial.println("banks found does not match banks requested");
+      Serial.println("write: insufficient space");
       return false;
   }
 
-  for (i=0; (i<banks); i++, ptr+=BANK_LEN)
+  for (i=0; (remaining > 0); i+=bank_len(i2caddrs[i]))
   {
-      write_bank(i2caddrs[i], ptr);
+    int written;
+    written =  write_bank(i2caddrs[i], data + i);
+
+    if (!written)
+    {
+      Serial.println("nothing written");
+      return false;
+    }
+
+    remaining -= written;
   }
 
   return true;
@@ -590,7 +616,7 @@ void loop()
 #if 0
   if (!written)
   {
-      write_eeprom(mine_simons_245RPS0647, 2);
+      write_eeprom(testdata, sizeof(testdata));
       written = true;
   }
 #endif
