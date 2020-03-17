@@ -276,7 +276,6 @@ void i2c_eeprom_read_buffer(int deviceaddress, unsigned int eeaddress, byte *buf
 
 void setup()
 {
-    char somedata[] = "this is data from the eeprom"; // data to write
     Wire.begin(); // initialise the connection
     Serial.begin(115200);
     
@@ -284,9 +283,6 @@ void setup()
 
     delay(100); //add a small delay
     Serial.println("Initialised");
-
-    //Serial.println("Memory written");
-    
 }
 
 byte *find_i2caddrs()
@@ -315,7 +311,32 @@ byte *find_i2caddrs()
   return i2caddrs;
 }
 
-void read_bank(byte i2caddr, byte *data)
+int bank_len(const byte i2caddr)
+{
+    const int tvlen=16;
+    const byte attempts=3;
+    byte tv1[tvlen], tv2[tvlen];
+    byte matches = 0;
+    int result;
+
+    for (int m=0; m<3; m++)
+    {
+        for (int i=0; (i<tvlen); i++)
+        {
+            tv1[i]=i2c_eeprom_read_byte(i2caddr, i);
+            tv2[i]=i2c_eeprom_read_byte(i2caddr, 128+i);
+        }
+
+        if (memcmp(tv1,tv2,tvlen)==0)
+            matches++;
+    }
+    
+    result = (matches == attempts) ? 128 : 256;
+
+    return result;
+}
+
+int read_bank(byte i2caddr, byte *data)
 {
    int addr=0; //first address
     byte printed=0;
@@ -325,8 +346,9 @@ void read_bank(byte i2caddr, byte *data)
     byte j;
     byte failed;
     byte b;
+    int bank_length = bank_len(i2caddr);
 
-    while (addr<BANK_LEN)
+    while (addr<bank_length)
     {
         failed=true;
         while (failed)
@@ -361,6 +383,8 @@ void read_bank(byte i2caddr, byte *data)
         addr++;
     }
     addr=0;
+
+    return bank_length;
 }
 
 #if 0
@@ -449,15 +473,14 @@ void write_bank(byte i2caddr, const byte *data)
     }
 }
 
-byte calc_checksum(byte *edata, byte banks)
+byte calc_checksum(byte *edata, int length)
 {
   byte csum=0;
-  int top=((banks==2) ? (BANK_LEN-2) : (BANK_LEN-1));
 
-  for (int i=1; (i<(BANK_LEN * banks)); i++)
+  for (int i=1; (i<length); i++)
       csum += edata[i];
 
-  return top-csum;
+  return 255-csum;
 }
 
 byte read_eeprom(byte *data)
@@ -476,16 +499,17 @@ byte read_eeprom(byte *data)
 
   for (i=0; (i2caddrs[i] != 0xFF); i++)
   {
-    Serial.println(i2caddrs[i], HEX);
+    Serial.print(i2caddrs[i], HEX);
+    Serial.print(" ");
+    Serial.println(bank_len(i2caddrs[i]));
   }
 
   for (i=0; (i2caddrs[i] != 0xFF); i++)
   {
-    read_bank(i2caddrs[i], ptr);
-    ptr += BANK_LEN;
+    ptr += read_bank(i2caddrs[i], ptr);
   }
 
-  csum = calc_checksum(data, i);
+  csum = calc_checksum(data, ptr-data);
 
   Serial.println("checksum");
   Serial.println(csum, HEX);
@@ -563,11 +587,13 @@ void loop()
 
   //banks = read_eeprom(data_store);
 
+#if 0
   if (!written)
   {
       write_eeprom(mine_simons_245RPS0647, 2);
       written = true;
   }
+#endif
 
   read_eeprom(data_store);
 
