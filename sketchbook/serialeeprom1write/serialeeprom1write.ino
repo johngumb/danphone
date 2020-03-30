@@ -752,7 +752,7 @@ void loop()
   Serial.print(csum, HEX);
 #endif
 
-#if 1
+#if 0
   if (!written)
   {
       write_eeprom(datsrc, sizeof(datsrc));
