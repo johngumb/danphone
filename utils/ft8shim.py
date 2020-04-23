@@ -262,9 +262,6 @@ class RefOsc2m:
             self.m_params = [5.40635806e-02, -1.37705324e+07, -6.69474575e+03, -4.57521898e+02] # works 19bB 1475
             #self.m_params = [5.64278797e-02, -4.57861528e+06,  5.82838641e+03, -7.13670945e+02]
 
-    def set_base_freq(self, freq):
-        return
-
     def f_to_dv(self, F):
         #
         # from dacdata dacdata-2m-step1-opamp-linear.csv by curve fitting
@@ -307,7 +304,7 @@ class RefOsc2m:
             self.m_last_freq = freq
             self.m_last_sym = sym
             self.m_last_dac = dac
-            return ("M","", dac)
+            return dac
 
         #
         # Equating a dac offset directly to a frequency
@@ -340,7 +337,7 @@ class RefOsc2m:
 #        if self.m_last_sym == sym:
 #            dac_val = self.m_last_dac
 
-        result = ("M", "", int(dac_val))
+        result = int(dac_val)
 
         self.m_last_freq = freq
         self.m_last_sym = sym
@@ -422,11 +419,7 @@ class RadioCmdEncoder:
         self.m_radio_cmd_handler.send_msg(msg)
 
     def send_dac(self, val):
-        '''
-        takes a tuple (C,N,DV) where C is DAC command (either "D" or "M"),
-        N is DAC subcommand ("1","2","3","4","") and DV is 12 or 16 bit dac val
-        '''
-        cmd = "%s%s%X" % val
+        cmd = "M%X" % val
         print(cmd)
         self.m_radio_cmd_handler.send_msg(cmd)
 
@@ -440,17 +433,7 @@ class RadioCmdEncoder:
         self.m_radio_cmd_handler.send_msg("ft8-txoff")
         self.m_tx_on = False
 
-        # HACK HACK FIXME zero rx should be done in one place
-        # where we are for receive on DAC
-        if self.m_band == "6m":
-            zero_rx = 0xC300 + cal_value(self.m_band) # for rx
-            self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
-        elif self.m_band == "4m":
-            zero_rx = 0xC010 + cal_value(self.m_band)
-            self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
-        elif self.m_band in ["12m", "10m", "2m","70cm"]:
-            zero_rx = 0xBF20 + cal_value(self.m_band)
-            self.m_radio_cmd_handler.send_msg("M%X" % zero_rx)
+        self.m_radio_cmd_handler.send_msg("zero-ref-osc-dac")
 
         self.m_cancel_tx = False
 
@@ -461,9 +444,9 @@ class RadioCmdEncoder:
 
         # FIXME absolute paths
         if band in ["12m", "10m", "70cm"]:
-            calfile = "/home/john/2mcal"
+            calfile = "/home/john/2mcaltx"
         else:
-            calfile = "/home/john/%scal" % band
+            calfile = "/home/john/%scaltx" % band
 
         self.m_refosc = RefOsc2m(band, calfile, mode)
 
@@ -472,8 +455,6 @@ class RadioCmdEncoder:
 
         if mode == "FT4":
             self.m_sym_to_freq_translator = FT4symTranslator(basefreq)
-
-        self.m_refosc.set_base_freq(basefreq)
 
         self.m_mark_start_end = False
 
@@ -625,14 +606,10 @@ def establish_wsjtx_listener(sockname):
 if __name__ == "__main__":
     wsj_listen_sock = "/tmp/testsock"
 
-    #establish_wsjtx_listener(wsj_listen_sock);
-    #r2m = RefOsc2m("dacdata.csv","/tmp/nullcalfile")
-
     os.system("setagc")
     establish_wsjtx_listener(wsj_listen_sock);
-    #r2m = RefOsc2m("dacdata.csv","/tmp/nullcalfile")
+    #r2m = RefOsc2m("2m","/home/john/2mcaltx", "FT8")
 
-    #bf=748
-    #r2m.set_base_freq(bf)
-    #v = r2m.freq_to_dac(0,bf)
-    #print(v)
+    #v = r2m.freq_to_dac(0,2000)
+
+    #print(hex(v))

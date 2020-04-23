@@ -258,7 +258,7 @@ class ScanTimer(wx.Timer):
         self.m_idx=0
 
         if sixmetres():
-            self.m_freqs = (51.51, 50.315, 51.51, 50.315, 50.84, 50.84, 50.81, 50.81)
+            self.m_freqs = (51.51, 50.84)
             if False:
                 freqs = [50.53]
                 f = 50.75
@@ -274,10 +274,10 @@ class ScanTimer(wx.Timer):
                 self.m_freqs = freqs
 
         elif twometres():
-            freqs = [145.5]
+            freqs = [145.5, 145.325, 145.675, 145.6625]
             f = 145.6
             i = 0
-            if True:
+            if False:
                 while f < 145.79:
                     if i != 3: # avoid 146.6375 DMR
                         freqs.append(f)
@@ -286,7 +286,7 @@ class ScanTimer(wx.Timer):
                     i += 1
             self.m_freqs = freqs
         else:
-            self.m_freqs = (70.45)
+            self.m_freqs = (70.45, 70.425)
 
         return
 
@@ -607,15 +607,21 @@ class MyFrame(wx.Frame):
         if sixmetres():
             self.m_devid=("cli",("skate",2217))
             self.m_rig.set_ctcss_fudge(0.988)
+
+            # 50MHz reception measured at 71.4MHz LO
+            self.m_rig.set_ref_osc_dac(0xC38C, "/home/john/6mcal")
             self.m_audioserver="skate"
             socketext="6m"
         elif twometres():
             self.m_devid=("cli",("rudd",2217))
             self.m_rig.set_ctcss_fudge(0.9812)
+            self.m_rig.set_ref_osc_dac(0xBF20, "/home/john/2mcal") # 19.3C
             self.m_audioserver="rudd"
             socketext="2m"
         elif fourmetres():
             self.m_devid=("cli",("dab",2217))
+            # 14.4MHz on ref osc
+            self.m_rig.set_ref_osc_dac(0xC010, "/home/john/4mcal")
             self.m_audioserver="dab"
             socketext="4m"
         else:
@@ -872,7 +878,7 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_tx()
             self.m_rig.disable_audio()
             self.m_rig.enable_pa()
-        elif data[0] in ['D','E','M','Q']:
+        elif data[0] in ['E','M','Q']:
             self.m_rig.execute_rig_cmd(data)
             print "cmd complete"
         elif data in "ft8-txon":
@@ -892,6 +898,8 @@ class MyFrame(wx.Frame):
             self.setfreq(data.split(' ')[-1])
         elif data.find("pin1")==0:
             self.setpin1(data.split(' ')[-1])
+        elif data.find("zero-ref-osc-dac")==0:
+            self.m_rig.zero_ref_osc_dac()
         else:
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()
@@ -1072,6 +1080,16 @@ class MyFrame(wx.Frame):
         if twometres() and self.m_pin1_control.GetValue():
             self.m_button_tx_power_level.SetValue(False)
             self.onButtonTxPowerLevel(None)
+
+        if fourmetres():
+            # band control
+            if self.m_pin1_control.GetValue():
+                self.m_pin1time = time.time()
+            else:
+                timediff = time.time() - self.m_pin1time
+                if timediff > 3:
+                    if os.path.exists("/tmp/band"):
+                        os.unlink("/tmp/band")
 
         self.m_rig.set_pin1(self.m_pin1_control.GetValue())
 
@@ -1254,9 +1272,9 @@ class MyFrame(wx.Frame):
     def nextband(self):
         if fourmetres():
             self.m_rig.execute_rig_cmd("pin1on")
-            time.sleep(0.1)
+            time.sleep(0.2)
             self.m_rig.execute_rig_cmd("pin1off")
-            time.sleep(0.1)
+            time.sleep(0.2)
 
     def setband(self,band):
         if fourmetres():
