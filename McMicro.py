@@ -509,6 +509,19 @@ class McMicro:
 
         return
 
+    def set_ref_osc_dac(self, val, calfile):
+        self.m_ref_osc_dac = val
+        self.m_ref_osc_dac_calfile = calfile
+
+    def zero_ref_osc_dac(self):
+        """ set reference oscillator to 14.4MHz exactly """
+        val = self.m_ref_osc_dac
+        if os.path.exists(self.m_ref_osc_dac_calfile):
+            with open(self.m_ref_osc_dac_calfile) as caldata:
+                val+=int(caldata.read())
+        print "sending","M%04X" % val
+        self.m_hwif.enqueue("M%X" % val)
+
     def powered_on(self):
 
         if self.m_ftdi:
@@ -547,45 +560,12 @@ class McMicro:
             # Don't come up in transmit mode
             self.disable_tx()
 
+            self.zero_ref_osc_dac()
+
             if not self.m_ftdi and self.m_hwif.server()=="skate":
-                # 14.4MHz on ref osc
-                #self.m_hwif.enqueue("E2C56")
-
-                # 50MHz reception measured at 71.4MHz LO
-                #val=0xC3E
-                val=0xC300
-                calfile="/home/john/6mcal"
-                if os.path.exists(calfile):
-                    with open(calfile) as caldata:
-                        val+=int(caldata.read())
-                print "sending","M%04X" % val
-                self.m_hwif.enqueue("M%X" % val)
-
-                # squelch pot
                 self.m_hwif.enqueue("QE0")
 
-            if not self.m_ftdi and self.m_hwif.server()=="rudd":
-                # 14.4MHz on ref osc
-
-                # 19.3C
-                val=0xBF20
-                calfile="/home/john/2mcal"
-                if os.path.exists(calfile):
-                    with open(calfile) as caldata:
-                        val+=int(caldata.read())
-                print "sending","M%04X" % val
-                self.m_hwif.enqueue("M%04X" % val)
-
             if not self.m_ftdi and self.m_hwif.server()=="dab":
-                # 14.4MHz on ref osc
-
-                val=0xC010
-                calfile="/home/john/4mcal"
-                if os.path.exists(calfile):
-                    with open(calfile) as caldata:
-                        val+=int(caldata.read())
-                print "sending","M%04X" % val
-                self.m_hwif.enqueue("M%04X" % val)
                 self.m_hwif.enqueue("pin15off")
 
             self.m_refosc_count += 1
