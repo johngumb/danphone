@@ -12,9 +12,13 @@ def fit():
 
     dlist=[]
     flist=[]
-    #offset=25000
-    offset=19
-    offseth=54852
+    #offset=230
+    offset=3743
+    offset=820
+    offset=140
+    offseth=len(refosc_lookup)
+    offseth=2214
+    print(offseth)
 #    d0,f0=refosc_lookup[offset]
     for [d,f] in refosc_lookup[offset:offseth]:
         dlist.append(float(d))
@@ -26,7 +30,7 @@ def fit():
 
     print(p)
     print(pc)
-    print(funcy(30495, *p))
+    print(funcy(0xBF00, *p))
     print(funcy(59798, *p))
     plt.figure(figsize=(6, 4))
     #plt.scatter(dlist, flist, label='Data')
@@ -35,6 +39,7 @@ def fit():
     #e = [ testfunc(d,p[0],0,0,0) for d in dlist ]
     dr = [ f - rv for (f,rv) in zip(flist,r) ]
     #plt.plot(dlist,flist,'r--')
+    #plt.plot(dlist,r,'r--')
     plt.plot(dlist,dr,'r--')
     #plt.scatter(dlist,dr,label='Data')
     plt.show()
@@ -50,6 +55,10 @@ def fit():
 def testfunc(x,a,b,c,d):
 
     return (a * x) + (b/(x-c)) + d
+
+def testfuncs(x,a,b,c,d,e,f):
+
+    return (a * x) + (b/(x-c)) + d + (e/((x**3)-f))
 
 
 def testfuncl(x,a,b):
@@ -67,9 +76,9 @@ def testfunclh(x,a,b):
 def testfunch(x,a,b,c,d):
     #print(x,a,b,c,d)
     
-    if x>50000:
-        a-=0.0001
-        b+=1
+    if x>30000:
+        a+=0.00002
+        b+=10
 
     return (a * x) + (b/(x-c)) + d
 
@@ -79,7 +88,8 @@ def inv_func(freq):
     # from dacdata dacdata-2m-step1-opamp-linear.csv by curve fitting
     # using (a * x) + (b/(x-c)) + d
     #
-    [a, b, c, d] = [1.74150917e-01, -4.43158994e+03, 3.69915130e+04,-6.49876296e+03]
+    [a, b, c, d] = [1.71348244e-01, -1.43946879e+06, 2.49851466e+04, -6.28558918e+03]
+
 
 
     P=[a,b,c,d]
@@ -101,6 +111,6 @@ def inv_func(freq):
 
     return r
 if __name__=="__main__":
-    F=1000
-    #print(inv_func(F))
+    F=2000
+    print(hex(int(inv_func(F))))
     fit()
