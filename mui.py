@@ -615,7 +615,7 @@ class MyFrame(wx.Frame):
         elif twometres():
             self.m_devid=("cli",("rudd",2217))
             self.m_rig.set_ctcss_fudge(0.9812)
-            self.m_rig.set_ref_osc_dac(0xBF20, "/home/john/2mcal") # 19.3C
+            self.m_rig.set_ref_osc_dac(0xBE4E, "/home/john/2mcal") # 19.3C
             self.m_audioserver="rudd"
             socketext="2m"
         elif fourmetres():
@@ -1077,9 +1077,14 @@ class MyFrame(wx.Frame):
 
     def onButtonPin1(self,event):
         # make sure we don't over drive the 10m transverter
-        if twometres() and self.m_pin1_control.GetValue():
-            self.m_button_tx_power_level.SetValue(False)
-            self.onButtonTxPowerLevel(None)
+        if twometres():
+            if self.m_pin1_control.GetValue():
+                self.m_button_tx_power_level.SetValue(False)
+                self.onButtonTxPowerLevel(None)
+                os.system("touch /tmp/noshift")
+            else:
+                if os.path.exists("/tmp/noshift"):
+                    os.unlink("/tmp/noshift")
 
         if fourmetres():
             # band control
