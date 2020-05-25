@@ -1,5 +1,6 @@
 #https://stackoverflow.com/questions/2648151/python-frequency-detection
 # Read in a WAV and find the freq's
+# use ft8top_block2_2mcal.py for the monitoring (2m)
 import pyaudio
 import wave
 import numpy as np
