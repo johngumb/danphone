@@ -21,15 +21,6 @@ def radio_band(band):
 
     return actband
 
-def cal_value(band):
-    val = 0
-
-    calfile="/home/john/%scal" % radio_band(band)
-    if os.path.exists(calfile):
-        with open(calfile) as caldata:
-            val = int(caldata.read())
-    return val
-
 class FT8symTranslator:
     def __init__(self, basefreq):
         self.m_tones = {}
@@ -62,6 +53,7 @@ def send_dgram_msg_to_radio(msg, radio):
     r.bind(rsockname)
     r.listen(1)
 
+    print("send_dgram_msg_to_radio",msg)
     # send to radio
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(radio)
@@ -126,7 +118,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
 
             self.server.m_set_fb = True
             self.server.m_timeout_set = True
-            self.server.socket.settimeout(3.5)
+            self.server.socket.settimeout(2)
 
         # message to send; must be prepared otherwise ignore
         elif req[0]=='M':
@@ -232,8 +224,12 @@ class RefOsc2m:
                 self.m_fudge_factor = 1.9
             else:
                 self.m_fudge_factor = 0.7
-            self.m_params = [1.73155253e-01, -1.76378121e+05, 3.30539038e+04, -6.43300940e+03]
+            #self.m_params = [1.73155253e-01, -1.76378121e+05, 3.30539038e+04, -6.43300940e+03] # working up to 23 Apr 2020
             #self.m_params = [ 1.73352048e-01, -8.24595903e+04,  3.83945993e+04, -6.44460949e+03] # 7 oct 2019
+            self.m_params = [1.73913965e-01, -6.91653914e+03,  4.06637308e+04, -6.47198596e+03] # 23 Apr 2020 bust below 500
+            #self.m_params = [1.73753907e-01, -6.56959414e+04,  3.59561199e+04, -6.45992558e+03]
+            #self.m_params = [1.73778072e-01, -5.51817309e+04, 3.64226721e+04, -6.46177512e+03] # 25 apr works
+            self.m_params = [1.71348244e-01, -1.43946879e+06,  2.49851466e+04, -6.28558918e+03]
         if band == "4m":
             # look for drop to -16
             # 0.3 + (2.2-0.3)/2
@@ -261,6 +257,11 @@ class RefOsc2m:
             #self.m_params = [5.53113481e-02, -7.48653896e+06, 7.24091607e+02, -6.11406818e+02]
             self.m_params = [5.40635806e-02, -1.37705324e+07, -6.69474575e+03, -4.57521898e+02] # works 19bB 1475
             #self.m_params = [5.64278797e-02, -4.57861528e+06,  5.82838641e+03, -7.13670945e+02]
+
+    def dv_to_f(self, x):
+        [a,b,c,d] = self.m_params
+
+        return (a * x) + (b/(x-c)) + d
 
     def f_to_dv(self, F):
         #
@@ -297,7 +298,7 @@ class RefOsc2m:
     # maybe get rid of sym eventually?
     def freq_to_dac(self, sym, freq):
 
-        dac = int(self.f_to_dv(freq)) + self.m_caldata
+        dac = int(self.f_to_dv(freq + self.m_caldata))
 #        dac = math.ceil(f_to_dv(freq)) + self.m_caldata
 
         if not self.m_last_freq:
@@ -312,7 +313,10 @@ class RefOsc2m:
         # seems fine.
         #
         if self.m_last_freq:
-            dac_offset = (freq - self.m_last_freq) * self.m_fudge_factor
+            ff = self.m_fudge_factor
+#            if self.m_band == "2m" and freq > 2000:
+#                ff = ff * 0.6
+            dac_offset = (freq - self.m_last_freq) * ff
         else:
             dac_offset = 0
 
@@ -418,9 +422,12 @@ class RadioCmdEncoder:
     def send_msg(self, msg):
         self.m_radio_cmd_handler.send_msg(msg)
 
-    def send_dac(self, val):
+    def send_dac(self, val, optlog=None):
         cmd = "M%X" % val
-        print(cmd)
+        if optlog != None:
+            print(cmd,optlog)
+        else:
+            print(cmd)
         self.m_radio_cmd_handler.send_msg(cmd)
 
     def cancel_tx(self):
@@ -521,7 +528,7 @@ class RadioCmdEncoder:
 
             d = self.m_refosc.freq_to_dac(sym, symfreq)
 
-            self.send_dac(d)
+            self.send_dac(d, sym)
 
         #self.m_radio_cmd_handler.send_msg("E0000") # stop 160ms sync
 
@@ -607,9 +614,18 @@ if __name__ == "__main__":
     wsj_listen_sock = "/tmp/testsock"
 
     os.system("setagc")
+
     establish_wsjtx_listener(wsj_listen_sock);
-    #r2m = RefOsc2m("2m","/home/john/2mcaltx", "FT8")
 
-    #v = r2m.freq_to_dac(0,2000)
+    r2m = RefOsc2m("2m","/home/john/2mcaltx", "FT8")
 
-    #print(hex(v))
+    v = r2m.freq_to_dac(0,700)
+
+    print(hex(v))
+
+
+    #print(r2m.dv_to_f(0x9EF7)) #0 bust
+
+    #print(r2m.dv_to_f(0x9F31))
+
+    #print(r2m.dv_to_f(0x9FFF)) #1

@@ -1,0 +1,411 @@
+diff -urN wsjtx/CMakeLists.txt wsjtx/CMakeLists.txt
+--- wsjtx/CMakeLists.txt	2019-11-26 14:22:32.000000000 +0000
++++ wsjtx/CMakeLists.txt	2019-12-15 11:03:21.113020734 +0000
+@@ -286,6 +286,7 @@
+   logbook/AD1CCty.cpp
+   logbook/WorkedBefore.cpp
+   logbook/Multiplier.cpp
++  MessageTap.cpp
+   )
+ 
+ set (wsjt_qtmm_CXXSRCS
+diff -urN wsjtx/Configuration.cpp wsjtx/Configuration.cpp
+--- wsjtx/Configuration.cpp	2019-11-26 14:22:32.000000000 +0000
++++ wsjtx/Configuration.cpp	2019-12-15 11:03:21.113020734 +0000
+@@ -189,6 +189,7 @@
+ 
+ #include "ui_Configuration.h"
+ #include "moc_Configuration.cpp"
++#include "MessageTap.h"
+ 
+ namespace
+ {
+@@ -833,7 +834,7 @@
+ #if WSJT_TRACE_CAT
+   qDebug () << "Configuration::transceiver_ptt:" << on << m_->cached_rig_state_;
+ #endif
+-
++  MsgTapPTT(on);
+   m_->transceiver_ptt (on);
+ }
+ 
+diff -urN wsjtx/MessageTap.cpp wsjtx/MessageTap.cpp
+--- wsjtx/MessageTap.cpp	1970-01-01 01:00:00.000000000 +0100
++++ wsjtx/MessageTap.cpp	2020-02-15 12:30:51.211918114 +0000
+@@ -0,0 +1,103 @@
++#include <sys/types.h>
++#include <unistd.h>
++#include <stdlib.h>
++#include <sys/socket.h>
++#include <sys/un.h>
++#include <stdio.h>
++#include <iostream>
++#include <vector>
++#include <algorithm>
++
++static int connect_socket(void)
++{
++   int sockfd, servlen;
++   struct sockaddr_un  serv_addr;
++
++   bzero((char *)&serv_addr,sizeof(serv_addr));
++   serv_addr.sun_family = AF_UNIX;
++   strcpy(serv_addr.sun_path, "/tmp/testsock");
++   servlen = strlen(serv_addr.sun_path) + 
++                 sizeof(serv_addr.sun_family);
++   if ((sockfd = socket(AF_UNIX, SOCK_STREAM,0)) < 0)
++       perror("Creating socket");
++   if (connect(sockfd, (struct sockaddr *) 
++                         &serv_addr, servlen) < 0)
++       perror("Connecting");
++
++   return sockfd;
++}
++
++void send_shim(const char *buffer)
++{
++    int sockfd=connect_socket();
++    ssize_t sent;
++
++    sent = write(sockfd, buffer, strlen(buffer));
++
++    if (sent != (ssize_t) strlen(buffer))
++	    printf("sent %ld buffer %lu\n",sent, strlen(buffer));
++
++    close(sockfd);
++}
++
++void MsgTapPreTransmit(const int basefreq, const std::string band, const std::string mode)
++{
++    char buffer[82];
++
++    snprintf(buffer,sizeof(buffer), "FB%d,%s,%s\n", basefreq, band.c_str(), mode.c_str());
++    send_shim(buffer);
++}
++
++void MsgTapMsgTransmit(const volatile int itone[], const int symbolsLength)
++{
++    int i;
++    char buffer[128];
++    buffer[0]='M';
++
++    for (i=0; (i<symbolsLength); i++)
++        buffer[i+1]=itone[i]+'0';
++
++    buffer[i+1]='\n';
++    buffer[i+2]=0;
++
++    send_shim(buffer);
++}
++
++void MsgTapPTT(bool pttstate)
++{
++    char buffer[]="TX0\n";
++
++    buffer[2]='0'+pttstate;
++
++    send_shim(buffer);
++}
++
++void MsgTapBandFreqChanged(const std::string band, unsigned long long freq, const std::string mode)
++{
++    char buffer[82];
++    static std::string last_band;
++    static unsigned long long last_freq;
++    std::vector <std::pair<std::string,unsigned long long>> blacklist={{"2m",145000000}};
++    std::pair<std::string,unsigned long long> p(make_pair(band,freq));
++
++    // duff band and frequency?
++    if(std::find(blacklist.begin(), blacklist.end(), p) != blacklist.end())
++        return;
++
++    if (last_band.compare(band))
++    {
++        last_band = band;
++    
++        snprintf(buffer,sizeof(buffer), "BA%s\n", band.c_str());
++        send_shim(buffer);
++    }
++
++    if (last_freq != freq)
++    {
++        last_freq = freq;
++    
++        snprintf(buffer,sizeof(buffer), "FR%llu,%s,%s\n", freq, mode.c_str(),band.c_str());
++        send_shim(buffer);
++    }
++}
++
+diff -urN wsjtx/MessageTap.h wsjtx/MessageTap.h
+--- wsjtx/MessageTap.h	1970-01-01 01:00:00.000000000 +0100
++++ wsjtx/MessageTap.h	2020-02-15 12:23:24.231385449 +0000
+@@ -0,0 +1,9 @@
++extern void MsgTapPreTransmit(const int, const std::string, const std::string);
++
++void MsgTapMsgTransmit(const volatile int [], const int);
++
++void MsgTapPTT(const bool);
++
++void MsgTapBandFreqChanged(const std::string, unsigned long long, const std::string mode);
++
++
+diff -urN wsjtx//Modulator/Modulator.cpp wsjtx/Modulator/Modulator.cpp
+--- wsjtx/Modulator/Modulator.cpp	2019-11-26 14:22:32.000000000 +0000
++++ wsjtx/Modulator/Modulator.cpp	2019-12-15 11:03:21.113020734 +0000
+@@ -8,6 +8,9 @@
+ #include "commons.h"
+ 
+ #include "moc_Modulator.cpp"
++#include <iostream>
++#include <fstream>
++#include "MessageTap.h"
+ 
+ extern float gran();		// Noise generator (for tests only)
+ 
+@@ -39,6 +42,7 @@
+   , m_cwLevel {false}
+   , m_j0 {-1}
+   , m_toneFrequency0 {1500.0}
++  , m_bSilent {false}
+ {
+ }
+ 
+@@ -98,6 +102,20 @@
+                         Synchronizing : Active));
+   m_stream = stream;
+   if (m_stream) m_stream->restart (this);
++
++  std::ifstream f("/tmp/wsjt-silent");
++  m_bSilent = f.good();
++
++  for (unsigned int z=0;z<m_symbolsLength;z++)
++  {
++      std::cerr <<  itone[z] << ",";
++  }
++
++  MsgTapMsgTransmit(itone, m_symbolsLength);
++
++  std::cerr << std::endl;
++  std::cerr << frequency << std::endl;
++  std::cerr << delay_ms << std::endl;
+ }
+ 
+ void Modulator::tune (bool newState)
+@@ -336,6 +354,9 @@
+ 
+ qint16 Modulator::postProcessSample (qint16 sample) const
+ {
++  if (m_bSilent)
++    return 0.0;
++
+   if (m_addNoise) {  // Test frame, we'll add noise
+     qint32 s = m_fac * (gran () + sample * m_snr / 32768.0);
+     if (s > std::numeric_limits<qint16>::max ()) {
+diff -urN wsjtx/Modulator.hpp wsjtx/Modulator.hpp
+--- wsjtx/Modulator/Modulator.hpp	2019-11-26 14:22:32.000000000 +0000
++++ wsjtx/Modulator/Modulator.hpp	2019-12-15 11:03:21.113020734 +0000
+@@ -91,6 +91,7 @@
+   unsigned m_isym0;
+   int m_j0;
+   double m_toneFrequency0;
++  bool m_bSilent;
+ };
+ 
+ #endif
+diff -urN wsjtx/widgets/mainwindow.cpp wsjtx/widgets/mainwindow.cpp
+--- wsjtx/widgets/mainwindow.cpp	2019-11-26 14:22:32.000000000 +0000
++++ wsjtx/widgets/mainwindow.cpp	2020-02-15 19:24:27.657796891 +0000
+@@ -83,7 +83,8 @@
+ #include "ExportCabrillo.h"
+ #include "ui_mainwindow.h"
+ #include "moc_mainwindow.cpp"
+-
++#include "MessageTap.h"
++#include <iostream>
+ 
+ extern "C" {
+   //----------------------------------------------------- C and Fortran routines
+@@ -308,6 +309,7 @@
+   m_grid6 {false},
+   m_tuneup {false},
+   m_bTxTime {false},
++  m_bPreTx {false},
+   m_rxDone {false},
+   m_bSimplex {false},
+   m_bEchoTxOK {false},
+@@ -2104,6 +2108,7 @@
+ 
+   // lookup band
+   auto const& band_name = m_config.bands ()->find (dial_frequency);
++
+   if (m_lastBand != band_name)
+     {
+       // only change this when necessary as we get called a lot and it
+@@ -2135,6 +2140,9 @@
+     valid = true;
+   }
+ 
++  QString curBand = ui->bandComboBox->currentText();
++  MsgTapBandFreqChanged(curBand.toStdString(), m_freqNominal, m_mode.toStdString());
++
+   update_dynamic_property (ui->labDialFreq, "oob", !valid);
+   ui->labDialFreq->setText (Radio::pretty_frequency_MHz_string (dial_frequency));
+ }
+@@ -3507,6 +3515,54 @@
+   } else {
+ // For all modes other than WSPR
+     m_bTxTime = (t2p >= tx1) and (t2p < tx2);
++
++    /* BEGIN JAGMOD */
++
++    double rx1=fmod((tx1+m_TRperiod), 2*m_TRperiod);
++    double rx2=fmod((tx2+m_TRperiod), 2*m_TRperiod);
++    double rx2end=rx1+m_TRperiod;
++
++    // Within rx slot? If not, as below we're in one of the 'dead' bits
++    // which is either 'pre-transmit' or 'post-transmit'. Need to make
++    // sure we've just been receiving in order to be 'pre-transmit'.
++    bool rxTime = (t2p >= rx1) and (t2p < rx2); // like m_bTxTime
++
++    bool inEndOfRxPeriod = ( (rx2end - t2p) > (0.9 + m_config.txDelay())) and ( (rx2end - t2p) < m_TRperiod);
++    bool preTransmit = (!rxTime) and (!m_bTxTime) and inEndOfRxPeriod;
++
++#if 0
++    if ((!rxTime) and (!m_bTxTime))
++    {
++    std::cerr << "tx1 " << tx1 << std::endl;
++    std::cerr << "t2p " << t2p << std::endl;
++    std::cerr << "tx2 " << tx2 << std::endl;
++    std::cerr << "rx1 " << rx1 << std::endl;
++    std::cerr << "t2p " << t2p << std::endl;
++    std::cerr << "rx2 " << rx2 << std::endl;
++    std::cerr << "rx2end " << rx2end << std::endl;
++    std::cerr << "rx2end - t2p " << rx2end - t2p<< std::endl;
++    std::cerr << "m_txFirst " << m_txFirst << std::endl;
++    std::cerr << "rxtime " << rxTime << std::endl;
++    std::cerr << "txtime " << m_bTxTime << std::endl;
++    std::cerr << "preTransmit " << preTransmit << std::endl;
++    }
++ #endif
++
++    bool b=(m_mode=="FT8" or m_mode=="FT4") and ui->autoButton->isChecked();
++    if (b and preTransmit and !m_bPreTx)
++    {
++        const QString curBand = ui->bandComboBox->currentText();
++        MsgTapPreTransmit(ui->TxFreqSpinBox->value(), curBand.toStdString(), m_mode.toStdString());
++        std::cerr << ui->TxFreqSpinBox->value ()  << std::endl;
++        std::cerr << t2p  << std::endl;
++        std::cerr << "PreTx" << std::endl;
++        m_bPreTx = true;
++    }
++
++    if (m_bTxTime)
++        m_bPreTx = false;
++    /* END JAGMOD */
++
+     if(m_mode=="Echo") m_bTxTime = m_bTxTime and m_bEchoTxOK;
+   }
+   if(m_tune) m_bTxTime=true;                 //"Tune" takes precedence
+@@ -6237,6 +6293,7 @@
+   auto const& row = m_config.frequencies ()->best_working_frequency (m_freqNominal);
+   if (row >= 0) {
+     ui->bandComboBox->setCurrentIndex (row);
++    ui->bandComboBox->setCurrentText(m_config.bands ()->find(m_freqNominal)); //jag
+     on_bandComboBox_activated (row);
+   }
+   ui->rptSpinBox->setSingleStep(1);
+@@ -6457,6 +6514,9 @@
+ {
+   // Set the attenuation value if options are checked
+   QString curBand = ui->bandComboBox->currentText();
++
++  MsgTapBandFreqChanged(curBand.toStdString(), m_freqNominal, m_mode.toStdString());
++
+   if (m_config.pwrBandTxMemory() && !m_tune) {
+       if (m_pwrBandTxMemory.contains(curBand)) {
+         ui->outAttenuation->setValue(m_pwrBandTxMemory[curBand].toInt());
+@@ -6495,9 +6555,12 @@
+ 
+ void MainWindow::vhfWarning()
+ {
+-  MessageBox::warning_message (this, tr ("VHF features warning"),
++    //jag
++#if 0
++    MessageBox::warning_message (this, tr ("VHF features warning"),
+      "VHF/UHF/Microwave features is enabled on a lower frequency band.");
+-  m_bVHFwarned=true;
++#endif
++    m_bVHFwarned=true;
+ }
+ 
+ void MainWindow::enable_DXCC_entity (bool on)
+@@ -6720,6 +6783,12 @@
+     }
+ }
+ 
++void MainWindow::on_pbTRdef_clicked()
++{
++    const int homefreq=1475;
++    ui->TxFreqSpinBox->setValue (homefreq);
++    ui->RxFreqSpinBox->setValue (homefreq);
++}
+ 
+ void MainWindow::on_readFreq_clicked()
+ {
+diff -urN wsjtx/widgets/mainwindow.h wsjtx/widgets/mainwindow.h
+--- wsjtx/widgets/mainwindow.h	2019-11-26 14:22:32.000000000 +0000
++++ wsjtx/widgets/mainwindow.h	2019-12-15 11:03:21.117020769 +0000
+@@ -231,6 +231,7 @@
+   void on_tuneButton_clicked (bool);
+   void on_pbR2T_clicked();
+   void on_pbT2R_clicked();
++  void on_pbTRdef_clicked();
+   void acceptQSO (QDateTime const&, QString const& call, QString const& grid
+                   , Frequency dial_freq, QString const& mode
+                   , QString const& rpt_sent, QString const& rpt_received
+@@ -499,6 +500,7 @@
+   bool    m_grid6;
+   bool    m_tuneup;
+   bool    m_bTxTime;
++  bool    m_bPreTx;
+   bool    m_rxDone;
+   bool    m_bSimplex; // not using split even if it is available
+   bool    m_bEchoTxOK;
+diff -urN wsjtx/widgets/mainwindow.ui wsjtx/widgets/mainwindow.ui
+--- wsjtx/widgets/mainwindow.ui	2019-11-26 14:22:32.000000000 +0000
++++ wsjtx/widgets/mainwindow.ui	2019-12-15 11:03:21.117020769 +0000
+@@ -1141,6 +1141,34 @@
+                   </widget>
+                  </item>
+                  <item>
++                  <widget class="QPushButton" name="pbTRdef">
++                   <property name="sizePolicy">
++                    <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
++                     <horstretch>0</horstretch>
++                     <verstretch>0</verstretch>
++                    </sizepolicy>
++                   </property>
++                   <property name="minimumSize">
++                    <size>
++                     <width>20</width>
++                     <height>0</height>
++                    </size>
++                   </property>
++                   <property name="maximumSize">
++                    <size>
++                     <width>50</width>
++                     <height>20</height>
++                    </size>
++                   </property>
++                   <property name="toolTip">
++                    <string>Set default freq</string>
++                   </property>
++                   <property name="text">
++                    <string>▣</string>
++                   </property>
++                  </widget>
++                 </item>
++                 <item>
+                   <widget class="HintedSpinBox" name="sbFtol">
+                    <property name="toolTip">
+                     <string>Frequency tolerance (Hz)</string>
