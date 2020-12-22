@@ -24,14 +24,14 @@ bin_to_hex(Bin) when is_binary(Bin) ->
       erlang:integer_to_list(LastNibble2, 2),
       " >>" ].
 
-vco_divider_frombin(<<VcoDivider:11>>) ->
+vco_divider(<<_:108, VcoDivider:11, _:13>>) ->
     VcoDivider + 8.
 
-clk_ena(<<_:109,C1:1,C2:1,P:1,_/bitstring>>)->
+clk_ena(<<_:20,P:1,C2:1,C1:1,_:109>>)->
     io:format("Clocks 1 and 2 ~p ~p~n",[C1,C2]),
     io:format("Powerdown ~p~n",[P]).
 
-o2_div(W= <<X:113/bitstring, L:1/bitstring, V:4/bitstring, Y:14/bitstring>>)->
+o2_div(W= <<X:14/bitstring, V:4/bitstring, L:1/bitstring, Y:113/bitstring>>)->
     io:format("W ~p~n",[W]),
     io:format("X ~p~n",[X]),
     io:format("L ~p~n",[L]),
@@ -48,9 +48,8 @@ o2_div(W= <<X:113/bitstring, L:1/bitstring, V:4/bitstring, Y:14/bitstring>>)->
     end,
     io:format("CLK2 Output Divider ~p~n",[VP]).
 
-report_123_124(<<_:122, Clk1:1, Clk2:1, Rest/bitstring>>)->
-    io:format("Bits 123, 124 ~p ~p~n",[Clk1, Clk2]),
-    io:format("Rest ~p~n",[bin_to_hex(Rest)]).
+report_123_124(<<_:8, Clk1:1, Clk2:1, _:122>>)->
+    io:format("Bits 123, 124 ~p ~p~n",[Clk1, Clk2]).
 
 main() ->
     
@@ -59,27 +58,13 @@ main() ->
     %Progword=16#0803F80000200000000000000001C1FF2,
 
     io:format("pw ~p~n",[integer_to_list(Progword,2)]),
-    Word = <<Progword:132/integer-unsigned-little>>,
+    Word = <<Progword:132/integer-unsigned-big>>,
 
     io:format("~p~n",[Word]),
 
+    io:format("VCO Divider ~p~n",[vco_divider(Word)]),
 
-    <<InputDivider:13/bitstring,VcoDivider:11/bitstring,_/bitstring>> = Word,
-
-    <<InputDividerI:13/integer-unsigned-little>> = InputDivider,
-    <<VcoDividerI:11/integer-unsigned-little>> = VcoDivider,
-
-    io:format("ID ~p~n",[InputDivider]),
-    io:format("IDi ~p~n",[InputDividerI]),
-    Tb = <<2#1111111111010:13>>,
-    
-    io:format("D1 ~p~n",[input_divider:input_divider_frombin(Tb)]),
-
-    [ io:format("~p~n",[W]) ||  W <- [InputDividerI, VcoDividerI] ],
-    
-    io:format("Input Divider ~p~n",[input_divider:input_divider_frombin(<<InputDividerI:13>>)]),
-
-    io:format("VCO Divider ~p~n",[vco_divider_frombin(<<VcoDividerI:11>>)]),
+    io:format("Input Divider ~p~n",[input_divider:input_divider(Word)]),
 
     clk_ena(Word),
     o2_div(Word),
