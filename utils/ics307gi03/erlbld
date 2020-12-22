@@ -1,0 +1,1 @@
+erlc ics307gi03.erl input_divider.erl &&  erl -noshell -s ics307gi03  main  -s init stop
