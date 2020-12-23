@@ -30,23 +30,17 @@ vco_divider(<<_:108, VcoDivider:11, _:13>>) ->
     VcoDivider + 8.
 
 % Table 8 Misc Control Bits
-misc_bits(<<0:2, OE3:1, _:4, Clk3Src:1, Clk2Src:1, XtalInput:1,  _:10, P:1, OE2:1, OE1:1, _:109>>)->
+misc_bits(<<0:2, OE3:1, MBZ:2, _:2, Clk3Src:1, Clk2Src:1, XtalInput:1,  _:10, P:1, OE2:1, OE1:1, _:109>>)->
     io:format("Clocks 1, 2, 3 enable: ~p ~p ~p ~n",[OE1, OE2, OE3]),
     io:format("XtalInput: ~p~n",[XtalInput]),
     io:format("Clk2Src Clk3Src: ~p ~p~n", [Clk2Src, Clk3Src]),
-    io:format("Powerdown ~p~n",[P]).
+    io:format("Powerdown ~p~n",[P]),
+    io:format("MBZ ~p~n",[MBZ]).
+
 
 calc_O2O3(V, L)->
-    io:format("L ~p~n",[L]),
-    io:format("V ~p~n",[V]),
-
     VN=((V bxor 2#1111) + 2),
-    io:format("V VN ~p ~p~n",[V, VN]),
-    case L of 
-        0 -> VP=VN;
-        1 -> VP=VN*2
-    end,
-    VP.
+    (L+1) * VN.
 
 % Table 5 Output Divider for Output 1
 o1_div(<<_:33, 0:3, L:1, _:95>>)-> % first two rows
@@ -75,6 +69,10 @@ o1_div(<<_:32, 2#11011:5, _:95>>)->
 
 o1_div(<<_:29, V:5, 2#100:3, _:95>>)->
     (V bxor 2#11111)+6;
+
+% Divide Values 38-8232 - needs testing somehow
+o1_div(<<_:22, Vh:9, Vl:2, B98:1, 2#101:3, _:95>>)->
+    (((Vh + 3) * 2) + (B98 bxor 2#1)) * (1 bsl Vl); % use bsl instead of math:pow
 
 o1_div(<<_:132>>) ->
     error.
