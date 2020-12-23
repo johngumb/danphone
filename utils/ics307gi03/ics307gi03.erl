@@ -36,7 +36,7 @@ misc_bits(<<0:2, OE3:1, _:4, Clk3Src:1, Clk2Src:1, XtalInput:1,  _:10, P:1, OE2:
     io:format("Clk2Src Clk3Src: ~p ~p~n", [Clk2Src, Clk3Src]),
     io:format("Powerdown ~p~n",[P]).
 
-o2_div(<<_:14, V:4/bitstring, L:1, _:113>>)->
+calc_O2O3(V, L)->
     io:format("L ~p~n",[L]),
     io:format("V ~p~n",[V]),
 
@@ -48,6 +48,12 @@ o2_div(<<_:14, V:4/bitstring, L:1, _:113>>)->
         1 -> VP=VN*2
     end,
     VP.
+
+o2_div(<<_:14, V:4/bitstring, L:1, _:113>>)->
+    calc_O2O3(V, L).
+
+o3_div(<<_:10, V:4/bitstring, _:24, L:1, _:93>>)->
+    calc_O2O3(V, L).
 
 main() ->
     
@@ -70,7 +76,10 @@ main() ->
     misc_bits(Word),
 
     Clk2_output_div=o2_div(Word),
-    io:format("CLK2 Output Divider ~p~n",[Clk2_output_div])
+    io:format("CLK2 Output Divider ~p~n",[Clk2_output_div]),
+
+    Clk3_output_div=o2_div(Word),
+    io:format("CLK3 Output Divider ~p~n",[Clk3_output_div])
 .
 
 
