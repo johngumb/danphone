@@ -89,9 +89,9 @@ o3_div(<<_:10, V:4, _:24, L:1, _:93>>)->
 
 main() ->
     
-    Progword=16#31FFDFFEE3BFFFFFFFFFFFFFFFF055FF2, % default from spec
+%    Progword=16#31FFDFFEE3BFFFFFFFFFFFFFFFF055FF2, % default from spec
 %    Progword=16#F25F05FFFFFFFFFFFFFFFF3BEEFFFD1F3,
-%    Progword=16#0803F80000200000000000000001C1FF2, % 116 Mhz calculated
+    Progword=16#0803F80000200000000000000001C1FF2, % 116 Mhz calculated
 
     io:format("pw ~p~n",[integer_to_list(Progword,2)]),
 
@@ -114,7 +114,13 @@ main() ->
     io:format("CLK2 Output Divider ~p~n",[Clk2_output_div]),
 
     Clk3_output_div=o2_div(Word),
-    io:format("CLK3 Output Divider ~p~n",[Clk3_output_div])
+    io:format("CLK3 Output Divider ~p~n",[Clk3_output_div]),
+
+    OutputDivider=Clk1_output_div,
+    InputFreq = 10, % 10MHz
+
+    Clk1Freq = InputFreq * VcoDivider/(InputDivider * OutputDivider),
+    io:format("CLK Freq ~p~n",[Clk1Freq])
 .
 
 
