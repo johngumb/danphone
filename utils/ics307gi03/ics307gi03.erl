@@ -48,17 +48,59 @@ calc_O2O3(V, L)->
     end,
     VP.
 
+% Table 5 Output Divider for Output 1
+o1_div(<<_:33, 0:3, L:1, _:95>>)-> % first two rows
+    L+2;
+
+o1_div(<<_:33, 8:4, _:95>>)-> % row 3
+    4;
+
+o1_div(<<_:34, 2:3, _:95>>)->
+    5;
+
+o1_div(<<_:33, 9:4, _:95>>)->
+    6;
+
+o1_div(<<_:32, 3:5, _:95>>)->
+    7;
+
+o1_div(<<_:29, 2#11101100:8, _:95>>)->
+    8;
+
+o1_div(<<_:32, 2#01011:5, _:95>>)->
+    9;
+
+%o1_div(<<_:29, 2#11011100:8, _:95>>)->
+%    10;
+
+o1_div(<<_:32, 2#10011:5, _:95>>)->
+    11;
+
+%o1_div(<<_:29, 2#11001100:8, _:95>>)->
+%    12;
+
+o1_div(<<_:32, 2#11011:5, _:95>>)->
+    13;
+
+o1_div(<<_:29, V:5, 2#100:3, _:95>>)->
+    (V bxor 2#11111)+6;
+
+o1_div(<<_:132>>) ->
+    error.
+
+% Table 6 Output Divider for Output 2
 o2_div(<<_:14, V:4, L:1, _:113>>)->
     calc_O2O3(V, L).
 
+% Table 7 Output Divider for Output 3
 o3_div(<<_:10, V:4, _:24, L:1, _:93>>)->
     calc_O2O3(V, L).
 
 main() ->
     
-%    Progword=16#31FFDFFEE3BFFFFFFFFFFFFFFFF055FF2, % default from spec
+    Progword=16#31FFDFFEE3BFFFFFFFFFFFFFFFF055FF2, % default from spec
 %    Progword=16#F25F05FFFFFFFFFFFFFFFF3BEEFFFD1F3,
-    Progword=16#0803F80000200000000000000001C1FF2, % 116 Mhz calculated
+%    Progword=16#0803F80000200000000000000001C1FF2, % 116 Mhz calculated
 
     io:format("pw ~p~n",[integer_to_list(Progword,2)]),
 
@@ -73,6 +115,9 @@ main() ->
     io:format("VCO Divider ~p~n",[VcoDivider]),
 
     misc_bits(Word),
+
+    Clk1_output_div=o1_div(Word),
+    io:format("CLK1 Output Divider ~p~n",[Clk1_output_div]),
 
     Clk2_output_div=o2_div(Word),
     io:format("CLK2 Output Divider ~p~n",[Clk2_output_div]),
