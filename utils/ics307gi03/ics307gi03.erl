@@ -40,19 +40,18 @@ calc_O2O3(V, L)->
     io:format("L ~p~n",[L]),
     io:format("V ~p~n",[V]),
 
-    <<Vi:4/integer-unsigned-little>> = V,
-    VN=((Vi bxor 2#1111) + 2),
-    io:format("Vi VN ~p ~p~n",[Vi, VN]),
+    VN=((V bxor 2#1111) + 2),
+    io:format("V VN ~p ~p~n",[V, VN]),
     case L of 
         0 -> VP=VN;
         1 -> VP=VN*2
     end,
     VP.
 
-o2_div(<<_:14, V:4/bitstring, L:1, _:113>>)->
+o2_div(<<_:14, V:4, L:1, _:113>>)->
     calc_O2O3(V, L).
 
-o3_div(<<_:10, V:4/bitstring, _:24, L:1, _:93>>)->
+o3_div(<<_:10, V:4, _:24, L:1, _:93>>)->
     calc_O2O3(V, L).
 
 main() ->
