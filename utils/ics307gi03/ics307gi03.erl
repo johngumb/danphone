@@ -25,50 +25,52 @@ bin_to_hex(Bin) when is_binary(Bin) ->
       " >>" ].
 
 vco_divider(<<_:108, VcoDivider:11, _:13>>) ->
+    % VcoDivider is bound to a little endian 11 bit integer in the match.
+    % No need to go via bitstrings.
     VcoDivider + 8.
 
-clk_ena(<<_:20,P:1,C2:1,C1:1,_:109>>)->
-    io:format("Clocks 1 and 2 ~p ~p~n",[C1,C2]),
+% Table 8 Misc Control Bits
+misc_bits(<<0:2, OE3:1, _:4, Clk3Src:1, Clk2Src:1, XtalInput:1,  _:10, P:1, OE2:1, OE1:1, _:109>>)->
+    io:format("Clocks 1, 2, 3 enable: ~p ~p ~p ~n",[OE1, OE2, OE3]),
+    io:format("XtalInput: ~p~n",[XtalInput]),
+    io:format("Clk2Src Clk3Src: ~p ~p~n", [Clk2Src, Clk3Src]),
     io:format("Powerdown ~p~n",[P]).
 
-o2_div(W= <<X:14/bitstring, V:4/bitstring, L:1/bitstring, Y:113/bitstring>>)->
-    io:format("W ~p~n",[W]),
-    io:format("X ~p~n",[X]),
+o2_div(<<_:14, V:4/bitstring, L:1, _:113>>)->
     io:format("L ~p~n",[L]),
     io:format("V ~p~n",[V]),
-    io:format("Y ~p~n",[Y]),
-
 
     <<Vi:4/integer-unsigned-little>> = V,
     VN=((Vi bxor 2#1111) + 2),
     io:format("Vi VN ~p ~p~n",[Vi, VN]),
     case L of 
-        <<0:1>> -> VP=VN;
-        <<1:1>> -> VP=VN*2
+        0 -> VP=VN;
+        1 -> VP=VN*2
     end,
-    io:format("CLK2 Output Divider ~p~n",[VP]).
-
-report_123_124(<<_:8, Clk1:1, Clk2:1, _:122>>)->
-    io:format("Bits 123, 124 ~p ~p~n",[Clk1, Clk2]).
+    VP.
 
 main() ->
     
-    Progword=16#31FFDFFEE3BFFFFFFFFFFFFFFFF055FF2,
+%    Progword=16#31FFDFFEE3BFFFFFFFFFFFFFFFF055FF2, % default from spec
 %    Progword=16#F25F05FFFFFFFFFFFFFFFF3BEEFFFD1F3,
-    %Progword=16#0803F80000200000000000000001C1FF2,
+    Progword=16#0803F80000200000000000000001C1FF2, % 116 Mhz calculated
 
     io:format("pw ~p~n",[integer_to_list(Progword,2)]),
+
     Word = <<Progword:132/integer-unsigned-big>>,
 
     io:format("~p~n",[Word]),
 
-    io:format("VCO Divider ~p~n",[vco_divider(Word)]),
+    InputDivider = input_divider:input_divider(Word),
+    VcoDivider = vco_divider(Word),
 
-    io:format("Input Divider ~p~n",[input_divider:input_divider(Word)]),
+    io:format("Input Divider ~p~n",[InputDivider]),
+    io:format("VCO Divider ~p~n",[VcoDivider]),
 
-    clk_ena(Word),
-    o2_div(Word),
-    report_123_124(Word)
+    misc_bits(Word),
+
+    Clk2_output_div=o2_div(Word),
+    io:format("CLK2 Output Divider ~p~n",[Clk2_output_div])
 .
 
 
