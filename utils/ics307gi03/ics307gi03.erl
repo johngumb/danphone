@@ -32,30 +32,41 @@ vco_divider(<<_:108, VcoDivider:11, _:13>>) ->
     % No need to go via bitstrings.
     VcoDivider + 8.
 
+mod_vco_divider(<<H:108,_:11,L:13>>, NewDiv)->
+    %BNewDiv=binary:decode_unsigned(binary:encode_unsigned(NewDiv),big),
+    NW= <<H:108,(NewDiv-8):11/integer-unsigned-big,L:13>>,
+    io:format("mod_vco_divider ~p: ~p ~n", [NW]),
+    NW.
+
 % Table 3. Charge pump current.
 charge_pump_current(<<_:3,H:2,_:33,L:3,_:91>>)->
     %Icp = ([128...127]+1)*1.25μA*([~93 ~92 ~91] + 1)
 
     (H+1)*1.25*((L bxor 2#111) +1).
 
-% continue with low bit of this
-return_if_found(NewWord,_Word,_N,_CPI,_CPI)->
+return_if_found(NewWord,_Word,N,L,_CPI,_CPI)->
+    %io:format("N ~p L ~p ~n", [N, L]),
     NewWord;
 
-return_if_found(_NewWord,_Word,-1,_ReqCpi,_ActCPI)->
+return_if_found(_NewWord,_Word,-1,-1,_ReqCpi,_ActCPI)->
     notfound;
 
-return_if_found(_NewWord,Word,N,ReqCpi,ActCPI)->
-    io:format("reqcpi actcpi ~p ~p ~n",[ReqCpi,ActCPI]),
-    mod_cpi_h(Word, ReqCpi, N-1).
+return_if_found(_NewWord,Word,-1,L,ReqCpi,ActCPI)->
+    %io:format("reqcpi actcpi ~p ~p ~n",[ReqCpi,ActCPI]),
+    mod_cpi_h(Word, ReqCpi, 3, L-1);
 
-mod_cpi_h(Word, ReqCpi, N)->
-    <<T:3,_:2,M:33,L:3,B:91>> = Word,
+return_if_found(_NewWord,Word,N,L,ReqCpi,ActCPI)->
+    %io:format("reqcpi actcpi ~p ~p ~n",[ReqCpi,ActCPI]),
+    mod_cpi_h(Word, ReqCpi, N-1, L).
+
+mod_cpi_h(Word, ReqCpi, N, L)->
+    <<T:3,_:2,M:33,_:3,B:91>> = Word,
     CPI=charge_pump_current(NewWord = <<T:3,N:2,M:33,L:3,B:91>>),
-    return_if_found(NewWord,Word,N,ReqCpi,CPI).
+    return_if_found(NewWord,Word,N,L,ReqCpi,CPI).
+
 
 mod_cpi(Word, ReqCpi)->
-    mod_cpi_h(Word, ReqCpi, 3).
+    mod_cpi_h(Word, ReqCpi, 3, 7).
 %
 % Table 4. Loop filter resistor.
 % BUG? Power up value of 16k does not match what this reports
@@ -140,15 +151,25 @@ main() ->
     % report original word
     io:format("~.16B~n",[Progword]),
 
-    Word = <<Progword:132/integer-unsigned-big>>,
-    io:format("~p~n",[Word]),
+    OrigWord = <<Progword:132/integer-unsigned-big>>,
+
+    io:format("~p~n",[OrigWord]),
 
 
-    InputDivider = input_divider:input_divider(Word),
-    VcoDivider = vco_divider(Word),
+    InputDivider = input_divider:input_divider(OrigWord),
+%    VcoDivider = vco_divider(OrigWord),
 
     io:format("Input Divider ~p~n",[InputDivider]),
+
+    %WW1=mod_vco_divider(OrigWord, 232),
+    Word = OrigWord,
+    io:format("~p~n",[Word]),
+    VcoDivider = vco_divider(Word),
     io:format("VCO Divider ~p~n",[VcoDivider]),
+
+
+
+
 
     CP_current=charge_pump_current(Word),
     io:format("Charge pump current uA ~p~n",[CP_current]),
@@ -164,8 +185,9 @@ main() ->
     <<W2i:132/integer-unsigned-big>>=W2,
     io:format("~.16B~n",[W2i]),
 
-    W3=mod_cpi(Word, 10.0),
-    io:format("modded cpi ~p ~n",[W3]),
+    NewCpi=26.25,
+    W3=mod_cpi(Word, NewCpi),
+    io:format("modded cpi for ~p: ~p ~n",[NewCpi, W3]),
     <<W3i:132/integer-unsigned-big>>=W3,
     io:format("~.16B~n",[W3i]),
 
