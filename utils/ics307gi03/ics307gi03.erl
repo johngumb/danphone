@@ -34,8 +34,8 @@ vco_divider(<<_:108, VcoDivider:11, _:13>>) ->
 
 mod_vco_divider(<<H:108,_:11,L:13>>, NewDiv)->
     %BNewDiv=binary:decode_unsigned(binary:encode_unsigned(NewDiv),big),
-    NW= <<H:108,(NewDiv-8):11/integer-unsigned-big,L:13>>,
-    io:format("mod_vco_divider ~p: ~p ~n", [NW]),
+    NW= <<H:108,(NewDiv-8):11,L:13>>,
+    io:format("mod_vco_divider ~p: ~p ~n", [NewDiv, NW]),
     NW.
 
 % Table 3. Charge pump current.
@@ -120,6 +120,23 @@ o1_div(<<_:22, Vh:9, Vl:2, B98:1, 2#101:3, _:95>>)->
 o1_div(<<_:132>>) ->
     error.
 
+return_or_continue(_W, NW, ReqDiv, ReqDiv, V)->
+    NW;
+
+return_or_continue(_W, _NW, _, _, 32768) ->
+    notfound;
+
+return_or_continue(W, _NW, ReqDiv, ActDiv, V)->
+    mod_o1div_worker(W, ReqDiv, V+1).
+
+mod_o1div_worker(W, ReqDiv, V)->
+    <<H:22, _:15, L:95>> = W,
+    ActDiv = o1_div(NW= <<H:22, V:15, L:95>>),
+    return_or_continue(W, NW, ReqDiv, ActDiv, V).
+
+mod_o1div(W, ReqDiv)->
+    mod_o1div_worker(W, ReqDiv, 0).
+
 calc_O2O3(V, L)->
     VN=((V bxor 2#1111) + 2),
     (L+1) * VN.
@@ -133,12 +150,15 @@ o3_div(<<_:10, V:4, _:24, L:1, _:93>>)->
     calc_O2O3(V, L).
 
 % Table 8 Misc Control Bits
-misc_bits(<<0:2, OE3:1, MBZ:2, _:2, Clk3Src:1, Clk2Src:1, XtalInput:1,  _:10, P:1, OE2:1, OE1:1, _:109>>)->
+misc_bits(<<0:2, OE3:1, MBZ:2, _:2, Clk3Src:1, Clk2Src:1, XtalInput:1, _:10, P:1, OE2:1, OE1:1, _:109>>)->
     io:format("Clocks 1, 2, 3 enable: ~p ~p ~p ~n",[OE1, OE2, OE3]),
     io:format("XtalInput: ~p~n",[XtalInput]),
     io:format("Clk2Src Clk3Src: ~p ~p~n", [Clk2Src, Clk3Src]),
     io:format("Powerdown ~p~n",[P]),
     io:format("MBZ ~p~n",[MBZ]).
+
+mod_misc_bits(<<0:2, _OE3:1, MBZ:2, A:2, Clk3Src:1, Clk2Src:1, XtalInput:1, B:10, P:1, _OE2:1, _OE1:1, L:109>>, NOE1, NOE2, NOE3)->
+    <<0:2, NOE3:1, MBZ:2, A:2, Clk3Src:1, Clk2Src:1, XtalInput:1, B:10, P:1, NOE2:1, NOE1:1, L:109>>.
 
 main() ->
     
@@ -151,7 +171,7 @@ main() ->
     % report original word
     io:format("~.16B~n",[Progword]),
 
-    OrigWord = <<Progword:132/integer-unsigned-big>>,
+    OrigWord = <<Progword:132>>,
 
     io:format("~p~n",[OrigWord]),
 
@@ -161,15 +181,11 @@ main() ->
 
     io:format("Input Divider ~p~n",[InputDivider]),
 
-    %WW1=mod_vco_divider(OrigWord, 232),
-    Word = OrigWord,
+    WW1=mod_vco_divider(OrigWord, 232),
+    Word = WW1,
     io:format("~p~n",[Word]),
     VcoDivider = vco_divider(Word),
     io:format("VCO Divider ~p~n",[VcoDivider]),
-
-
-
-
 
     CP_current=charge_pump_current(Word),
     io:format("Charge pump current uA ~p~n",[CP_current]),
@@ -192,26 +208,44 @@ main() ->
     io:format("~.16B~n",[W3i]),
 
     misc_bits(Word),
+    XW=mod_misc_bits(Word,1,1,0),
+    misc_bits(XW),
 
-    Clk1_output_div=o1_div(Word),
+
+    NV=20,
+    C1W=mod_o1div(Word, NV),
+    io:format("CLK1 Output Divider modded ~p ~p ~n",[NV, C1W]),
+
+    Clk1_output_div=o1_div(C1W),
     io:format("CLK1 Output Divider ~p~n",[Clk1_output_div]),
 
-    Clk2_output_div=o2_div(Word),
-    io:format("CLK2 Output Divider ~p~n",[Clk2_output_div]),
+    OutputDivider2=o2_div(C1W),
+    io:format("CLK2 Output Divider ~p~n",[OutputDivider2]),
 
-    Clk3_output_div=o2_div(Word),
-    io:format("CLK3 Output Divider ~p~n",[Clk3_output_div]),
+    OutputDivider3=o3_div(C1W),
+    io:format("CLK3 Output Divider ~p~n",[OutputDivider3]),
 
-    OutputDivider=Clk1_output_div,
+    OutputDivider1=Clk1_output_div,
     InputFreq = 10, % 10MHz
 
-    Clk1Freq = InputFreq * VcoDivider/(InputDivider * OutputDivider),
     VCOFreq = InputFreq * VcoDivider/InputDivider,
-    io:format("CLK Freq ~p~n",[Clk1Freq]),
+    Clk1Freq = VCOFreq/OutputDivider1,
+    Clk2Freq = VCOFreq/OutputDivider2,
+    Clk3Freq = VCOFreq/OutputDivider3,
+
     io:format("VCO Freq ~p~n",[VCOFreq]),
+    io:format("CLK1 Freq ~p~n",[Clk1Freq]),
+    io:format("CLK2 Freq ~p~n",[Clk2Freq]),
+    io:format("CLK3 Freq ~p~n",[Clk3Freq]),
+
+    <<C1Wi:132>>=W2,
+    io:format("~.16B~n",[C1Wi]),
 
     ok = ?assert(VCOFreq>100.0),
     ok = ?assert(VCOFreq<730.0)
+
+
+    %ad9862:test(1 + 128 + 256 + 512)
 .
 
 
