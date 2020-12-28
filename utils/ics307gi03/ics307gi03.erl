@@ -88,7 +88,7 @@ loop_filter_resistor(<<_:41,3:2,_:89>>)->
     4.
 
 %Nv = 0..3
-mod_loop_filter_resistor(<<H:41,V:2,L:89>>, Nv)->
+mod_loop_filter_resistor(<<H:41,_V:2,L:89>>, Nv)->
     <<H:41,Nv:2,L:89>>.
 
 % Table 5 Output Divider for Output 1
@@ -126,13 +126,13 @@ o1_div(<<_:22, Vh:9, Vl:2, B98:1, 2#101:3, _:95>>)->
 o1_div(<<_:132>>) ->
     error.
 
-return_or_continue(_W, NW, ReqDiv, ReqDiv, V, Limit, _TestFun)->
+return_or_continue(_W, NW, _ReqDiv, _ReqDiv, _V, _Limit, _TestFun)->
     NW;
 
 return_or_continue(_W, _NW, _, _, _Limit, _Limit, _TestFun) ->
     notfound;
 
-return_or_continue(W, _NW, ReqDiv, ActDiv, V, _Limit, TestFun)->
+return_or_continue(W, _NW, ReqDiv, _ActDiv, V, _Limit, TestFun)->
     TestFun(W, ReqDiv, V+1).
 
 mod_o1div_worker(W, ReqDiv, V)->
@@ -158,7 +158,7 @@ o3_div(<<_:10, V:4, _:24, L:1, _:93>>)->
 mod_o2div_worker(W, ReqDiv, V)->
     <<H:14, _:5, L:113>> = W,
     ActDiv = o2_div(NW= <<H:14, V:5, L:113>>),
-    return_or_continue(W, NW, ReqDiv, ActDiv, V, Limit=32, fun mod_o2div_worker/3).
+    return_or_continue(W, NW, ReqDiv, ActDiv, V, _Limit=32, fun mod_o2div_worker/3).
 
 mod_o2div(W, ReqDiv)->
     mod_o2div_worker(W, ReqDiv, 0).
@@ -167,7 +167,7 @@ mod_o3div_worker(W, ReqDiv, V)->
     <<H:10, _:4, M:24, _:1, L:93>> = W,
     <<_:3, VU:4, VL:1>> = <<V>>,
     ActDiv = o3_div(NW= <<H:10, VU:4, M:24, VL:1, L:93>>),
-    return_or_continue(W, NW, ReqDiv, ActDiv, V, Limit=32, fun mod_o3div_worker/3).
+    return_or_continue(W, NW, ReqDiv, ActDiv, V, _Limit=32, fun mod_o3div_worker/3).
 
 mod_o3div(W, ReqDiv)->
     mod_o3div_worker(W, ReqDiv, 0).
@@ -270,6 +270,8 @@ main() ->
 %    Progword=16#F25F05FFFFFFFFFFFFFFFF3BEEFFFD1F3,
     Progword=16#0803F80000200000000000000001C1FF2, % 116 Mhz calculated
 
+%    Progword=16#1003DC06E1200000000000000000D9FF2, % clk1 23.2, clk2 116 calculated
+
     io:format("pw ~p~n",[integer_to_list(Progword,2)]),
 
     % report original word
@@ -310,11 +312,12 @@ main() ->
 
 
     C3W=mod_o3div(C1W, 4),
-    report_word(C3W)
+    report_word(C3W),
 
 
 
-    %% %ad9862:test(1 + 128 + 256 + 512)
+
+    ad9862:test(1 + 128 + 256 + 512)
 .
 
 
