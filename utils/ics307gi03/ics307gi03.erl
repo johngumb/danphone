@@ -155,40 +155,28 @@ o2_div(<<_:14, V:4, L:1, _:113>>)->
 o3_div(<<_:10, V:4, _:24, L:1, _:93>>)->
     calc_O2O3(V, L).
 
-o2div_return_or_continue(_W, NW, ReqDiv, ReqDiv, V)->
-    io:format("PPPP ~p ~p ~n",[ReqDiv, V]),
+o2div_return_or_continue(_W, NW, ReqDiv, ReqDiv, V, _TestFun)->
     NW;
 
-o2div_return_or_continue(_W, _NW, _, _, 32) ->
+o2div_return_or_continue(_W, _NW, _, _, 32, _TestFun) ->
     notfound;
 
-o2div_return_or_continue(W, _NW, ReqDiv, ActDiv, V)->
-    mod_o2div_worker(W, ReqDiv, V+1).
+o2div_return_or_continue(W, _NW, ReqDiv, ActDiv, V, TestFun)->
+    TestFun(W, ReqDiv, V+1).
 
 mod_o2div_worker(W, ReqDiv, V)->
     <<H:14, _:5, L:113>> = W,
     ActDiv = o2_div(NW= <<H:14, V:5, L:113>>),
-    o2div_return_or_continue(W, NW, ReqDiv, ActDiv, V).
+    o2div_return_or_continue(W, NW, ReqDiv, ActDiv, V, fun mod_o2div_worker/3).
 
 mod_o2div(W, ReqDiv)->
     mod_o2div_worker(W, ReqDiv, 0).
 
-o3div_return_or_continue(_W, NW, ReqDiv, ReqDiv, V, F)->
-    NW;
-
-o3div_return_or_continue(_W, _NW, _, _, 32, F) ->
-    notfound;
-
-o3div_return_or_continue(W, _NW, ReqDiv, ActDiv, V, F)->
-    %mod_o3div_worker(W, ReqDiv, V+1).
-    F(W, ReqDiv, V+1).
-
 mod_o3div_worker(W, ReqDiv, V)->
     <<H:10, _:4, M:24, _:1, L:93>> = W,
-    <<_:3, VU:4,VL:1>> = <<V>>,
-    io:format("~p~n",[V]),
+    <<_:3, VU:4, VL:1>> = <<V>>,
     ActDiv = o3_div(NW= <<H:10, VU:4, M:24, VL:1, L:93>>),
-    o3div_return_or_continue(W, NW, ReqDiv, ActDiv, V, fun mod_o3div_worker/3).
+    o2div_return_or_continue(W, NW, ReqDiv, ActDiv, V, fun mod_o3div_worker/3).
 
 mod_o3div(W, ReqDiv)->
     mod_o3div_worker(W, ReqDiv, 0).
