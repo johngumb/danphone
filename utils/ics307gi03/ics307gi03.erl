@@ -126,19 +126,19 @@ o1_div(<<_:22, Vh:9, Vl:2, B98:1, 2#101:3, _:95>>)->
 o1_div(<<_:132>>) ->
     error.
 
-return_or_continue(_W, NW, ReqDiv, ReqDiv, V)->
+return_or_continue(_W, NW, ReqDiv, ReqDiv, V, Limit, _TestFun)->
     NW;
 
-return_or_continue(_W, _NW, _, _, 32768) ->
+return_or_continue(_W, _NW, _, _, _Limit, _Limit, _TestFun) ->
     notfound;
 
-return_or_continue(W, _NW, ReqDiv, ActDiv, V)->
-    mod_o1div_worker(W, ReqDiv, V+1).
+return_or_continue(W, _NW, ReqDiv, ActDiv, V, _Limit, TestFun)->
+    TestFun(W, ReqDiv, V+1).
 
 mod_o1div_worker(W, ReqDiv, V)->
     <<H:22, _:15, L:95>> = W,
     ActDiv = o1_div(NW= <<H:22, V:15, L:95>>),
-    return_or_continue(W, NW, ReqDiv, ActDiv, V).
+    return_or_continue(W, NW, ReqDiv, ActDiv, V, 32768, fun mod_o1div_worker/3).
 
 mod_o1div(W, ReqDiv)->
     mod_o1div_worker(W, ReqDiv, 0).
@@ -155,19 +155,10 @@ o2_div(<<_:14, V:4, L:1, _:113>>)->
 o3_div(<<_:10, V:4, _:24, L:1, _:93>>)->
     calc_O2O3(V, L).
 
-o2div_return_or_continue(_W, NW, ReqDiv, ReqDiv, V, _TestFun)->
-    NW;
-
-o2div_return_or_continue(_W, _NW, _, _, 32, _TestFun) ->
-    notfound;
-
-o2div_return_or_continue(W, _NW, ReqDiv, ActDiv, V, TestFun)->
-    TestFun(W, ReqDiv, V+1).
-
 mod_o2div_worker(W, ReqDiv, V)->
     <<H:14, _:5, L:113>> = W,
     ActDiv = o2_div(NW= <<H:14, V:5, L:113>>),
-    o2div_return_or_continue(W, NW, ReqDiv, ActDiv, V, fun mod_o2div_worker/3).
+    return_or_continue(W, NW, ReqDiv, ActDiv, V, Limit=32, fun mod_o2div_worker/3).
 
 mod_o2div(W, ReqDiv)->
     mod_o2div_worker(W, ReqDiv, 0).
@@ -176,7 +167,7 @@ mod_o3div_worker(W, ReqDiv, V)->
     <<H:10, _:4, M:24, _:1, L:93>> = W,
     <<_:3, VU:4, VL:1>> = <<V>>,
     ActDiv = o3_div(NW= <<H:10, VU:4, M:24, VL:1, L:93>>),
-    o2div_return_or_continue(W, NW, ReqDiv, ActDiv, V, fun mod_o3div_worker/3).
+    return_or_continue(W, NW, ReqDiv, ActDiv, V, Limit=32, fun mod_o3div_worker/3).
 
 mod_o3div(W, ReqDiv)->
     mod_o3div_worker(W, ReqDiv, 0).
