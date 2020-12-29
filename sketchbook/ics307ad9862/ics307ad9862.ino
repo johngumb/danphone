@@ -14,8 +14,8 @@ unsigned char progword2[]={0x00, 0x80, 0x3F, 0xC0, 0x46, 0x02, 0x00, 0x00, 0x00,
 
 // AD9862
 unsigned char ad9862reset[]={0x00, 0x20};
-unsigned char ad9862dacW1[]={0x2A, 0x40}; // 3:0 116MHz adjusted exactly
-unsigned char ad9862dacW2[]={0x2B, 0x58}; // 11:4 116MHz adjusted exactly
+unsigned char ad9862dacW1[]={0x2A, 0xD0}; // 3:0 116MHz adjusted exactly
+unsigned char ad9862dacW2[]={0x2B, 0x57}; // 11:4 116MHz adjusted exactly
 
 /*
  * Arduino UNO
@@ -35,7 +35,7 @@ void setup() {
   Serial.println("");
 
   pinMode(AD9862_CSEL, OUTPUT);
-  digitalWrite(SS, LOW);    // SS is pin 10
+  digitalWrite(SS, HIGH);    // SS is pin 10
   digitalWrite(AD9862_CSEL, LOW);
   
   SPI.begin();
@@ -50,9 +50,9 @@ void setup() {
 
 
   // ics307 needs a 'blip' after programming
-  digitalWrite(SS, HIGH);
-  delay (1);
   digitalWrite(SS, LOW);
+  delay (1);
+  digitalWrite(SS, HIGH);
 
   // AD9862 programming
   digitalWrite(AD9862_CSEL, HIGH);
@@ -72,7 +72,7 @@ void setup() {
   digitalWrite(AD9862_CSEL, HIGH);
   SPI.transfer(ad9862dacW2[0]);
   SPI.transfer(ad9862dacW2[1]);
-  //digitalWrite(AD9862_CSEL, LOW); 
+  digitalWrite(AD9862_CSEL, LOW);
 }
 
 void loop() {
