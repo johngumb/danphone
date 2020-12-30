@@ -17,7 +17,7 @@ unsigned char progword2[]={0x00, 0x80, 0x3F, 0xC0, 0x46, 0x02, 0x00, 0x00, 0x00,
 unsigned char ad9862reset[]={0x00, 0x20};
 unsigned char ad9862dacW1[]={0x2A, 0xD0}; // 3:0 116MHz adjusted exactly
 unsigned char ad9862dacW2[]={0x2B, 0x57}; // 11:4 116MHz adjusted exactly
-unsigned char ad9862dacW12[]={0x2B | TWO_BYTE_TRANSFER, 0x57, 0x40}; // 11:4 116MHz adjusted exactly
+unsigned char ad9862dacW12[]={0x2B | TWO_BYTE_TRANSFER, 0x57, 0x60}; // 11:4 116MHz adjusted exactly
 
 /*
  * Arduino UNO
