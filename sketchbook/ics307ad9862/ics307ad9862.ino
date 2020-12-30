@@ -12,10 +12,12 @@ unsigned char  progword[]={0x00, 0x80, 0x3F, 0x80, 0x00, 0x02, 0x00, 0x00, 0x00,
 // output 2 116 MHz
 unsigned char progword2[]={0x00, 0x80, 0x3F, 0xC0, 0x46, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x1F, 0xF2};
 
+#define TWO_BYTE_TRANSFER 0x40
 // AD9862
 unsigned char ad9862reset[]={0x00, 0x20};
 unsigned char ad9862dacW1[]={0x2A, 0xD0}; // 3:0 116MHz adjusted exactly
 unsigned char ad9862dacW2[]={0x2B, 0x57}; // 11:4 116MHz adjusted exactly
+unsigned char ad9862dacW12[]={0x2B | TWO_BYTE_TRANSFER, 0x57, 0x40}; // 11:4 116MHz adjusted exactly
 
 /*
  * Arduino UNO
@@ -30,6 +32,8 @@ unsigned char ad9862dacW2[]={0x2B, 0x57}; // 11:4 116MHz adjusted exactly
 void setup() {
   // put your setup code here, to run once:
 
+  unsigned char val, reg;
+  
   Serial.begin(115200);
   Serial.println("307GI03L Test");
   Serial.println("");
@@ -54,25 +58,67 @@ void setup() {
   delay (1);
   digitalWrite(SS, HIGH);
 
-  // AD9862 programming
+
+  // AD9862 programming: reset the device
   digitalWrite(AD9862_CSEL, HIGH);
   SPI.transfer(ad9862reset[0]);
   SPI.transfer(ad9862reset[1]);
   digitalWrite(AD9862_CSEL, LOW);
-  
-  delay(1);
-  
+
+#if 0
   digitalWrite(AD9862_CSEL, HIGH);
   SPI.transfer(ad9862dacW1[0]);
   SPI.transfer(ad9862dacW1[1]);
   digitalWrite(AD9862_CSEL, LOW);
-  
-  delay(1);
-  
+
   digitalWrite(AD9862_CSEL, HIGH);
   SPI.transfer(ad9862dacW2[0]);
   SPI.transfer(ad9862dacW2[1]);
   digitalWrite(AD9862_CSEL, LOW);
+#endif
+
+#if 1
+  digitalWrite(AD9862_CSEL, HIGH);
+  SPI.transfer(ad9862dacW12[0]);
+  SPI.transfer(ad9862dacW12[1]);
+  SPI.transfer(ad9862dacW12[2]);
+  digitalWrite(AD9862_CSEL, LOW);
+#endif
+
+#if 1
+  // register 1 rx power down
+  digitalWrite(AD9862_CSEL, HIGH);
+  SPI.transfer(0x01);
+  SPI.transfer(0x01);
+  digitalWrite(AD9862_CSEL, LOW);
+#endif
+
+
+  // register 8 tx power down
+  digitalWrite(AD9862_CSEL, HIGH);
+  SPI.transfer(0x08);
+  SPI.transfer(0x07);
+  digitalWrite(AD9862_CSEL, LOW);
+
+#if 1
+  // DLL power down
+  digitalWrite(AD9862_CSEL, HIGH);
+  SPI.transfer(24);
+  SPI.transfer(0x04);
+  digitalWrite(AD9862_CSEL, LOW);
+#endif
+
+// read back a register we wrote
+  reg=43;
+  digitalWrite(AD9862_CSEL, HIGH);
+  SPI.transfer(0x80|reg);
+  val = SPI.transfer(0); // read back
+  digitalWrite(AD9862_CSEL, LOW);
+  Serial.print("Register ");
+  Serial.print(reg);
+  Serial.print(" : 0x");
+  Serial.println(val, HEX);
+
 }
 
 void loop() {
