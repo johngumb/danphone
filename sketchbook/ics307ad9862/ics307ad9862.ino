@@ -22,7 +22,7 @@ unsigned char progword2[]={0x00, 0x80, 0x3F, 0xC0, 0x46, 0x02, 0x00, 0x00, 0x00,
 #define TWO_BYTE_TRANSFER 0x40
 // AD9862
 unsigned char ad9862reset[]={0x00, 0x20};
-unsigned char ad9862dacW1[]={0x2A, 0xD0}; // 3:0 116MHz adjusted exactly
+unsigned char ad9862dacW1[]={0x2A, 0x80}; // 3:0 116MHz adjusted exactly
 unsigned char ad9862dacW2[]={0x2B, 0x57}; // 11:4 116MHz adjusted exactly
 unsigned char ad9862dacW12[]={0x2B | TWO_BYTE_TRANSFER, 0x57, 0x80}; // 11:4 116MHz adjusted exactly
 
@@ -79,9 +79,13 @@ void ad9862_write(const unsigned int reg, const unsigned int val)
   digitalWrite(AD9862_CSEL, LOW);  
 }
 
-void ad9862_write2()
+void ad9862_write2(const unsigned int reg, const unsigned int val1, const unsigned int val2)
 {
-
+  digitalWrite(AD9862_CSEL, HIGH);
+  SPI.transfer(((reg+1)|TWO_BYTE_TRANSFER));
+  SPI.transfer(val2);
+  SPI.transfer(val1);
+  digitalWrite(AD9862_CSEL, LOW);  
 }
 
 unsigned int ad9862_read(const unsigned int reg)
@@ -116,10 +120,6 @@ bool ad9862_write_verified(const unsigned int reg, const unsigned int val)
   (val == readback_val);
 }
 
-void ad9862_write2_verified(void)
-{
-  
-}
 void setup() {
   // put your setup code here, to run once:
 
@@ -128,7 +128,6 @@ void setup() {
   Serial.begin(115200);
   Serial.println("307GI03L Test");
   Serial.println("");
-
 
   //digitalWrite(GREEN_PIN2, HIGH);
   red_led(on);
@@ -162,12 +161,6 @@ void setup() {
 
 
   // AD9862 programming: reset the device
-#if 0
-  digitalWrite(AD9862_CSEL, HIGH);
-  SPI.transfer(ad9862reset[0]);
-  SPI.transfer(ad9862reset[1]);
-  digitalWrite(AD9862_CSEL, LOW);
-#endif
   ad9862_write(0, 0x20); // can't use write_verified here
 
 #if 0
@@ -182,40 +175,22 @@ void setup() {
   digitalWrite(AD9862_CSEL, LOW);
 #endif
 
-#if 1
+#if 0
   digitalWrite(AD9862_CSEL, HIGH);
   SPI.transfer(ad9862dacW12[0]);
   SPI.transfer(ad9862dacW12[1]);
   SPI.transfer(ad9862dacW12[2]);
   digitalWrite(AD9862_CSEL, LOW);
 #endif
+  ad9862_write2(0x2A, ad9862dacW1[1], ad9862dacW2[1]);
 
-#if 0
   // register 1 rx power down
-  digitalWrite(AD9862_CSEL, HIGH);
-  SPI.transfer(0x01);
-  SPI.transfer(0x01);
-  digitalWrite(AD9862_CSEL, LOW);
-#endif
   ad9862_write_verified(0x01, 0x01);
 
-#if 0
   // register 8 tx power down
-  digitalWrite(AD9862_CSEL, HIGH);
-  SPI.transfer(0x08);
-  SPI.transfer(0x07);
-  digitalWrite(AD9862_CSEL, LOW);
-#endif
   ad9862_write_verified(0x08, 0x07);
-  
 
-#if 0
   // DLL power down
-  digitalWrite(AD9862_CSEL, HIGH);
-  SPI.transfer(24);
-  SPI.transfer(0x04);
-  digitalWrite(AD9862_CSEL, LOW);
-#endif
   ad9862_write_verified(24, 0x04);
 
 // read back a register we wrote
