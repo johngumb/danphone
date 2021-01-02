@@ -179,16 +179,16 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV64);
 }
 
-static bool g_initialised;
+static bool g_board_initialised;
 
 void loop() {
 
-  while(!g_initialised)
+  while(!g_board_initialised)
   {
     if (board_init())
     {
       Serial.println("init ok");
-      g_initialised=true;
+      g_board_initialised=true;
       break;
     }
 
@@ -196,7 +196,7 @@ void loop() {
     delay(3000);
   }
 
-  if (g_initialised)
+  if (g_board_initialised)
   {
     red_led(off);
     green_led(on);
