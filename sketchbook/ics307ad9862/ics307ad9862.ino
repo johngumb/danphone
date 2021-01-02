@@ -1,6 +1,12 @@
 // i2c #include <Wire.h>
 #include <SPI.h>
 
+
+typedef enum {
+  off = 0,
+  on = 1
+} led_state_t;
+
 // https://www.renesas.com/us/en/products/clocks-timing/clock-generation/clocks-general-purpose/307-03-serially-programmable-clock-source#tools_support
 // 307GI03 synth chip.
 // st
@@ -20,6 +26,9 @@ unsigned char ad9862dacW1[]={0x2A, 0xD0}; // 3:0 116MHz adjusted exactly
 unsigned char ad9862dacW2[]={0x2B, 0x57}; // 11:4 116MHz adjusted exactly
 unsigned char ad9862dacW12[]={0x2B | TWO_BYTE_TRANSFER, 0x57, 0x80}; // 11:4 116MHz adjusted exactly
 
+#define GREEN_PIN2 2
+#define RED_PIN3 3
+
 /*
  * Arduino UNO
  * Pin 13 SCK
@@ -30,6 +39,87 @@ unsigned char ad9862dacW12[]={0x2B | TWO_BYTE_TRANSFER, 0x57, 0x80}; // 11:4 116
  */
 #define AD9862_CSEL 9
 
+bool g_led_initialised;
+
+void led_init(void) {
+   pinMode(GREEN_PIN2, OUTPUT);
+   pinMode(RED_PIN3, OUTPUT);
+   g_led_initialised=1;
+}
+
+void set_led(const int led, const led_state_t state)
+{
+  if (!g_led_initialised)
+    led_init();
+
+  switch(state)
+  {
+  case off: digitalWrite(led, LOW);
+  break;
+  case on: digitalWrite(led, HIGH);
+  break;
+  }
+}
+
+void red_led(const led_state_t state)
+{
+  set_led(RED_PIN3, state);
+}
+
+void green_led(const led_state_t state)
+{
+  set_led(GREEN_PIN2, state);
+}
+
+void ad9862_write(const unsigned int reg, const unsigned int val)
+{
+  digitalWrite(AD9862_CSEL, HIGH);
+  SPI.transfer(reg);
+  SPI.transfer(val);
+  digitalWrite(AD9862_CSEL, LOW);  
+}
+
+void ad9862_write2()
+{
+
+}
+
+unsigned int ad9862_read(const unsigned int reg)
+{
+  unsigned int val;
+
+  digitalWrite(AD9862_CSEL, HIGH);
+  SPI.transfer(0x80|reg);
+  val = SPI.transfer(0); // read back
+  digitalWrite(AD9862_CSEL, LOW);
+
+  return val;
+}
+
+bool ad9862_write_verified(const unsigned int reg, const unsigned int val)
+{
+  unsigned int readback_val;
+  
+  ad9862_write(reg, val);
+  readback_val = ad9862_read(reg);
+
+  if (val != readback_val)
+  {
+    Serial.print("AD9862 Register ");
+    Serial.print(reg);
+    Serial.print(": WRITE FAILED, expected ");
+    Serial.print(val);
+    Serial.print(" but got ");
+    Serial.println(readback_val);
+  }
+
+  (val == readback_val);
+}
+
+void ad9862_write2_verified(void)
+{
+  
+}
 void setup() {
   // put your setup code here, to run once:
 
@@ -38,6 +128,10 @@ void setup() {
   Serial.begin(115200);
   Serial.println("307GI03L Test");
   Serial.println("");
+
+
+  //digitalWrite(GREEN_PIN2, HIGH);
+  red_led(on);
 
   pinMode(AD9862_CSEL, OUTPUT);
   digitalWrite(SS, HIGH);    // SS is pin 10
@@ -62,12 +156,19 @@ void setup() {
   delay (1);
   digitalWrite(SS, HIGH);
 
+  // the clock has changed to the AD9862 due to the above
+  // give itself chance to sort itself out
+  delay(1000);
+
 
   // AD9862 programming: reset the device
+#if 0
   digitalWrite(AD9862_CSEL, HIGH);
   SPI.transfer(ad9862reset[0]);
   SPI.transfer(ad9862reset[1]);
   digitalWrite(AD9862_CSEL, LOW);
+#endif
+  ad9862_write(0, 0x20); // can't use write_verified here
 
 #if 0
   digitalWrite(AD9862_CSEL, HIGH);
@@ -89,28 +190,33 @@ void setup() {
   digitalWrite(AD9862_CSEL, LOW);
 #endif
 
-#if 1
+#if 0
   // register 1 rx power down
   digitalWrite(AD9862_CSEL, HIGH);
   SPI.transfer(0x01);
   SPI.transfer(0x01);
   digitalWrite(AD9862_CSEL, LOW);
 #endif
+  ad9862_write_verified(0x01, 0x01);
 
-
+#if 0
   // register 8 tx power down
   digitalWrite(AD9862_CSEL, HIGH);
   SPI.transfer(0x08);
   SPI.transfer(0x07);
   digitalWrite(AD9862_CSEL, LOW);
+#endif
+  ad9862_write_verified(0x08, 0x07);
+  
 
-#if 1
+#if 0
   // DLL power down
   digitalWrite(AD9862_CSEL, HIGH);
   SPI.transfer(24);
   SPI.transfer(0x04);
   digitalWrite(AD9862_CSEL, LOW);
 #endif
+  ad9862_write_verified(24, 0x04);
 
 // read back a register we wrote
   reg=43;
@@ -122,6 +228,12 @@ void setup() {
   Serial.print(reg);
   Serial.print(" : 0x");
   Serial.println(val, HEX);
+
+  if (val==0x57)
+  {
+    red_led(off);
+    green_led(on);
+  }
 
 }
 
