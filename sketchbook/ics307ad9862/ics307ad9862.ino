@@ -162,12 +162,11 @@ void setup() {
   // put your setup code here, to run once:
 
   unsigned char val, reg;
-  
+  red_led(on);
+
   Serial.begin(115200);
   Serial.println("307GI03L Test");
   Serial.println("");
-
-  red_led(on);
 
   pinMode(AD9862_CSEL, OUTPUT);
   digitalWrite(SS, HIGH);    // SS is pin 10
