@@ -179,7 +179,6 @@ void setup() {
 }
 
 static bool g_board_initialised;
-unsigned short g_init_counter;
 
 void loop() {
 
@@ -202,16 +201,6 @@ void loop() {
     green_led(on);
   }
 
-  delay(1);
-
-  g_init_counter++;
-
-  // re-init the board periodically
-  if (g_init_counter==0)
-  {
-    g_board_initialised=false;
-    red_led(on);
-    green_led(off);
-  }
+  delay(1000);
 
 }
