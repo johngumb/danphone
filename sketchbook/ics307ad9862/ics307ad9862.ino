@@ -117,38 +117,17 @@ bool ad9862_write_verified(const unsigned int reg, const unsigned int val)
     Serial.println(readback_val);
   }
 
-  (val == readback_val);
+  return (val == readback_val);
 }
 
-void setup() {
-  // put your setup code here, to run once:
+#define CHECK_RETURN(_x) if (!_x) return false;
 
-  unsigned char val, reg;
-  
-  Serial.begin(115200);
-  Serial.println("307GI03L Test");
-  Serial.println("");
-
-  //digitalWrite(GREEN_PIN2, HIGH);
-  red_led(on);
-
-  pinMode(AD9862_CSEL, OUTPUT);
-  digitalWrite(SS, HIGH);    // SS is pin 10
-  digitalWrite(AD9862_CSEL, LOW);
-  
-  SPI.begin();
-  SPI.setBitOrder(MSBFIRST);
-  SPI.setDataMode(SPI_MODE0);
-  SPI.setClockDivider(SPI_CLOCK_DIV64);
-
-  Serial.println("Waiting...");
-  delay(3000);
-
+bool board_init()
+{
   for (int i=0; (i<sizeof(progword)); i++)
   {
     SPI.transfer(progword2[i]);
   }
-
 
   // ics307 needs a 'blip' after programming
   digitalWrite(SS, LOW);
@@ -159,40 +138,23 @@ void setup() {
   // give itself chance to sort itself out
   delay(1000);
 
-
   // AD9862 programming: reset the device
   ad9862_write(0, 0x20); // can't use write_verified here
 
-#if 0
-  digitalWrite(AD9862_CSEL, HIGH);
-  SPI.transfer(ad9862dacW1[0]);
-  SPI.transfer(ad9862dacW1[1]);
-  digitalWrite(AD9862_CSEL, LOW);
+  CHECK_RETURN(ad9862_write_verified(ad9862dacW1[0], ad9862dacW1[1]))
 
-  digitalWrite(AD9862_CSEL, HIGH);
-  SPI.transfer(ad9862dacW2[0]);
-  SPI.transfer(ad9862dacW2[1]);
-  digitalWrite(AD9862_CSEL, LOW);
-#endif
-
-#if 0
-  digitalWrite(AD9862_CSEL, HIGH);
-  SPI.transfer(ad9862dacW12[0]);
-  SPI.transfer(ad9862dacW12[1]);
-  SPI.transfer(ad9862dacW12[2]);
-  digitalWrite(AD9862_CSEL, LOW);
-#endif
-  ad9862_write2(0x2A, ad9862dacW1[1], ad9862dacW2[1]);
+  CHECK_RETURN(ad9862_write_verified(ad9862dacW2[0], ad9862dacW2[1]))
 
   // register 1 rx power down
-  ad9862_write_verified(0x01, 0x01);
+  CHECK_RETURN(ad9862_write_verified(0x01, 0x01))
 
   // register 8 tx power down
-  ad9862_write_verified(0x08, 0x07);
+  CHECK_RETURN(ad9862_write_verified(0x08, 0x07))
 
   // DLL power down
-  ad9862_write_verified(24, 0x04);
+  CHECK_RETURN(ad9862_write_verified(24, 0x04))
 
+#if 0
 // read back a register we wrote
   reg=43;
   digitalWrite(AD9862_CSEL, HIGH);
@@ -209,10 +171,55 @@ void setup() {
     red_led(off);
     green_led(on);
   }
+#endif
 
+  return true;
 }
 
+void setup() {
+  // put your setup code here, to run once:
+
+  unsigned char val, reg;
+  
+  Serial.begin(115200);
+  Serial.println("307GI03L Test");
+  Serial.println("");
+
+  red_led(on);
+
+  pinMode(AD9862_CSEL, OUTPUT);
+  digitalWrite(SS, HIGH);    // SS is pin 10
+  digitalWrite(AD9862_CSEL, LOW);
+  
+  SPI.begin();
+  SPI.setBitOrder(MSBFIRST);
+  SPI.setDataMode(SPI_MODE0);
+  SPI.setClockDivider(SPI_CLOCK_DIV64);
+}
+
+static bool g_initialised;
+
 void loop() {
-  // put your main code here, to run repeatedly:
+
+  while(!g_initialised)
+  {
+    if (board_init())
+    {
+      Serial.println("init ok");
+      g_initialised=true;
+      break;
+    }
+
+    Serial.println("Waiting...");
+    delay(3000);
+  }
+
+  if (g_initialised)
+  {
+    red_led(off);
+    green_led(on);
+  }
+
+  delay(1000);
 
 }
