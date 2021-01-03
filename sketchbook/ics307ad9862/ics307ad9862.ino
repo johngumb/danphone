@@ -23,9 +23,8 @@ unsigned char progword2[]={0x00, 0x80, 0x3F, 0xC0, 0x46, 0x02, 0x00, 0x00, 0x00,
 #define TWO_BYTE_TRANSFER 0x40
 // AD9862
 unsigned char ad9862reset[]={0x00, 0x20};
-unsigned char ad9862dacW1[]={0x2A, 0x80}; // 3:0 116MHz adjusted exactly
+unsigned char ad9862dacW1[]={0x2A, 0x70}; // 3:0 116MHz adjusted exactly
 unsigned char ad9862dacW2[]={0x2B, 0x57}; // 11:4 116MHz adjusted exactly
-unsigned char ad9862dacW12[]={0x2B | TWO_BYTE_TRANSFER, 0x57, 0x80}; // 11:4 116MHz adjusted exactly
 
 #define GREEN_PIN2 2
 #define RED_PIN3 3
@@ -298,7 +297,7 @@ void loop() {
     }
 
     Serial.println("Waiting...");
-    delay(3000);
+    delay(100);
   }
 
   if (g_board_initialised)
