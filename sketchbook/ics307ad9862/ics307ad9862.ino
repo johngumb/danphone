@@ -134,12 +134,12 @@ bool board_init()
   delay (1);
   digitalWrite(SS, HIGH);
 
-  // the clock has changed to the AD9862 due to the above
-  // give itself chance to sort itself out
-  delay(1000);
+  // The clock has changed to the AD9862 due to the above.
+  // give it chance to sort itself out.
+  delay(10);
 
   // AD9862 programming: reset the device
-  ad9862_write(0, 0x20); // can't use write_verified here
+  ad9862_write(0, 0x20); // can't use write_verified here - reset bit write-only
 
   CHECK_RETURN(ad9862_write_verified(ad9862dacW1[0], ad9862dacW1[1]))
 
@@ -160,7 +160,6 @@ bool board_init()
 void setup() {
   // put your setup code here, to run once:
 
-  unsigned char val, reg;
   red_led(on);
 
   Serial.begin(115200);
@@ -188,6 +187,7 @@ char getchar_nano(void)
 {
   char c;
 
+  // wait here
   while (Serial.available() < 1);
 
   c = Serial.read();
@@ -293,28 +293,25 @@ void loop() {
     {
       Serial.println("init ok");
       g_board_initialised=true;
+      red_led(off);
+      green_led(on);
       break;
     }
-
-    Serial.println("Waiting...");
-    delay(100);
+    else
+    {
+        Serial.println("Waiting...");
+        delay(100);
+    }
   }
 
-  if (g_board_initialised)
-  {
-    red_led(off);
-    green_led(on);
-  }
-
-  delay(1000);
-
+  // parse commands and action them forever
   while (1)
   {
     getstr(g_str);
 
     do
     {
-    partcmd('S', act_synth());
+        partcmd('S', act_synth());
     } while (0);
   }
 }
