@@ -43,7 +43,7 @@ import threading
 import socket
 import string
 
-DataEvent, EVT_DATA = wx.lib.newevent.NewEvent() 
+DataEvent, EVT_DATA = wx.lib.newevent.NewEvent()
 
 ExtSocket = "/tmp/mui-ext.s."
 
@@ -166,7 +166,7 @@ def recfname(audioserver,n):
     return os.path.join(g_recdir,"%s.%d.wav" % (audioserver, n))
 
 def rotaterecs(audioserver):
-    limit=11
+    limit=41
 
     deletef=recfname(audioserver,limit)
 
@@ -258,7 +258,7 @@ class ScanTimer(wx.Timer):
         self.m_idx=0
 
         if sixmetres():
-            self.m_freqs = (51.51, 50.84)
+            self.m_freqs = (51.51, 51.53, 50.84, 50.81)
             if False:
                 freqs = [50.53]
                 f = 50.75
@@ -274,7 +274,7 @@ class ScanTimer(wx.Timer):
                 self.m_freqs = freqs
 
         elif twometres():
-            freqs = [145.5, 145.325, 145.675, 145.6625]
+            freqs = [145.5, 145.325, 29.6, 145.675, 29.4, 145.8]
             f = 145.6
             i = 0
             if False:
@@ -299,6 +299,13 @@ class ScanTimer(wx.Timer):
                 self.m_idx=0
 
             freq = self.m_freqs[self.m_idx]
+
+            if twometres():
+                if freq < 30.0:
+                    self.target.setpin1("on")
+                    freq = freq + 116.0
+                else:
+                    self.target.setpin1("off")
 
             self.target.m_spin_ctrl_2.SetValue(freq)
 
@@ -621,7 +628,8 @@ class MyFrame(wx.Frame):
         elif fourmetres():
             self.m_devid=("cli",("dab",2217))
             # 14.4MHz on ref osc
-            self.m_rig.set_ref_osc_dac(0xC010, "/home/john/4mcal")
+            #self.m_rig.set_ref_osc_dac(0xC010, "/home/john/4mcal")
+            self.m_rig.set_ref_osc_dac(0xBF30, "/home/john/4mcal") # 1 Dec 2020
             self.m_audioserver="dab"
             socketext="4m"
         else:
@@ -683,7 +691,7 @@ class MyFrame(wx.Frame):
             f.SetFormat("%F")
             f.SetDigits(self.m_digits)
             if sixmetres():
-                self.m_freq=50.315E6
+                self.m_freq=51.53E6
             elif twometres():
                 self.m_freq=144.176E6
                 #self.m_freq=145.7375E6
@@ -1187,10 +1195,11 @@ class MyFrame(wx.Frame):
 
         return
 
-    def OnFloatSpin(self,event):
-        floatspin = event.GetEventObject()
+    def OnFloatSpin(self,event=None):
+        if event:
+            floatspin = event.GetEventObject()
 
-        self.m_freq=floatspin.GetValue()*1E6
+            self.m_freq=floatspin.GetValue()*1E6
 
         self.m_rig.set_rx_freq(self.m_freq)
         self.m_rig.set_tx_freq(self.m_freq)
@@ -1205,12 +1214,13 @@ class MyFrame(wx.Frame):
         return
 
     def OnStepSelected(self,event=None):
-        print "step",event.GetString()
+        if event:
+            print "step",event.GetString()
 
-        khz_val=event.GetString().split()[0]
-        print khz_val
+            khz_val=event.GetString().split()[0]
+            print khz_val
 
-        self.m_step = float(khz_val)*1E3
+            self.m_step = float(khz_val)*1E3
 
         #
         # snap to new step
@@ -1334,9 +1344,8 @@ class MyFrame(wx.Frame):
 
         self.m_step = float(self.m_step_selected) * 1000
 
-        self.m_rig.set_step(self.m_step)
-        self.m_rig.set_rx_freq(freq)
-        self.m_rig.set_tx_freq(freq)
+        self.OnStepSelected()
+        self.OnFloatSpin()
 
         return
 
