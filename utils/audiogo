@@ -12,6 +12,10 @@ if [ -z "${post}" ]; then
 	if [ -z "${node}" ]; then
    		node=cod.gumb.private
 	fi
+	if pgrep jackd > /dev/null 2>&1; then
+		echo "already running"
+		exit 1
+	fi
 
 	if ! jack_load netmanager; then
 	    exit 1
@@ -29,3 +33,4 @@ sh cmdseq.sh start
 ##jack_connect system:capture_1 ${node}:to_slave_1
 #jack_connect system:capture_2 ${node}:to_slave_2
 touch /tmp/wsjt-silent
+x0vncserver -passwordfile .vnc/passwd -display :0 &
