@@ -178,17 +178,18 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV64);
 }
 
-unsigned char iswhitespace(const char *c)
+unsigned char is_eol(const char *c)
 {
-    return ((*c==' ') || (*c=='\r') || (*c=='\n'));
+    return ((*c==' ') || (*c=='\r') || (*c=='\n') || (*c==';'));
 }
 
 static char g_str[40];
-char getchar(void)
+
+char getchar_nano(void)
 {
   char c;
 
-  while (Serial.available() == 0);
+  while (Serial.available() < 1);
 
   c = Serial.read();
 
@@ -201,15 +202,86 @@ void getstr(char *str)
 
     while (1)
     {
-        char c = getchar();
+        char c = getchar_nano();
 
-        if (! iswhitespace(&c))
+        if (! is_eol(&c))
             g_str[ptr++]=c;
         else
             break;
     }
 
     g_str[ptr]=0;
+}
+
+unsigned char hexdigittobyte(const char ch)
+{
+	unsigned char val;
+
+	if ( (ch>='0') && (ch<='9') )
+		val=ch-'0';
+	else if ( (ch>='A') && (ch<='F') )
+		val=ch-'A'+10;
+	else
+		printf("HEX ERROR:%x\n",(unsigned) ch);
+
+	return val;
+}
+
+char bytetohexdigit(const unsigned char val)
+{
+    if (val>9)
+        return (val-10)+'A';
+    else
+        return val+'0';
+}
+
+unsigned char strtohex(const char *ch)
+{
+	unsigned char val, i=0, rval=0;
+
+	while (i<2)
+	{
+		val = hexdigittobyte(ch[i]);
+
+		if (i==0)
+		{
+			rval=val<<4;
+		}
+		else
+		{
+			rval=rval+val;
+		}
+
+		i++;
+	}
+
+	return rval;
+}
+
+#define cmd(_cmpstr,_rtn) if (strcmp(g_str, _cmpstr)==0) {_rtn; break;}
+
+#define partcmd(_cmpchar, _rtn) if (g_str[0]==_cmpchar) {_rtn; break; }
+
+
+void act_synth(void)
+{
+	unsigned char fval, offset=1; // skip first command string byte "S"
+
+	// deal with, for example "SD9C" or "S09C"
+	if ((strlen(g_str)%2)==0)
+	{
+		fval=hexdigittobyte(g_str[offset++]);
+		Serial.println(fval, HEX);
+	}
+
+	// at this point,remaining
+	// hex string is always of form
+	// 11223344 i.e. even number of chars
+	while (g_str[offset]!=0)
+	{
+		Serial.println(strtohex(&g_str[offset]), HEX);
+		offset+=2;
+	}
 }
 
 static bool g_board_initialised;
@@ -239,9 +311,11 @@ void loop() {
 
   while (1)
   {
-    getstr();
+    getstr(g_str);
 
-    Serial.print("I received: ");
-    Serial.println(g_str);
+    do
+    {
+    partcmd('S', act_synth());
+    } while (0);
   }
 }
