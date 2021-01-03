@@ -42,7 +42,7 @@ class SerialStreamWriter:
             val=True
 
         if self.m_debug:
-            print valn
+            print(valn)
 
         # set required data on data pin
         self.m_hwif.setboolbit(self.m_data, val)
@@ -66,9 +66,9 @@ class SerialStreamWriter:
 
             if self.m_debug:
                 if val & mask:
-                    print 1
+                    print(1)
                 else:
-                    print 0
+                    print(0)
 
             mask = mask << 1
 
@@ -85,9 +85,9 @@ class SerialStreamWriter:
 
             if self.m_debug:
                 if val & mask:
-                    print 1
+                    print(1)
                 else:
-                    print 0
+                    print(0)
 
             mask = mask >> 1
 

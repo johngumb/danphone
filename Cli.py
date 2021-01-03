@@ -82,7 +82,7 @@ class TelnetCLI:
 
         if self.m_cmd_in_progress:
             self.m_cmdlist.append(msg)
-            print "queued",msg,len(self.m_cmdlist),"elements now queued", "waiting on",self.m_current_msg
+            print("queued", msg, len(self.m_cmdlist), "elements now queued waiting on", self.m_current_msg)
 
         else:
             self.m_cmd_in_progress=True
@@ -97,7 +97,7 @@ class TelnetCLI:
         while True:
             ch = self.m_serial.read()
 
-#            print "got", ch
+#            print("got {}".format(ch))
 
             if not ch:
                 return (-1, None, None)
@@ -110,7 +110,7 @@ class TelnetCLI:
         return (0, True, chbuf)
 
     def resync(self):
-        print "resyncing serial interface"
+        print("resyncing serial interface")
 
         startchar = 'a'
 
@@ -129,14 +129,14 @@ class TelnetCLI:
 
             ts = 'R'+chr(synchar)+"\n"
 
-            #print ts
+            #print(ts)
 
             self.m_serial.write(ts)
             
             (idx, mo, txt) = self.expect("Y")
 
             if idx == -1 and mo == None:
-                print "."
+                print(".")
                 continue
 
             rxs = txt[-2]
@@ -145,7 +145,7 @@ class TelnetCLI:
             # sending ahead of receiving, swallow Ys
             # till we sync
             #
-            #print rxs,chr(synchar)
+            #print("".join([rxs,chr(synchar)]))
 
             if ord(rxs)<synchar:
                 self.expect('Y')
@@ -168,7 +168,7 @@ class TelnetCLI:
 
         while True:
             if timeout:
-                print "retrying",msg
+                print("retrying {}".format(msg))
                 time.sleep(0.1)
 
             if msg=='E01':
@@ -186,13 +186,13 @@ class TelnetCLI:
 
             #a=time.time()
             (idx, mo, txt) = self.expect("K")
-            #print time.time()-a
+            #print(time.time()-a)
 
             #
             # timeout?
             #
             if idx == -1 and mo == None:
-                print "xmit timeout on", msg
+                print("xmit timeout on {}".format(msg))
                 timeout=True
 
                 self.resync()
@@ -203,11 +203,11 @@ class TelnetCLI:
 
     def send(self, msg):
 
-        #print "sending",msg
+        #print("sending " + msg)
 
         self.m_cmd_in_progress=True
 
-        #print self.m_serial.getCTS()
+        #print(self.m_serial.getCTS())
 
         # debug
         self.m_current_msg = msg
@@ -215,11 +215,11 @@ class TelnetCLI:
         (idx, mo, text)=self.xmit(msg)
 
         if (len(self.m_cmdlist)):
-            print "pending cmds, sent",msg
+            print("pending cmds, sent " + msg)
 
         t = text.strip()
 
-        #print t
+        #print(t)
 
         if t:
             # force power to be on for 'M' dac message
@@ -233,7 +233,7 @@ class TelnetCLI:
         while (len(self.m_cmdlist)):
             cmd = self.m_cmdlist.pop(0)
             l=len(self.m_cmdlist)
-            print "dequeued",cmd, l, "elements left, sending",cmd
+            print("dequeued", cmd, l, "elements left, sending", cmd)
             self.send(cmd)
 
         # system should notify in case of state change

@@ -41,7 +41,7 @@ class MC145158:
         divratio_int = int(divratio)
 
         if divratio_int>4095:
-            print "invalid divide ratio",divratio
+            print("invalid divide ratio",divratio)
             sys.exit(1)
 
         #
@@ -68,12 +68,12 @@ class MC145158:
         #
         # a, n and code (1 or 0) makes 18 bits
         #
-        print "writing"
+        print("writing")
         self.m_stream_writer.output_msb_first((val<<1), 18)
 
         # poke the chip
         self.m_stream_writer.latch()
-        print "written"
+        print("written")
         
         return
 

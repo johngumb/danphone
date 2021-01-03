@@ -31,9 +31,9 @@ class LED(wx.Control):
         
     def SetState(self, i):
         if i < 0:
-            raise ValueError, 'Cannot have a negative state value.'
+            raise ValueError('Cannot have a negative state value.')
         elif i >= len(self._colors):
-            raise IndexError, 'There is no state with an index of %d.' % i
+            raise IndexError('There is no state with an index of %d.' % i)
         elif i == self._state:
             return
         

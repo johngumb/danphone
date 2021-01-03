@@ -35,8 +35,7 @@ class StatusMonitor(threading.Thread):
 
     def __init__(self, group=None, target=None, name=None,
                  args=(), kwargs=None, verbose=None):
-        threading.Thread.__init__(self, group=group, target=target, name=name,
-                                  verbose=verbose)
+        threading.Thread.__init__(self, group=group, target=target, name=name)
 
         self.m_args = args
 
@@ -143,7 +142,7 @@ class McMicro:
         self.m_ctcss_fudge = val
 
     def setpower(self, val):
-        #print "setpower", val
+        #print("setpower", val)
         if val:
             self.m_shiftreg.setbit(self.SR_POWER)
         else:
@@ -160,7 +159,7 @@ class McMicro:
 
 #        elif self.m_tx_freq in [145.1375E6]: # AL
     def enable_tx(self, ctcss = 0, enable_tx_audio = True):
-        #print "enable_tx"
+        #print("enable_tx")
 
         if self.m_tx_freq in [50.05E6, 50.016E6]:
             return
@@ -184,7 +183,7 @@ class McMicro:
         return
 
     def disable_tx(self):
-        #print "disable_tx"
+        #print("disable_tx")
 
         self.m_shiftreg.clearbit(self.SR_TX_RX|self.SR_TX_AUDIO_ENABLE)
 
@@ -200,7 +199,7 @@ class McMicro:
         return
 
     def enable_pa(self):
-        #print "enable_pa"
+        #print("enable_pa")
 
         self.m_shiftreg.setbit(self.SR_TX_PA)
 
@@ -209,7 +208,7 @@ class McMicro:
         return
 
     def disable_pa(self):
-        #print "disable_pa"
+        #print("disable_pa")
 
         self.m_shiftreg.clearbit(self.SR_TX_PA)
 
@@ -249,7 +248,7 @@ class McMicro:
         return os.path.exists("/tmp/inhibit_audio_pa") or self.m_inhibit_audio_pa
 
     def enable_audio_pa(self):
-        #print "enable_audio_pa"
+        #print("enable_audio_pa")
 
         if not self.inhibit_audio_pa():
             if not self.m_audio_pa_enabled:
@@ -261,7 +260,7 @@ class McMicro:
         return
 
     def disable_audio_pa(self):
-        #print "disable_audio_pa"
+        #print("disable_audio_pa")
 
         if self.m_audio_pa_enabled:
             self.m_shiftreg.clearbit(self.SR_AUDIO_PA)
@@ -323,7 +322,7 @@ class McMicro:
                 self.m_temperature_mv = int(statstr[:-1],16)
 
         except ValueError:
-            print "status ignored - not integer",statstr
+            print("status ignored - not integer",statstr)
 
     def set_power_supply_state(self, power_supply_state):
         self.m_power_supply_present = power_supply_state
@@ -519,7 +518,7 @@ class McMicro:
         if os.path.exists(self.m_ref_osc_dac_calfile):
             with open(self.m_ref_osc_dac_calfile) as caldata:
                 val+=int(caldata.read())
-        print "sending","M%04X" % val
+        print("sending M%04X" % val)
         self.m_hwif.enqueue("M%X" % val)
 
     def powered_on(self):
@@ -570,7 +569,7 @@ class McMicro:
 
             self.m_refosc_count += 1
         elif self.m_refosc_count == self.m_refosc_init_boundary and not result:
-            print "boundary hit but no power"
+            print("boundary hit but no power")
         else:
             if self.m_refosc_count < self.m_refosc_init_boundary and result:
                 self.m_refosc_count += 1
@@ -578,7 +577,7 @@ class McMicro:
         return result
 
     def execute_rig_cmd(self, cmd):
-        print "execute_rig_cmd: Executing", cmd
+        print("execute_rig_cmd: Executing", cmd)
         self.m_hwif.enqueue(cmd)
 
     def power_supply_present(self):
