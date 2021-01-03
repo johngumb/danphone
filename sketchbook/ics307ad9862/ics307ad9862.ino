@@ -178,6 +178,40 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV64);
 }
 
+unsigned char iswhitespace(const char *c)
+{
+    return ((*c==' ') || (*c=='\r') || (*c=='\n'));
+}
+
+static char g_str[40];
+char getchar(void)
+{
+  char c;
+
+  while (Serial.available() == 0);
+
+  c = Serial.read();
+
+  return c;
+}
+
+void getstr(char *str)
+{
+    unsigned char ptr=0;
+
+    while (1)
+    {
+        char c = getchar();
+
+        if (! iswhitespace(&c))
+            g_str[ptr++]=c;
+        else
+            break;
+    }
+
+    g_str[ptr]=0;
+}
+
 static bool g_board_initialised;
 
 void loop() {
@@ -203,15 +237,11 @@ void loop() {
 
   delay(1000);
 
-  while (Serial.available() > 0) {
-    char incomingByte;
+  while (1)
+  {
+    getstr();
 
-    // read the incoming byte:
-    incomingByte = Serial.read();
-
-    // say what you got:
     Serial.print("I received: ");
-    Serial.println(incomingByte, DEC);
+    Serial.println(g_str);
   }
-
 }
