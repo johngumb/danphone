@@ -613,7 +613,7 @@ def establish_wsjtx_listener(sockname):
 if __name__ == "__main__":
     wsj_listen_sock = "/tmp/testsock"
 
-    os.system("setagc")
+    #os.system("setagc")
 
     establish_wsjtx_listener(wsj_listen_sock);
 
