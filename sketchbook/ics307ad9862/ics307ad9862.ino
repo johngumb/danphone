@@ -203,4 +203,15 @@ void loop() {
 
   delay(1000);
 
+  while (Serial.available() > 0) {
+    char incomingByte;
+
+    // read the incoming byte:
+    incomingByte = Serial.read();
+
+    // say what you got:
+    Serial.print("I received: ");
+    Serial.println(incomingByte, DEC);
+  }
+
 }
