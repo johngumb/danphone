@@ -256,25 +256,13 @@ char bytetohexdigit(const unsigned char val)
 
 unsigned char strtohex(const char *ch)
 {
-	unsigned char val, i=0, rval=0;
+	unsigned char val;
 
-	while (i<2)
-	{
-		val = hexdigittobyte(ch[i]);
+  val=hexdigittobyte(ch[0]) << 4;
 
-		if (i==0)
-		{
-			rval=val<<4;
-		}
-		else
-		{
-			rval+=val;
-		}
+  val+=hexdigittobyte(ch[1]);
 
-		i++;
-	}
-
-	return rval;
+	return val;
 }
 
 #define cmd(_cmpstr,_rtn) if (strcmp(g_str, _cmpstr)==0) {_rtn; break;}
