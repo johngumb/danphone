@@ -344,8 +344,12 @@ void act_dac()
       hi = strtohex(&g_str[1]);
       lownibble = hexdigittobyte(g_str[3]);
 
-      ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_LO, lownibble);
+      ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_LO, lownibble<<4);
       ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_HI, hi);
+
+      // report current value using a recursive call
+      g_str[1]=0;
+      act_dac();
     }
   }
 }
