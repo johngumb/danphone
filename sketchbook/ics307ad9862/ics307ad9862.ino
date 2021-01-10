@@ -1,4 +1,4 @@
-// i2c #include <Wire.h>
+// i2sc #include <Wire.h>
 #include <SPI.h>
 
 //#define AD9862_SIM
@@ -217,6 +217,8 @@ void getstr(char *str)
 {
     unsigned char ptr=0;
 
+    clear_input_error();
+
     while (1)
     {
         char c = getchar_nano();
@@ -230,9 +232,10 @@ void getstr(char *str)
     g_str[ptr]=0;
 }
 
+#define INVALID_NIBBLE 0xFF
 unsigned char hexdigittobyte(const char ch)
 {
-	unsigned char val=0;
+	unsigned char val=INVALID_NIBBLE;
 
 	if ( (ch>='0') && (ch<='9') )
 		val=ch-'0';
@@ -240,8 +243,9 @@ unsigned char hexdigittobyte(const char ch)
 		val=ch-'A'+10;
 	else
   {
-		Serial.print("HEX ERROR: ");
-		Serial.println(ch, HEX);
+    char errstr[2]={ch,0};
+		Serial.println("HEX ERROR");
+    set_input_error(errstr);
   }
 
 	return val;
@@ -255,15 +259,45 @@ char bytetohexdigit(const unsigned char val)
         return val+'0';
 }
 
+static int g_input_error;
+void set_input_error(const char *ch)
+{
+  Serial.print("Input error ");
+  Serial.println(ch);
+  g_input_error=1;
+}
+
+void clear_input_error()
+{
+  g_input_error=0;
+}
+
+int input_error()
+{
+  return g_input_error;
+}
+
 unsigned char strtohex(const char *ch)
 {
-	unsigned char val;
+	unsigned char rval;
 
-  val=hexdigittobyte(ch[0]) << 4;
+  for (int i=0; (i<2); i++)
+  {
+    unsigned char val=hexdigittobyte(ch[i]);
 
-  val+=hexdigittobyte(ch[1]);
+    if (val==INVALID_NIBBLE)
+    {
+      set_input_error(ch);
+      return 0;
+    }
 
-	return val;
+    if (i==0)
+      rval = val << 4;
+    else
+      rval += val;
+  }
+
+	return rval;
 }
 
 #define cmd(_cmpstr,_rtn) if (strcmp(g_str, _cmpstr)==0) {_rtn; break;}
@@ -278,7 +312,7 @@ void act_synth(void)
 
   if (strlen(g_str) != 34)
   {
-    printf("ERROR: Synth command must be of the form BN*33 i.e. B followed by hex string of length 132 bits");
+    Serial.println("ERROR: Synth command must be of the form BN*33 i.e. B followed by hex string of length 132 bits");
     return;
   }
 
@@ -299,7 +333,10 @@ void act_synth(void)
 
   Serial.println();
 
-  ics307_write(progword_array);
+  if (input_error())
+    Serial.println("Not writing ICS307");
+  else
+    ics307_write(progword_array);
 }
 
 // eg. D577
@@ -324,7 +361,7 @@ void act_dac()
   {
     if (strlen(g_str)!=4)
     {
-      printf("ERROR: DAC command must be of the form DNNN");
+      Serial.println("ERROR: DAC command must be of the form DNNN");
     }
     else
     {
@@ -333,12 +370,15 @@ void act_dac()
       hi = strtohex(&g_str[1]);
       lownibble = hexdigittobyte(g_str[3]);
 
-      ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_LO, lownibble<<4);
-      ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_HI, hi);
+      if (!input_error())
+      {
+        ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_LO, lownibble<<4);
+        ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_HI, hi);
 
-      // report current value using a recursive call
-      g_str[1]=0;
-      act_dac();
+        // report current value using a recursive call
+        g_str[1]=0;
+        act_dac();
+      }
     }
   }
 }
