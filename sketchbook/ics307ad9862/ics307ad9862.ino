@@ -3,8 +3,6 @@
 
 //#define AD9862_SIM
 
-//#define printf Serial.println
-
 typedef enum {
   off = 0,
   on = 1
@@ -234,14 +232,17 @@ void getstr(char *str)
 
 unsigned char hexdigittobyte(const char ch)
 {
-	unsigned char val;
+	unsigned char val=0;
 
 	if ( (ch>='0') && (ch<='9') )
 		val=ch-'0';
 	else if ( (ch>='A') && (ch<='F') )
 		val=ch-'A'+10;
 	else
-		printf("HEX ERROR:%x\n",(unsigned) ch);
+  {
+		Serial.print("HEX ERROR: ");
+		Serial.println(ch, HEX);
+  }
 
 	return val;
 }
