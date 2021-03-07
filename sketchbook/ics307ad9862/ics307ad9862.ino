@@ -29,8 +29,8 @@ unsigned char progword2[]={0x00, 0x80, 0x3F, 0xC0, 0x46, 0x02, 0x00, 0x00, 0x00,
 #define AD9862_SIGMA_DELTA_DAC_REG_HI 43
 
 unsigned char ad9862reset[]={0x00, 0x20};
-unsigned char ad9862dacW1[]={AD9862_SIGMA_DELTA_DAC_REG_LO, 0x40}; // 3:0 116MHz adjusted exactly
-unsigned char ad9862dacW2[]={AD9862_SIGMA_DELTA_DAC_REG_HI, 0x57}; // 11:4 116MHz adjusted exactly
+unsigned char ad9862dacW1[]={AD9862_SIGMA_DELTA_DAC_REG_LO, 0x00}; // 3:0 116MHz adjusted exactly
+unsigned char ad9862dacW2[]={AD9862_SIGMA_DELTA_DAC_REG_HI, 0x56}; // 11:4 116MHz adjusted exactly
 
 #define GREEN_PIN 5
 #define RED_PIN 6
@@ -214,7 +214,8 @@ unsigned char is_eol(const char *c)
     return ((*c==' ') || (*c=='\r') || (*c=='\n') || (*c==';'));
 }
 
-static char g_str[40];
+#define MAX_LINE_LEN 81
+static char g_str[MAX_LINE_LEN];
 
 char getchar_nano(void)
 {
@@ -254,10 +255,10 @@ unsigned char hexdigittobyte(const char ch)
 	else if ( (ch>='A') && (ch<='F') )
 		val=ch-'A'+10;
 	else
-  {
+    {
 		Serial.print("HEX ERROR: ");
 		Serial.println(ch);
-  }
+    }
   
 	return val;
 }
@@ -270,13 +271,13 @@ char bytetohexdigit(const unsigned char val)
         return val+'0';
 }
 
-unsigned char strtohex(const char *ch)
+unsigned char strtohex(const char *chstr)
 {
 	unsigned char val, i=0, rval=0;
 
 	while (i<2)
 	{
-		val = hexdigittobyte(ch[i]);
+		val = hexdigittobyte(chstr[i]);
 
 		if (i==0)
 		{
@@ -297,10 +298,9 @@ unsigned char strtohex(const char *ch)
 
 #define partcmd(_cmpchar, _rtn) if (g_str[0]==_cmpchar) {_rtn; break; }
 
-
 void act_synth(void)
 {
-	unsigned char offset=1, stroffset=1; // skip first command string byte "B"
+  unsigned char offset=1, stroffset=1; // skip first command string byte "B"
   unsigned char progword_array[17];
 
   if (strlen(g_str) != 34)
@@ -334,18 +334,19 @@ void act_dac()
 {
   if (strlen(g_str)==1) // command is 'D'
   {
-    unsigned int current_dac_val_lo, current_dac_val_hi, current_dac_val;
+    unsigned int actual_dac_val_lo, actual_dac_val_hi, actual_dac_val;
 
-    current_dac_val_lo=ad9862_read(AD9862_SIGMA_DELTA_DAC_REG_LO);
-    current_dac_val_hi=ad9862_read(AD9862_SIGMA_DELTA_DAC_REG_HI);
+    actual_dac_val_lo=ad9862_read(AD9862_SIGMA_DELTA_DAC_REG_LO);
+    actual_dac_val_hi=ad9862_read(AD9862_SIGMA_DELTA_DAC_REG_HI);
 
-    current_dac_val = (current_dac_val_hi<<8) + current_dac_val_lo;
+    // and with 0xF0 to skip stuff in low nibble
+    actual_dac_val = (actual_dac_val_hi<<8) + (actual_dac_val_lo & 0xF0);
 
-    current_dac_val>>=4;
+    actual_dac_val>>=4;
 
     Serial.print("D");
 
-    Serial.println(current_dac_val, HEX);
+    Serial.println(actual_dac_val, HEX);
   }
   else
   {
