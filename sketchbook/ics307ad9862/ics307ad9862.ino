@@ -1,4 +1,4 @@
-// i2sc #include <Wire.h>
+// i2c #include <Wire.h>
 #include <SPI.h>
 
 //#define AD9862_SIM
@@ -32,29 +32,33 @@ unsigned char ad9862reset[]={0x00, 0x20};
 unsigned char ad9862dacW1[]={AD9862_SIGMA_DELTA_DAC_REG_LO, 0x40}; // 3:0 116MHz adjusted exactly
 unsigned char ad9862dacW2[]={AD9862_SIGMA_DELTA_DAC_REG_HI, 0x57}; // 11:4 116MHz adjusted exactly
 
-#define GREEN_PIN2 2
-#define RED_PIN3 3
+#define GREEN_PIN 5
+#define RED_PIN 6
 
 /*
- * Arduino UNO
+ * Arduino Nano Every
  * Pin 13 SCK
  * Pin 12 MISO
  * Pin 11 MOSI
- * Pin 10 Chip Select/Slave Select (SS)
+ * Pin 10 ICS307 Slave Select. This IS SS on classic Nano and Uno, but not Nano Every.
  * Pin 9 AD9862 CSEL
+ * Pin 4 1PPS in
+ * Pin 2 External clock in
  */
+#define ICS307_SS 10
 #define AD9862_CSEL 9
 
 bool g_led_initialised;
 
 void led_init(void) {
-   pinMode(GREEN_PIN2, OUTPUT);
-   pinMode(RED_PIN3, OUTPUT);
+   pinMode(GREEN_PIN, OUTPUT);
+   pinMode(RED_PIN, OUTPUT);
    g_led_initialised=1;
 }
 
 void set_led(const int led, const led_state_t state)
 {
+#if 0
   if (!g_led_initialised)
     led_init();
 
@@ -65,16 +69,17 @@ void set_led(const int led, const led_state_t state)
   case on: digitalWrite(led, HIGH);
   break;
   }
+#endif
 }
 
 void red_led(const led_state_t state)
 {
-  set_led(RED_PIN3, state);
+  set_led(RED_PIN, state);
 }
 
 void green_led(const led_state_t state)
 {
-  set_led(GREEN_PIN2, state);
+  set_led(GREEN_PIN, state);
 }
 
 void ad9862_write(const unsigned int reg, const unsigned int val)
@@ -143,9 +148,9 @@ void ics307_write(const unsigned char *progword)
   }
 
   // ics307 needs a 'blip' after programming
-  digitalWrite(SS, LOW);
+  digitalWrite(ICS307_SS, LOW);
   delay (1);
-  digitalWrite(SS, HIGH);
+  digitalWrite(ICS307_SS, HIGH);
 }
 
 bool board_init()
@@ -172,22 +177,32 @@ bool board_init()
   // DLL power down
   CHECK_RETURN(ad9862_write_verified(24, 0x04))
 
+  // Leave the ics307 with correct info - can disconnect USB
+  // and have freq stay the same.
+  ics307_write(progword2);
+
   return true;
 }
 
 void setup() {
-  // put your setup code here, to run once:
+  // clock the board at 10MHz by dividing the internal clock by two.
+  // It is set up for 20Mhz in boards.txt
+  _PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PEN_bm | CLKCTRL_PDIV_2X_gc));
 
   red_led(on);
 
-  Serial.begin(115200);
+  // x2 to make up for clock running at half speed (10MHz instead of 20MHz).
+  Serial.begin(115200*2);
   Serial.println("307GI03L Test");
   Serial.println("");
 
   pinMode(AD9862_CSEL, OUTPUT);
-  digitalWrite(SS, HIGH);    // SS is pin 10
+  pinMode(ICS307_SS, OUTPUT);
+  digitalWrite(ICS307_SS, HIGH);
   digitalWrite(AD9862_CSEL, LOW);
-  
+
+  // Note on Nano Every LED_BUILTIN is SPI Clock pin (13) so is unusable
+  // if SPI is used.
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
   SPI.setDataMode(SPI_MODE0);
@@ -217,8 +232,6 @@ void getstr(char *str)
 {
     unsigned char ptr=0;
 
-    clear_input_error();
-
     while (1)
     {
         char c = getchar_nano();
@@ -232,10 +245,9 @@ void getstr(char *str)
     g_str[ptr]=0;
 }
 
-#define INVALID_NIBBLE 0xFF
 unsigned char hexdigittobyte(const char ch)
 {
-	unsigned char val=INVALID_NIBBLE;
+	unsigned char val;
 
 	if ( (ch>='0') && (ch<='9') )
 		val=ch-'0';
@@ -243,11 +255,10 @@ unsigned char hexdigittobyte(const char ch)
 		val=ch-'A'+10;
 	else
   {
-    char errstr[2]={ch,0};
-		Serial.println("HEX ERROR");
-    set_input_error(errstr);
+		Serial.print("HEX ERROR: ");
+		Serial.println(ch);
   }
-
+  
 	return val;
 }
 
@@ -259,43 +270,25 @@ char bytetohexdigit(const unsigned char val)
         return val+'0';
 }
 
-static int g_input_error;
-void set_input_error(const char *ch)
-{
-  Serial.print("Input error ");
-  Serial.println(ch);
-  g_input_error=1;
-}
-
-void clear_input_error()
-{
-  g_input_error=0;
-}
-
-int input_error()
-{
-  return g_input_error;
-}
-
 unsigned char strtohex(const char *ch)
 {
-	unsigned char rval;
+	unsigned char val, i=0, rval=0;
 
-  for (int i=0; (i<2); i++)
-  {
-    unsigned char val=hexdigittobyte(ch[i]);
+	while (i<2)
+	{
+		val = hexdigittobyte(ch[i]);
 
-    if (val==INVALID_NIBBLE)
-    {
-      set_input_error(ch);
-      return 0;
-    }
+		if (i==0)
+		{
+			rval=val<<4;
+		}
+		else
+		{
+			rval+=val;
+		}
 
-    if (i==0)
-      rval = val << 4;
-    else
-      rval += val;
-  }
+		i++;
+	}
 
 	return rval;
 }
@@ -333,10 +326,7 @@ void act_synth(void)
 
   Serial.println();
 
-  if (input_error())
-    Serial.println("Not writing ICS307");
-  else
-    ics307_write(progword_array);
+  ics307_write(progword_array);
 }
 
 // eg. D577
@@ -370,22 +360,46 @@ void act_dac()
       hi = strtohex(&g_str[1]);
       lownibble = hexdigittobyte(g_str[3]);
 
-      if (!input_error())
-      {
-        ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_LO, lownibble<<4);
-        ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_HI, hi);
+      ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_LO, lownibble<<4);
+      ad9862_write_guaranteed(AD9862_SIGMA_DELTA_DAC_REG_HI, hi);
 
-        // report current value using a recursive call
-        g_str[1]=0;
-        act_dac();
-      }
+      // report current value using a recursive call
+      g_str[1]=0;
+      act_dac();
     }
+  }
+}
+
+void switch_to_external_clock()
+{
+  _PROTECTED_WRITE(CLKCTRL_MCLKCTRLA, CLKCTRL_CLKSEL_EXTCLK_gc);
+  
+  while (1)
+  {
+    unsigned char mclkstat;
+    unsigned short tca0;
+
+    mclkstat=CLKCTRL.MCLKSTATUS;
+    Serial.println(mclkstat,HEX);
+    if (mclkstat & CLKCTRL_EXTS_bm)
+    {
+      // no prescaler stuff - we have a 10MHz external clock now
+      _PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, 0);
+      Serial.println("got external 10MHz clock");    
+      break;
+    }
+    
+    tca0=TCA0_SINGLE_CNT;  
+            
+    delay(1);
   }
 }
 
 static bool g_board_initialised;
 
 void loop() {
+
+  switch_to_external_clock();
 
   while(!g_board_initialised)
   {
@@ -403,7 +417,7 @@ void loop() {
         delay(100);
     }
   }
-
+      
   // parse commands and action them forever
   while (1)
   {
@@ -413,6 +427,7 @@ void loop() {
     {
         partcmd('B', act_synth());
         partcmd('D', act_dac());
+        partcmd('I', board_init());
     } while (0);
   }
 }
