@@ -372,6 +372,9 @@ void act_dac()
 
 void switch_to_external_clock()
 {
+  // allow existing serial traffic to drain
+  delay(10);
+
   _PROTECTED_WRITE(CLKCTRL_MCLKCTRLA, CLKCTRL_CLKSEL_EXTCLK_gc);
   
   while (1)
@@ -380,7 +383,7 @@ void switch_to_external_clock()
     unsigned short tca0;
 
     mclkstat=CLKCTRL.MCLKSTATUS;
-    Serial.println(mclkstat,HEX);
+
     if (mclkstat & CLKCTRL_EXTS_bm)
     {
       // no prescaler stuff - we have a 10MHz external clock now
