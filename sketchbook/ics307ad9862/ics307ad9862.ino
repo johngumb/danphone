@@ -217,7 +217,6 @@ void setup() {
 
   //https://forum.arduino.cc/index.php?topic=626736.msg4268642#msg4268642
 
-#define PWM_MODE
 #ifdef PWM_MODE
   pinMode(3, OUTPUT);   //Port F, Pin 5 = Arduino ~D3
   /* set the alternate pin mux */
@@ -228,17 +227,19 @@ void setup() {
   timer_B->CCMPH = 125;
   timer_B->CCMPL = 249;
 
-  timer_B->CTRLA = (TCB_CLKSEL_CLKTCA_gc | TCB_ENABLE_bm);
+  timer_B->CTRLA = (TCB_CLKSEL_CLKDIV1_gc | TCB_ENABLE_bm);
 #endif
 
+#define INTERRUPT_MODE
 #ifdef INTERRUPT_MODE
+  pinMode(3, OUTPUT);
   timer_B->CTRLB = TCB_CNTMODE_INT_gc /* | TCB_CCMPEN_bm oe */;
 
   timer_B->CTRLA = (TCB_CLKSEL_CLKTCA_gc)
 //            |(TCB_SYNCUPD_bm) // breaks interrupt mode
             |(TCB_ENABLE_bm);
 
-  timer_B->CCMP = 15625 * 2; // 5 internal interrupts per second
+  timer_B->CCMP = 15624 * 2; // 10 internal interrupts per second
   //timer_B->CCMP = 12000 * 2; // 5 internal interrupts per second
   timer_B->CNT = 0;
 
@@ -248,14 +249,20 @@ void setup() {
   }
 }
 
+volatile byte g_pin3=0;
 volatile int g_dbg;
 volatile int g_internal_interrupts=0;
 volatile int g_timerb_interrupt=0;
-#define SECONDBOUNDARY 5
+#define SECONDBOUNDARY 4
 ISR(TCB1_INT_vect)
 {
   TCB1.INTFLAGS = TCB_CAPT_bm;
 
+  g_pin3=~g_pin3;
+
+  digitalWrite(3, g_pin3);
+
+#if 1
   if (g_internal_interrupts==SECONDBOUNDARY)
   {
     g_timerb_interrupt=1;
@@ -266,6 +273,7 @@ ISR(TCB1_INT_vect)
   {
     g_internal_interrupts++;
   }
+#endif
 }
 
 volatile unsigned short g_tca0=0;
@@ -278,8 +286,8 @@ void oneSecondPassed()
 
   //TCB1.CTRLA |= TCB_ENABLE_bm;
 
-  //TCB1.CNT = 0;
-  //g_internal_interrupts=0;
+  TCB1.CNT = 5;
+  g_internal_interrupts=0;
   g_extseconds++;
 }
 
