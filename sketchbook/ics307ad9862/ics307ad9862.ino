@@ -263,35 +263,22 @@ void oneSecondPassed()
   g_extseconds++;
 }
 
-unsigned short old_tca0=0;
 void reportClk()
 {
     if (g_timerb_interrupt || ISRcalled)
     {
-      unsigned int spin_internal=0;
       unsigned int spin_external=0;
 
       //Serial.println(ISRcalled+(2*g_timerb_interrupt));
 
 #define SPIN_MAX 1000
-      if (ISRcalled)
-      {
-        while ((!g_timerb_interrupt) && (spin_internal<SPIN_MAX))
-          spin_internal++;
-      }
-      else
-      {
-        if (g_timerb_interrupt)
-        {
-          while ((!ISRcalled) && (spin_external<SPIN_MAX))
-            spin_external++;
-        }
-      }
+      // internal interrupt
+      while ((!ISRcalled) && (spin_external<SPIN_MAX))
+        spin_external++;
 
       g_timerb_interrupt=0;
       ISRcalled=0;
 
-      Serial.println(spin_internal);
       Serial.println(spin_external);
       Serial.println();
 
