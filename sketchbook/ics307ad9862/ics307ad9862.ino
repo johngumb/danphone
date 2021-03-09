@@ -230,9 +230,9 @@ void setup() {
   }
 }
 
-volatile int g_dbg;
-volatile int g_internal_interrupts=0;
-volatile int g_timerb_interrupt=0;
+volatile unsigned int g_dbg;
+volatile unsigned int g_internal_interrupts=0;
+volatile unsigned char g_timerb_interrupt=0;
 
 #define SECONDBOUNDARY 4
 ISR(TCB1_INT_vect)
@@ -252,8 +252,8 @@ ISR(TCB1_INT_vect)
 }
 
 #define INTERNAL_COUNT_HEAD_START 100
-volatile byte ISRcalled=0;
-volatile unsigned char g_extseconds=0;
+volatile unsigned char ISRcalled=0;
+volatile unsigned int g_extseconds=0;
 void oneSecondPassed()
 {
   ISRcalled=1;
@@ -264,7 +264,8 @@ void oneSecondPassed()
   g_extseconds++;
 }
 
-unsigned int avg=0,avgcnt=0;
+unsigned long int avg=0; // 32 bits on every
+unsigned int avgcnt=0;
 void reportClk()
 {
   // ISRcalled gives us a second boundary initially.
@@ -294,7 +295,7 @@ void reportClk()
       avgcnt+=1;
     }
 
-    if ((g_extseconds %1200)==0)
+    if (g_extseconds==60)
     {
       float favg=float(avg)/float(avgcnt);
       avg=0;
