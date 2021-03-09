@@ -217,22 +217,6 @@ void setup() {
 
   //https://forum.arduino.cc/index.php?topic=626736.msg4268642#msg4268642
 
-#ifdef PWM_MODE
-  pinMode(3, OUTPUT);   //Port F, Pin 5 = Arduino ~D3
-  /* set the alternate pin mux */
-  PORTMUX.TCBROUTEA |= PORTMUX_TCB1_bm;
-
-  timer_B->CTRLB = (TCB_CNTMODE_PWM8_gc | TCB_CCMPEN_bm);
-
-  timer_B->CCMPH = 125;
-  timer_B->CCMPL = 249;
-
-  timer_B->CTRLA = (TCB_CLKSEL_CLKDIV1_gc | TCB_ENABLE_bm);
-#endif
-
-#define INTERRUPT_MODE
-#ifdef INTERRUPT_MODE
-  pinMode(3, OUTPUT);
   timer_B->CTRLB = TCB_CNTMODE_INT_gc /* | TCB_CCMPEN_bm oe */;
 
   timer_B->CTRLA = (TCB_CLKSEL_CLKTCA_gc)
@@ -245,11 +229,9 @@ void setup() {
 
   timer_B->INTFLAGS = TCB_CAPT_bm; // clear interrupt request flag
   timer_B->INTCTRL = TCB_CAPT_bm;  // Enable the interrupt
-#endif
   }
 }
 
-volatile byte g_pin3=0;
 volatile int g_dbg;
 volatile int g_internal_interrupts=0;
 volatile int g_timerb_interrupt=0;
@@ -258,11 +240,6 @@ ISR(TCB1_INT_vect)
 {
   TCB1.INTFLAGS = TCB_CAPT_bm;
 
-  g_pin3=~g_pin3;
-
-  digitalWrite(3, g_pin3);
-
-#if 1
   if (g_internal_interrupts==SECONDBOUNDARY)
   {
     g_timerb_interrupt=1;
@@ -273,18 +250,13 @@ ISR(TCB1_INT_vect)
   {
     g_internal_interrupts++;
   }
-#endif
 }
 
-volatile unsigned short g_tca0=0;
 volatile byte ISRcalled=0;
 volatile byte g_extseconds=0;
 void oneSecondPassed()
 {
   ISRcalled=1;
-  //g_tca0=TCA0_SINGLE_CNT;
-
-  //TCB1.CTRLA |= TCB_ENABLE_bm;
 
   TCB1.CNT = 5;
   g_internal_interrupts=0;
@@ -296,8 +268,6 @@ void reportClk()
 {
     if (g_timerb_interrupt || ISRcalled)
     {
-      unsigned short diff;
-
       unsigned int spin_internal=0;
       unsigned int spin_external=0;
 
@@ -331,17 +301,6 @@ void reportClk()
         Serial.println(g_dbg);
         g_dbg=0;
       }
-#if 0
-      Serial.println("ISR called");
-
-      diff=g_tca0-old_tca0;
-      Serial.println(diff);
-      Serial.println(g_internal_interrupts);
-      //Serial.println(TCA0_SINGLE_CNT);
-      old_tca0 = g_tca0;
-      ISRcalled=0;
-      g_timerb_interrupt=0;
-#endif
     }
 }
 
