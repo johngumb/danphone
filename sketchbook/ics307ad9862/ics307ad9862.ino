@@ -185,6 +185,30 @@ bool board_init()
   return true;
 }
 
+void init_internal_pps_interrupt(void)
+{
+  TCB_t *timer_B = (TCB_t *)&TCB1;
+
+  //https://forum.arduino.cc/index.php?topic=626736.msg4268642#msg4268642
+
+  timer_B->CTRLB = TCB_CNTMODE_INT_gc;
+
+  timer_B->CTRLA = (TCB_CLKSEL_CLKTCA_gc | TCB_ENABLE_bm);
+
+  // 10,000,000 / 64 = 156250. Divide this by 15625 to give 10 interrupts/sec.
+  // Or 15625*2 to give 5 interrupts/sec.
+  timer_B->CCMP = 15624 * 2; // 5 internal interrupts per second
+
+  timer_B->INTFLAGS = TCB_CAPT_bm; // clear interrupt request flag
+  timer_B->INTCTRL = TCB_CAPT_bm;  // Enable the interrupt  
+}
+
+void init_external_pps_interrupt(void)
+{
+  pinMode(PPS_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(PPS_PIN), oneSecondPassed, RISING);
+}
+
 void setup() {
   // clock the board at 10MHz by dividing the internal clock by two.
   // It is set up for 20Mhz in boards.txt
@@ -209,25 +233,9 @@ void setup() {
   SPI.setDataMode(SPI_MODE0);
   SPI.setClockDivider(SPI_CLOCK_DIV64);
 
-  pinMode(PPS_PIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(PPS_PIN), oneSecondPassed, RISING);
+  init_external_pps_interrupt();
 
-  {
-  TCB_t *timer_B = (TCB_t *)&TCB1;
-
-  //https://forum.arduino.cc/index.php?topic=626736.msg4268642#msg4268642
-
-  timer_B->CTRLB = TCB_CNTMODE_INT_gc;
-
-  timer_B->CTRLA = (TCB_CLKSEL_CLKTCA_gc)
-//            |(TCB_SYNCUPD_bm) // breaks interrupt mode
-            |(TCB_ENABLE_bm);
-
-  timer_B->CCMP = 15624 * 2; // 5 internal interrupts per second
-
-  timer_B->INTFLAGS = TCB_CAPT_bm; // clear interrupt request flag
-  timer_B->INTCTRL = TCB_CAPT_bm;  // Enable the interrupt
-  }
+  init_internal_pps_interrupt();
 }
 
 volatile unsigned int g_dbg;
@@ -283,7 +291,7 @@ void reportClk()
     g_timerb_interrupt=0;
     ISRcalled=0;
 
-#if 0
+#if 1
     //Serial.println(localISRcalled+(2*local_timerb));
     Serial.println(spin_external);
     Serial.println();
@@ -295,7 +303,7 @@ void reportClk()
       avgcnt+=1;
     }
 
-    if (g_extseconds==60)
+    if (g_extseconds==600)
     {
       float favg=float(avg)/float(avgcnt);
       avg=0;
