@@ -217,15 +217,13 @@ void setup() {
 
   //https://forum.arduino.cc/index.php?topic=626736.msg4268642#msg4268642
 
-  timer_B->CTRLB = TCB_CNTMODE_INT_gc /* | TCB_CCMPEN_bm oe */;
+  timer_B->CTRLB = TCB_CNTMODE_INT_gc;
 
   timer_B->CTRLA = (TCB_CLKSEL_CLKTCA_gc)
 //            |(TCB_SYNCUPD_bm) // breaks interrupt mode
             |(TCB_ENABLE_bm);
 
-  timer_B->CCMP = 15624 * 2; // 10 internal interrupts per second
-  //timer_B->CCMP = 12000 * 2; // 5 internal interrupts per second
-  timer_B->CNT = 0;
+  timer_B->CCMP = 15624 * 2; // 5 internal interrupts per second
 
   timer_B->INTFLAGS = TCB_CAPT_bm; // clear interrupt request flag
   timer_B->INTCTRL = TCB_CAPT_bm;  // Enable the interrupt
@@ -235,6 +233,7 @@ void setup() {
 volatile int g_dbg;
 volatile int g_internal_interrupts=0;
 volatile int g_timerb_interrupt=0;
+
 #define SECONDBOUNDARY 4
 ISR(TCB1_INT_vect)
 {
@@ -252,43 +251,61 @@ ISR(TCB1_INT_vect)
   }
 }
 
+#define INTERNAL_COUNT_HEAD_START 100
 volatile byte ISRcalled=0;
-volatile byte g_extseconds=0;
+volatile unsigned char g_extseconds=0;
 void oneSecondPassed()
 {
   ISRcalled=1;
 
-  TCB1.CNT = 5;
+  // sync internal timer to 1pps and give it a head start
+  TCB1.CNT = INTERNAL_COUNT_HEAD_START;
   g_internal_interrupts=0;
   g_extseconds++;
 }
 
+unsigned int avg=0,avgcnt=0;
 void reportClk()
 {
-    if (g_timerb_interrupt || ISRcalled)
-    {
-      unsigned int spin_external=0;
-
-      //Serial.println(ISRcalled+(2*g_timerb_interrupt));
+  // ISRcalled gives us a second boundary initially.
+  // Don't fully understand what's happening initially.
+  // Why does ISRcalled HAVE to be in here? It does...
+  if (g_timerb_interrupt || ISRcalled)
+  {
+    unsigned int spin_external=0;
 
 #define SPIN_MAX 1000
-      // internal interrupt
-      while ((!ISRcalled) && (spin_external<SPIN_MAX))
-        spin_external++;
+    // internal interrupt
+    while ((!ISRcalled) && (spin_external<SPIN_MAX))
+      spin_external++;
 
-      g_timerb_interrupt=0;
-      ISRcalled=0;
+    g_timerb_interrupt=0;
+    ISRcalled=0;
 
-      Serial.println(spin_external);
-      Serial.println();
+#if 0
+    //Serial.println(localISRcalled+(2*local_timerb));
+    Serial.println(spin_external);
+    Serial.println();
+#endif
 
-      if ((g_extseconds %60)==0)
-      {
-        Serial.print("dbg ");
-        Serial.println(g_dbg);
-        g_dbg=0;
-      }
+    if ((spin_external) && (spin_external != SPIN_MAX))
+    {
+      avg+=spin_external;
+      avgcnt+=1;
     }
+
+    if ((g_extseconds %1200)==0)
+    {
+      float favg=float(avg)/float(avgcnt);
+      avg=0;
+      avgcnt=0;
+      Serial.println(favg);
+      Serial.print("dbg ");
+      Serial.println(g_dbg);
+      g_extseconds=0;
+      g_dbg=0;
+    }
+  }
 }
 
 unsigned char is_eol(const char *c)
