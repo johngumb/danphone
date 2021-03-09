@@ -45,8 +45,9 @@ unsigned char ad9862dacW2[]={AD9862_SIGMA_DELTA_DAC_REG_HI, 0x56}; // 11:4 116MH
  * Pin 4 1PPS in
  * Pin 2 External clock in
  */
-#define ICS307_SS 10
-#define AD9862_CSEL 9
+#define ICS307_SS_PIN 10
+#define AD9862_CSEL_PIN 9
+#define PPS_PIN 4
 
 bool g_led_initialised;
 
@@ -84,20 +85,20 @@ void green_led(const led_state_t state)
 
 void ad9862_write(const unsigned int reg, const unsigned int val)
 {
-  digitalWrite(AD9862_CSEL, HIGH);
+  digitalWrite(AD9862_CSEL_PIN, HIGH);
   SPI.transfer(reg);
   SPI.transfer(val);
-  digitalWrite(AD9862_CSEL, LOW);  
+  digitalWrite(AD9862_CSEL_PIN, LOW);
 }
 
 unsigned int ad9862_read(const unsigned int reg)
 {
   unsigned int val;
 
-  digitalWrite(AD9862_CSEL, HIGH);
+  digitalWrite(AD9862_CSEL_PIN, HIGH);
   SPI.transfer(0x80|reg);
   val = SPI.transfer(0); // read back
-  digitalWrite(AD9862_CSEL, LOW);
+  digitalWrite(AD9862_CSEL_PIN, LOW);
 
   return val;
 }
@@ -148,9 +149,9 @@ void ics307_write(const unsigned char *progword)
   }
 
   // ics307 needs a 'blip' after programming
-  digitalWrite(ICS307_SS, LOW);
+  digitalWrite(ICS307_SS_PIN, LOW);
   delay (1);
-  digitalWrite(ICS307_SS, HIGH);
+  digitalWrite(ICS307_SS_PIN, HIGH);
 }
 
 bool board_init()
@@ -196,10 +197,10 @@ void setup() {
   Serial.println("307GI03L Test");
   Serial.println("");
 
-  pinMode(AD9862_CSEL, OUTPUT);
-  pinMode(ICS307_SS, OUTPUT);
-  digitalWrite(ICS307_SS, HIGH);
-  digitalWrite(AD9862_CSEL, LOW);
+  pinMode(AD9862_CSEL_PIN, OUTPUT);
+  pinMode(ICS307_SS_PIN, OUTPUT);
+  digitalWrite(ICS307_SS_PIN, HIGH);
+  digitalWrite(AD9862_CSEL_PIN, LOW);
 
   // Note on Nano Every LED_BUILTIN is SPI Clock pin (13) so is unusable
   // if SPI is used.
@@ -207,6 +208,133 @@ void setup() {
   SPI.setBitOrder(MSBFIRST);
   SPI.setDataMode(SPI_MODE0);
   SPI.setClockDivider(SPI_CLOCK_DIV64);
+
+  pinMode(PPS_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(PPS_PIN), oneSecondPassed, RISING);
+
+  {
+  TCB_t *timer_B = (TCB_t *)&TCB1;
+
+  //https://forum.arduino.cc/index.php?topic=626736.msg4268642#msg4268642
+
+#define PWM_MODE
+#ifdef PWM_MODE
+  pinMode(3, OUTPUT);   //Port F, Pin 5 = Arduino ~D3
+  /* set the alternate pin mux */
+  PORTMUX.TCBROUTEA |= PORTMUX_TCB1_bm;
+
+  timer_B->CTRLB = (TCB_CNTMODE_PWM8_gc | TCB_CCMPEN_bm);
+
+  timer_B->CCMPH = 125;
+  timer_B->CCMPL = 249;
+
+  timer_B->CTRLA = (TCB_CLKSEL_CLKTCA_gc | TCB_ENABLE_bm);
+#endif
+
+#ifdef INTERRUPT_MODE
+  timer_B->CTRLB = TCB_CNTMODE_INT_gc /* | TCB_CCMPEN_bm oe */;
+
+  timer_B->CTRLA = (TCB_CLKSEL_CLKTCA_gc)
+//            |(TCB_SYNCUPD_bm) // breaks interrupt mode
+            |(TCB_ENABLE_bm);
+
+  timer_B->CCMP = 15625 * 2; // 5 internal interrupts per second
+  //timer_B->CCMP = 12000 * 2; // 5 internal interrupts per second
+  timer_B->CNT = 0;
+
+  timer_B->INTFLAGS = TCB_CAPT_bm; // clear interrupt request flag
+  timer_B->INTCTRL = TCB_CAPT_bm;  // Enable the interrupt
+#endif
+  }
+}
+
+volatile int g_dbg;
+volatile int g_internal_interrupts=0;
+volatile int g_timerb_interrupt=0;
+#define SECONDBOUNDARY 5
+ISR(TCB1_INT_vect)
+{
+  TCB1.INTFLAGS = TCB_CAPT_bm;
+
+  if (g_internal_interrupts==SECONDBOUNDARY)
+  {
+    g_timerb_interrupt=1;
+    g_internal_interrupts=0;
+    g_dbg++;
+  }
+  else
+  {
+    g_internal_interrupts++;
+  }
+}
+
+volatile unsigned short g_tca0=0;
+volatile byte ISRcalled=0;
+volatile byte g_extseconds=0;
+void oneSecondPassed()
+{
+  ISRcalled=1;
+  //g_tca0=TCA0_SINGLE_CNT;
+
+  //TCB1.CTRLA |= TCB_ENABLE_bm;
+
+  //TCB1.CNT = 0;
+  //g_internal_interrupts=0;
+  g_extseconds++;
+}
+
+unsigned short old_tca0=0;
+void reportClk()
+{
+    if (g_timerb_interrupt || ISRcalled)
+    {
+      unsigned short diff;
+
+      unsigned int spin_internal=0;
+      unsigned int spin_external=0;
+
+      //Serial.println(ISRcalled+(2*g_timerb_interrupt));
+
+#define SPIN_MAX 1000
+      if (ISRcalled)
+      {
+        while ((!g_timerb_interrupt) && (spin_internal<SPIN_MAX))
+          spin_internal++;
+      }
+      else
+      {
+        if (g_timerb_interrupt)
+        {
+          while ((!ISRcalled) && (spin_external<SPIN_MAX))
+            spin_external++;
+        }
+      }
+
+      g_timerb_interrupt=0;
+      ISRcalled=0;
+
+      Serial.println(spin_internal);
+      Serial.println(spin_external);
+      Serial.println();
+
+      if ((g_extseconds %60)==0)
+      {
+        Serial.print("dbg ");
+        Serial.println(g_dbg);
+        g_dbg=0;
+      }
+#if 0
+      Serial.println("ISR called");
+
+      diff=g_tca0-old_tca0;
+      Serial.println(diff);
+      Serial.println(g_internal_interrupts);
+      //Serial.println(TCA0_SINGLE_CNT);
+      old_tca0 = g_tca0;
+      ISRcalled=0;
+      g_timerb_interrupt=0;
+#endif
+    }
 }
 
 unsigned char is_eol(const char *c)
@@ -222,7 +350,10 @@ char getchar_nano(void)
   char c;
 
   // wait here
-  while (Serial.available() < 1);
+  while (Serial.available() < 1)
+  {
+    reportClk();
+  }
 
   c = Serial.read();
 
@@ -381,7 +512,6 @@ void switch_to_external_clock()
   while (1)
   {
     unsigned char mclkstat;
-    unsigned short tca0;
 
     mclkstat=CLKCTRL.MCLKSTATUS;
 
@@ -389,11 +519,13 @@ void switch_to_external_clock()
     {
       // no prescaler stuff - we have a 10MHz external clock now
       _PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, 0);
+
+      // allow clock to settle a bit - may not be needed
+      delay(1);
+
       Serial.println("got external 10MHz clock");    
       break;
     }
-    
-    tca0=TCA0_SINGLE_CNT;  
             
     delay(1);
   }
@@ -402,7 +534,6 @@ void switch_to_external_clock()
 static bool g_board_initialised;
 
 void loop() {
-
   switch_to_external_clock();
 
   while(!g_board_initialised)
