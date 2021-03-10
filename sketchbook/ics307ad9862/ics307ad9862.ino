@@ -1,5 +1,6 @@
 // i2c #include <Wire.h>
 #include <SPI.h>
+#include <avr/wdt.h>
 
 //#define AD9862_SIM
 
@@ -223,6 +224,8 @@ void setup() {
 
   pinMode(AD9862_CSEL_PIN, OUTPUT);
   pinMode(ICS307_SS_PIN, OUTPUT);
+
+  // default states
   digitalWrite(ICS307_SS_PIN, HIGH);
   digitalWrite(AD9862_CSEL_PIN, LOW);
 
@@ -259,7 +262,9 @@ ISR(TCB1_INT_vect)
   }
 }
 
-#define INTERNAL_COUNT_HEAD_START 20
+// 20 -> avg 105.34, 110-92.
+// 10 -> avg 56.47, 43-61
+#define INTERNAL_COUNT_HEAD_START 10
 volatile unsigned char g_external_pps_interrupt=0;
 volatile unsigned int g_external_seconds=0;
 void oneSecondPassed()
@@ -278,7 +283,7 @@ void gps_down()
 {
     if (!g_gps_lost)
     {
-      Serial.print("GPS lost at ");
+      Serial.print("*** GPS lost at ");
       Serial.println(g_internal_seconds);
       g_gps_losses++;
     }
@@ -308,9 +313,13 @@ bool gps_ok()
 #define INIT_MINV 3000
 unsigned int g_maxv=0;
 unsigned int g_minv=INIT_MINV;
-unsigned long int g_avg=0; // 32 bits on every
+unsigned long int g_avgtot=0; // 32 bits on every
 unsigned int g_avgcnt=0;
 unsigned int g_hours=0;
+float g_avg_avg=0;
+unsigned long int g_avg_avg_cnt=0;
+unsigned int g_unexpected_external_interrupts=0;
+unsigned int g_missed_external_interrupts=0;
 
 void reportClk()
 {
@@ -319,26 +328,35 @@ void reportClk()
     unsigned int spin_external=0;
 
 #define SPIN_MAX 1000
-    // internal interrupt: busy wait til GPS interrupt occurs
+    // internal interrupt: busy wait (count) til GPS interrupt occurs
     while ((!g_external_pps_interrupt) && (spin_external<SPIN_MAX))
       spin_external++;
 
     g_internal_pps_interrupt=0;
+    g_external_pps_interrupt=0;
 
 #if 0
-    //Serial.println(localg_external_pps_interrupt+(2*local_timerb));
     Serial.println(spin_external);
     Serial.println();
 #endif
+
+    // deal with spin_external being 0 case up front - should not happen
+    if (!spin_external)
+    {
+      Serial.print("*** No spin at ");
+      Serial.println(g_internal_seconds);
+      g_missed_external_interrupts++;
+      return;
+    }
 
     if (spin_external == SPIN_MAX)
       gps_down();
     else
       gps_back();
 
-    if ((spin_external) && gps_ok())
+    if (gps_ok()) // take some readings
     {
-      g_avg+=spin_external;
+      g_avgtot+=spin_external;
       g_avgcnt+=1;
 
       if (spin_external>g_maxv)
@@ -348,45 +366,85 @@ void reportClk()
         g_minv=spin_external;
     }
 
-    if (g_internal_seconds==3600)
+#define ONE_HOUR_IN_SECONDS 3600
+#define STATS_SAMPLE_PERIOD_SECONDS (2*ONE_HOUR_IN_SECONDS)
+
+    if (g_internal_seconds==STATS_SAMPLE_PERIOD_SECONDS)
     {
-      g_hours++;
+      g_avg_avg+=(float(g_avgtot)/float(g_avgcnt));
+      g_avg_avg_cnt+=1;
+
+      g_hours+=(STATS_SAMPLE_PERIOD_SECONDS/ONE_HOUR_IN_SECONDS);
 
       report_stats();
 
-      g_avg=0;
+      g_avgtot=0;
       g_avgcnt=0;
       g_external_seconds=0;
       g_internal_seconds=0;
       g_maxv=0;
       g_minv=INIT_MINV;
+      g_gps_losses=0;
+      g_unexpected_external_interrupts=0;
+      g_missed_external_interrupts=0;
     }
   }
 
-  // initial case - once running we busy wait with spin_external
+  // Initial case - once running we busy wait with spin_external
   // until 1pps interrupt appears.
+  // Also occasionally see this due to noise/spurious interrupt.
   if (g_external_pps_interrupt)
+  {
     g_external_pps_interrupt=0;
+
+    //
+    // non-initial case: internal 1 second signal should always
+    // come just before the 1pps off the GPS.
+    //
+    if (g_internal_seconds)
+    {
+      Serial.print("*** Unexpected external interrupt at ");
+      Serial.println(g_internal_seconds);
+      g_unexpected_external_interrupts++;
+    }
+
+    Serial.print("gps interrupt cleared at ");
+    Serial.println(g_internal_seconds);
+  }
 }
 
 void report_stats(void)
 {
-  float favg=float(g_avg)/float(g_avgcnt);
+  float favg=float(g_avgtot)/float(g_avgcnt);
+  Serial.println();
   Serial.print("Hours: ");
   Serial.println(g_hours);
   Serial.print("Average: ");
   Serial.println(favg);
   Serial.print("Readings: ");
   Serial.println(g_avgcnt);
+  Serial.print("Total spin count: ");
+  Serial.println(g_avgtot);
+  Serial.print("Max: ");
+  Serial.println(g_maxv);
+  Serial.print("Min: ");
+  Serial.println(g_minv);
   Serial.print("Max-Min: ");
   Serial.println(g_maxv-g_minv);
   Serial.print("Internal one second interrupts: ");
   Serial.println(g_internal_seconds);
   Serial.print("External one second interrupts: ");
-  Serial.println(g_external_seconds-1);
+  Serial.println(g_external_seconds);
   Serial.print("GPS losses: ");
   Serial.println(g_gps_losses);
-  Serial.println();
+  Serial.print("Unexpected external interrupts: ");
+  Serial.println(g_unexpected_external_interrupts);
+  Serial.print("Missed external interrupts: ");
+  Serial.println(g_missed_external_interrupts);
+  Serial.print("Stats calcs done: ");
+  Serial.println(g_avg_avg_cnt);
+  Serial.print("Average average: ");
+  Serial.println(g_avg_avg);
 }
 
 unsigned char is_eol(const char *c)
@@ -583,6 +641,14 @@ void switch_to_external_clock()
   }
 }
 
+void reboot() {
+  Serial.println("rebooting...");
+  Serial.println();
+  wdt_disable();
+  wdt_enable(WDT_PERIOD_4KCLK_gc);
+  while (1) {}
+}
+
 static bool g_board_initialised;
 
 void loop() {
@@ -616,6 +682,7 @@ void loop() {
         partcmd('D', act_dac());
         partcmd('I', board_init());
         partcmd('S', report_stats());
+        partcmd('R', reboot());
     } while (0);
   }
 }
