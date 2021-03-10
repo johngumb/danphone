@@ -303,8 +303,9 @@ bool gps_ok()
   return (!g_gps_lost);
 }
 
+#define INIT_MINV 3000
 unsigned int g_maxv=0;
-unsigned int g_minv=3000;
+unsigned int g_minv=INIT_MINV;
 unsigned long int g_avg=0; // 32 bits on every
 unsigned int g_avgcnt=0;
 unsigned int g_hours=0;
@@ -347,16 +348,16 @@ void reportClk()
 
     if (g_internal_seconds==3600)
     {
+      g_hours++;
+
       report_stats();
 
       g_avg=0;
       g_avgcnt=0;
       g_external_seconds=0;
       g_internal_seconds=0;
-      g_hours++;
-
       g_maxv=0;
-      g_minv=2000;
+      g_minv=INIT_MINV;
     }
   }
 
@@ -373,6 +374,8 @@ void report_stats(void)
   Serial.println(g_hours);
   Serial.print("Average: ");
   Serial.println(favg);
+  Serial.print("Readings: ");
+  Serial.println(g_avgcnt);
   Serial.print("Max-Min: ");
   Serial.println(g_maxv-g_minv);
   Serial.print("Internal one second interrupts: ");
