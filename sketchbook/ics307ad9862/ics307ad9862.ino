@@ -238,9 +238,9 @@ void setup() {
   init_internal_pps_interrupt();
 }
 
-volatile unsigned int g_dbg;
+volatile unsigned int g_internal_seconds;
 volatile unsigned int g_internal_interrupts=0;
-volatile unsigned char g_timerb_interrupt=0;
+volatile unsigned char g_internal_pps_interrupt=0;
 
 #define SECONDBOUNDARY 4
 ISR(TCB1_INT_vect)
@@ -249,9 +249,9 @@ ISR(TCB1_INT_vect)
 
   if (g_internal_interrupts==SECONDBOUNDARY)
   {
-    g_timerb_interrupt=1;
+    g_internal_pps_interrupt=1;
     g_internal_interrupts=0;
-    g_dbg++;
+    g_internal_seconds++;
   }
   else
   {
@@ -259,62 +259,124 @@ ISR(TCB1_INT_vect)
   }
 }
 
-#define INTERNAL_COUNT_HEAD_START 100
-volatile unsigned char ISRcalled=0;
-volatile unsigned int g_extseconds=0;
+#define INTERNAL_COUNT_HEAD_START 20
+volatile unsigned char g_external_pps_interrupt=0;
+volatile unsigned int g_external_seconds=0;
 void oneSecondPassed()
 {
-  ISRcalled=1;
+  g_external_pps_interrupt=1;
 
   // sync internal timer to 1pps and give it a head start
   TCB1.CNT = INTERNAL_COUNT_HEAD_START;
   g_internal_interrupts=0;
-  g_extseconds++;
+  g_external_seconds++;
 }
 
+unsigned char g_gps_lost=0, g_gps_pause=0;
+void gps_down()
+{
+    if (!g_gps_lost)
+    {
+      Serial.print("GPS lost at ");
+      Serial.println(g_internal_seconds);
+    }
+    g_gps_lost=1;
+    g_gps_pause=100;
+}
+
+void gps_back()
+{
+  if (g_gps_lost)
+  {
+    g_gps_pause--;
+    if (!g_gps_pause)
+    {
+      g_gps_lost=0;
+      Serial.print("GPS ok at ");
+      Serial.println(g_internal_seconds);
+    }
+  }
+}
+
+bool gps_ok()
+{
+  return (!g_gps_lost);
+}
+
+unsigned int maxv=0;
+unsigned int minv=3000;
 unsigned long int avg=0; // 32 bits on every
 unsigned int avgcnt=0;
+
 void reportClk()
 {
-  // ISRcalled gives us a second boundary initially.
-  // Don't fully understand what's happening initially.
-  // Why does ISRcalled HAVE to be in here? It does...
-  if (g_timerb_interrupt || ISRcalled)
+  if (g_internal_pps_interrupt)
   {
     unsigned int spin_external=0;
 
 #define SPIN_MAX 1000
-    // internal interrupt
-    while ((!ISRcalled) && (spin_external<SPIN_MAX))
+    // internal interrupt: busy wait til GPS interrupt occurs
+    while ((!g_external_pps_interrupt) && (spin_external<SPIN_MAX))
       spin_external++;
 
-    g_timerb_interrupt=0;
-    ISRcalled=0;
+    g_internal_pps_interrupt=0;
+    g_external_pps_interrupt=0;
 
-#if 1
-    //Serial.println(localISRcalled+(2*local_timerb));
+#if 0
+    //Serial.println(localg_external_pps_interrupt+(2*local_timerb));
     Serial.println(spin_external);
     Serial.println();
 #endif
 
-    if ((spin_external) && (spin_external != SPIN_MAX))
+    if (spin_external == SPIN_MAX)
+      gps_down();
+    else
+      gps_back();
+
+    if ((spin_external) && gps_ok())
     {
       avg+=spin_external;
       avgcnt+=1;
+
+      if (spin_external>maxv)
+        maxv=spin_external;
+
+      if (spin_external<minv)
+        minv=spin_external;
     }
 
-    if (g_extseconds==600)
+    if (g_external_seconds==1200)
     {
-      float favg=float(avg)/float(avgcnt);
+      report_stats();
+
       avg=0;
       avgcnt=0;
-      Serial.println(favg);
-      Serial.print("dbg ");
-      Serial.println(g_dbg);
-      g_extseconds=0;
-      g_dbg=0;
+      g_external_seconds=0;
+      g_internal_seconds=0;
+
+      maxv=0;
+      minv=2000;
     }
   }
+
+  // initial case - once running we busy wait with spin_external
+  // until 1pps interrupt appears.
+  if (g_external_pps_interrupt)
+    g_external_pps_interrupt=0;
+}
+
+void report_stats(void)
+{
+  float favg=float(avg)/float(avgcnt);
+  Serial.print("Average: ");
+  Serial.println(favg);
+  Serial.print("Max-Min: ");
+  Serial.println(maxv-minv);
+  Serial.print("Internal one second interrupts: ");
+  Serial.println(g_internal_seconds);
+  Serial.print("External one second interrupts: ");
+  Serial.println(g_external_seconds);
+  Serial.println();
 }
 
 unsigned char is_eol(const char *c)
@@ -407,7 +469,7 @@ unsigned char strtohex(const char *chstr)
 
 #define cmd(_cmpstr,_rtn) if (strcmp(g_str, _cmpstr)==0) {_rtn; break;}
 
-#define partcmd(_cmpchar, _rtn) if (g_str[0]==_cmpchar) {_rtn; break; }
+#define partcmd(_cmpchar, _rtn) if (toupper(g_str[0])==_cmpchar) {_rtn; break; }
 
 void act_synth(void)
 {
@@ -543,6 +605,7 @@ void loop() {
         partcmd('B', act_synth());
         partcmd('D', act_dac());
         partcmd('I', board_init());
+        partcmd('S', report_stats());
     } while (0);
   }
 }
