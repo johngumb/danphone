@@ -303,10 +303,11 @@ bool gps_ok()
   return (!g_gps_lost);
 }
 
-unsigned int maxv=0;
-unsigned int minv=3000;
-unsigned long int avg=0; // 32 bits on every
-unsigned int avgcnt=0;
+unsigned int g_maxv=0;
+unsigned int g_minv=3000;
+unsigned long int g_avg=0; // 32 bits on every
+unsigned int g_avgcnt=0;
+unsigned int g_hours=0;
 
 void reportClk()
 {
@@ -320,7 +321,6 @@ void reportClk()
       spin_external++;
 
     g_internal_pps_interrupt=0;
-    g_external_pps_interrupt=0;
 
 #if 0
     //Serial.println(localg_external_pps_interrupt+(2*local_timerb));
@@ -335,27 +335,28 @@ void reportClk()
 
     if ((spin_external) && gps_ok())
     {
-      avg+=spin_external;
-      avgcnt+=1;
+      g_avg+=spin_external;
+      g_avgcnt+=1;
 
-      if (spin_external>maxv)
-        maxv=spin_external;
+      if (spin_external>g_maxv)
+        g_maxv=spin_external;
 
-      if (spin_external<minv)
-        minv=spin_external;
+      if (spin_external<g_minv)
+        g_minv=spin_external;
     }
 
-    if (g_external_seconds==1200)
+    if (g_internal_seconds==3600)
     {
       report_stats();
 
-      avg=0;
-      avgcnt=0;
+      g_avg=0;
+      g_avgcnt=0;
       g_external_seconds=0;
       g_internal_seconds=0;
+      g_hours++;
 
-      maxv=0;
-      minv=2000;
+      g_maxv=0;
+      g_minv=2000;
     }
   }
 
@@ -367,15 +368,17 @@ void reportClk()
 
 void report_stats(void)
 {
-  float favg=float(avg)/float(avgcnt);
+  float favg=float(g_avg)/float(g_avgcnt);
+  Serial.print("Hours: ");
+  Serial.println(g_hours);
   Serial.print("Average: ");
   Serial.println(favg);
   Serial.print("Max-Min: ");
-  Serial.println(maxv-minv);
+  Serial.println(g_maxv-g_minv);
   Serial.print("Internal one second interrupts: ");
   Serial.println(g_internal_seconds);
   Serial.print("External one second interrupts: ");
-  Serial.println(g_external_seconds);
+  Serial.println(g_external_seconds-1);
   Serial.println();
 }
 
