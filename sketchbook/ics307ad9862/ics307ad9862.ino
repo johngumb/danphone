@@ -322,7 +322,6 @@ float g_avg_avg=0;
 unsigned long int g_avg_avg_cnt=0;
 unsigned int g_unexpected_external_interrupts=0;
 unsigned int g_missed_external_interrupts=0;
-unsigned int g_boot_delay=0;
 
 void reportClk()
 {
@@ -357,8 +356,7 @@ void reportClk()
     else
       gps_back();
 
-    g_boot_delay++;
-    if (gps_ok() && (g_boot_delay > 100)) // take some readings
+    if (gps_ok()) // take some readings
     {
       g_avgtot+=spin_external;
       g_avgcnt+=1;
