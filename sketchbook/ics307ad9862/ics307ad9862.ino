@@ -264,6 +264,7 @@ ISR(TCB1_INT_vect)
 
 // 20 -> avg 105.34, 110-92.
 // 10 -> avg 56.47, 43-61
+// 999835 -> 55.37 i.e. 165Hz low
 #define INTERNAL_COUNT_HEAD_START 10
 volatile unsigned char g_external_pps_interrupt=0;
 volatile unsigned int g_external_seconds=0;
@@ -314,6 +315,7 @@ bool gps_ok()
 unsigned int g_maxv=0;
 unsigned int g_minv=INIT_MINV;
 unsigned long int g_avgtot=0; // 32 bits on every
+unsigned long int g_tot_avg_tot=0; // 32 bits on every
 unsigned int g_avgcnt=0;
 unsigned int g_hours=0;
 float g_avg_avg=0;
@@ -375,6 +377,8 @@ void reportClk()
       g_avg_avg_cnt+=1;
 
       g_hours+=(STATS_SAMPLE_PERIOD_SECONDS/ONE_HOUR_IN_SECONDS);
+
+      g_tot_avg_tot+=g_avgtot;
 
       report_stats();
 
@@ -445,6 +449,17 @@ void report_stats(void)
   Serial.println(g_avg_avg_cnt);
   Serial.print("Average average: ");
   Serial.println(g_avg_avg);
+  Serial.print("Total total: ");
+  Serial.println(g_tot_avg_tot);
+  Serial.print("Average total: ");
+  if (g_avg_avg_cnt)
+  {
+    Serial.println(float(g_tot_avg_tot)/float(g_avg_avg_cnt));
+  }
+  else
+  {
+    Serial.println(0);
+  }
 }
 
 unsigned char is_eol(const char *c)
@@ -644,9 +659,8 @@ void switch_to_external_clock()
 void reboot() {
   Serial.println("rebooting...");
   Serial.println();
-  wdt_disable();
-  wdt_enable(WDT_PERIOD_4KCLK_gc);
-  while (1) {}
+  _PROTECTED_WRITE(WDT.CTRLA,WDT_PERIOD_8CLK_gc);
+  while (1);
 }
 
 static bool g_board_initialised;
