@@ -273,12 +273,14 @@ void oneSecondPassed()
 }
 
 unsigned char g_gps_lost=0, g_gps_pause=0;
+unsigned int g_gps_losses=0;
 void gps_down()
 {
     if (!g_gps_lost)
     {
       Serial.print("GPS lost at ");
       Serial.println(g_internal_seconds);
+      g_gps_losses++;
     }
     g_gps_lost=1;
     g_gps_pause=100;
@@ -382,6 +384,8 @@ void report_stats(void)
   Serial.println(g_internal_seconds);
   Serial.print("External one second interrupts: ");
   Serial.println(g_external_seconds-1);
+  Serial.print("GPS losses: ");
+  Serial.println(g_gps_losses);
   Serial.println();
 }
 
