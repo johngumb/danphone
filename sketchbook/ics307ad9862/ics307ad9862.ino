@@ -417,6 +417,16 @@ void reportClk()
   }
 }
 
+void short_stats(void)
+{
+  float favg=float(g_avgtot)/float(g_avgcnt);
+  Serial.println();
+  Serial.print("Hours: ");
+  Serial.println(g_hours);
+  Serial.print("Average: ");
+  Serial.println(favg);
+}
+
 void report_stats(void)
 {
   float favg=float(g_avgtot)/float(g_avgcnt);
@@ -692,6 +702,7 @@ void loop() {
 
     do
     {
+        cmd("ss", short_stats());
         partcmd('B', act_synth());
         partcmd('D', act_dac());
         partcmd('I', board_init());
