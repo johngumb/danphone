@@ -244,6 +244,7 @@ void setup() {
 volatile unsigned int g_internal_seconds;
 volatile unsigned int g_internal_interrupts=0;
 volatile unsigned char g_internal_pps_interrupt=0;
+volatile int g_shared=0;
 
 #define SECONDBOUNDARY 4
 ISR(TCB1_INT_vect)
@@ -255,6 +256,7 @@ ISR(TCB1_INT_vect)
     g_internal_pps_interrupt=1;
     g_internal_interrupts=0;
     g_internal_seconds++;
+    g_shared--;
   }
   else
   {
@@ -265,17 +267,20 @@ ISR(TCB1_INT_vect)
 // 20 -> avg 105.34, 110-92.
 // 10 -> avg 56.47, 43-61
 // 999835 -> 55.37 i.e. 165Hz low
-#define INTERNAL_COUNT_HEAD_START 10
+#define INTERNAL_COUNT_HEAD_START 3
 volatile unsigned char g_external_pps_interrupt=0;
 volatile unsigned int g_external_seconds=0;
 void oneSecondPassed()
 {
   g_external_pps_interrupt=1;
 
-  // sync internal timer to 1pps and give it a head start
+  // sync internal timer to 1pps
   TCB1.CNT = INTERNAL_COUNT_HEAD_START;
   g_internal_interrupts=0;
   g_external_seconds++;
+
+  if (gps_ok())
+    g_shared++;
 }
 
 unsigned char g_gps_lost=0, g_gps_pause=0;
@@ -316,6 +321,7 @@ unsigned int g_maxv=0;
 unsigned int g_minv=INIT_MINV;
 unsigned long int g_avgtot=0; // 32 bits on every
 unsigned long int g_tot_avg_tot=0; // 32 bits on every
+unsigned long int g_avgtot_internal=0;
 unsigned int g_avgcnt=0;
 unsigned int g_hours=0;
 float g_avg_avg=0;
@@ -327,18 +333,32 @@ void reportClk()
 {
   if (g_internal_pps_interrupt)
   {
-    unsigned int spin_external=0;
+    unsigned int spin_internal=0, spin_external=0;
 
 #define SPIN_MAX 1000
-    // internal interrupt: busy wait (count) til GPS interrupt occurs
-    while ((!g_external_pps_interrupt) && (spin_external<SPIN_MAX))
-      spin_external++;
+
+    if (g_internal_pps_interrupt)
+    {
+      // internal interrupt: busy wait (count) til GPS interrupt occurs
+      while ((!g_external_pps_interrupt) && (spin_external<SPIN_MAX))
+        spin_external++;
+    }
+
+    if (g_external_pps_interrupt)
+    {
+      // internal interrupt: busy wait (count) til internal interrupt occurs
+      while ((!g_internal_pps_interrupt) && (spin_internal<SPIN_MAX))
+        spin_internal++;
+    }
+
+    //spin_external -= spin_internal;
 
     g_internal_pps_interrupt=0;
     g_external_pps_interrupt=0;
 
 #if 0
     Serial.println(spin_external);
+    Serial.println(spin_internal);
     Serial.println();
 #endif
 
@@ -359,6 +379,7 @@ void reportClk()
     if (gps_ok()) // take some readings
     {
       g_avgtot+=spin_external;
+      g_avgtot_internal+=spin_internal;
       g_avgcnt+=1;
 
       if (spin_external>g_maxv)
@@ -420,11 +441,12 @@ void reportClk()
 void short_stats(void)
 {
   float favg=float(g_avgtot)/float(g_avgcnt);
+  Serial.println(g_shared);
   Serial.println();
   Serial.print("Hours: ");
   Serial.println(g_hours);
   Serial.print("Average: ");
-  Serial.println(favg);
+  Serial.println(favg,4);
 }
 
 void report_stats(void)
@@ -434,7 +456,7 @@ void report_stats(void)
   Serial.print("Hours: ");
   Serial.println(g_hours);
   Serial.print("Average: ");
-  Serial.println(favg);
+  Serial.println(favg,4);
   Serial.print("Readings: ");
   Serial.println(g_avgcnt);
   Serial.print("Total spin count: ");
