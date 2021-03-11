@@ -267,7 +267,7 @@ ISR(TCB1_INT_vect)
 // 20 -> avg 105.34, 110-92.
 // 10 -> avg 56.47, 43-61
 // 999835 -> 55.37 i.e. 165Hz low
-#define INTERNAL_COUNT_HEAD_START 3
+#define INTERNAL_COUNT_HEAD_START 5
 volatile unsigned char g_external_pps_interrupt=0;
 volatile unsigned int g_external_seconds=0;
 void oneSecondPassed()
@@ -321,7 +321,6 @@ unsigned int g_maxv=0;
 unsigned int g_minv=INIT_MINV;
 unsigned long int g_avgtot=0; // 32 bits on every
 unsigned long int g_tot_avg_tot=0; // 32 bits on every
-unsigned long int g_avgtot_internal=0;
 unsigned int g_avgcnt=0;
 unsigned int g_hours=0;
 float g_avg_avg=0;
@@ -333,32 +332,18 @@ void reportClk()
 {
   if (g_internal_pps_interrupt)
   {
-    unsigned int spin_internal=0, spin_external=0;
+    unsigned int spin_external=0;
 
 #define SPIN_MAX 1000
-
-    if (g_internal_pps_interrupt)
-    {
-      // internal interrupt: busy wait (count) til GPS interrupt occurs
-      while ((!g_external_pps_interrupt) && (spin_external<SPIN_MAX))
-        spin_external++;
-    }
-
-    if (g_external_pps_interrupt)
-    {
-      // internal interrupt: busy wait (count) til internal interrupt occurs
-      while ((!g_internal_pps_interrupt) && (spin_internal<SPIN_MAX))
-        spin_internal++;
-    }
-
-    //spin_external -= spin_internal;
+    // internal interrupt: busy wait (count) til GPS interrupt occurs
+    while ((!g_external_pps_interrupt) && (spin_external<SPIN_MAX))
+      spin_external++;
 
     g_internal_pps_interrupt=0;
     g_external_pps_interrupt=0;
 
 #if 0
     Serial.println(spin_external);
-    Serial.println(spin_internal);
     Serial.println();
 #endif
 
@@ -378,15 +363,24 @@ void reportClk()
 
     if (gps_ok()) // take some readings
     {
-      g_avgtot+=spin_external;
-      g_avgtot_internal+=spin_internal;
-      g_avgcnt+=1;
+      unsigned int old_minv=g_minv;
 
       if (spin_external>g_maxv)
         g_maxv=spin_external;
 
       if (spin_external<g_minv)
         g_minv=spin_external;
+
+      if (((int)old_minv-(int)spin_external)<7)
+      {
+        g_avgtot+=spin_external;
+        g_avgcnt+=1;
+      }
+      else
+      {
+        Serial.print(spin_external);
+        Serial.println(" ignored.");
+      }
     }
 
 #define ONE_HOUR_IN_SECONDS 3600
