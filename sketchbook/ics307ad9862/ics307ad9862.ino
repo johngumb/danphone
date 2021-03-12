@@ -245,7 +245,10 @@ volatile unsigned int g_internal_seconds;
 volatile unsigned int g_internal_interrupts=0;
 volatile unsigned char g_internal_pps_interrupt=0;
 volatile int g_shared=0;
+volatile unsigned char g_isr_tracker=0;
 
+#define TRACK_NONE_INT 0
+#define TRACK_INTERNAL_INT 2
 #define SECONDBOUNDARY 4
 ISR(TCB1_INT_vect)
 {
@@ -253,10 +256,10 @@ ISR(TCB1_INT_vect)
 
   if (g_internal_interrupts==SECONDBOUNDARY)
   {
+    g_isr_tracker=TRACK_INTERNAL_INT;
     g_internal_pps_interrupt=1;
     g_internal_interrupts=0;
     g_internal_seconds++;
-    g_shared--;
   }
   else
   {
@@ -267,20 +270,20 @@ ISR(TCB1_INT_vect)
 // 20 -> avg 105.34, 110-92.
 // 10 -> avg 56.47, 43-61
 // 999835 -> 55.37 i.e. 165Hz low
-#define INTERNAL_COUNT_HEAD_START 5
+#define INTERNAL_COUNT_HEAD_START 0
 volatile unsigned char g_external_pps_interrupt=0;
 volatile unsigned int g_external_seconds=0;
+
+#define TRACK_EXTERNAL_INT 1
 void oneSecondPassed()
 {
+  g_isr_tracker=TRACK_EXTERNAL_INT;
   g_external_pps_interrupt=1;
 
   // sync internal timer to 1pps
   TCB1.CNT = INTERNAL_COUNT_HEAD_START;
   g_internal_interrupts=0;
   g_external_seconds++;
-
-  if (gps_ok())
-    g_shared++;
 }
 
 unsigned char g_gps_lost=0, g_gps_pause=0;
@@ -294,7 +297,7 @@ void gps_down()
       g_gps_losses++;
     }
     g_gps_lost=1;
-    g_gps_pause=100;
+    g_gps_pause=10;
 }
 
 void gps_back()
@@ -320,14 +323,95 @@ bool gps_ok()
 unsigned int g_maxv=0;
 unsigned int g_minv=INIT_MINV;
 unsigned long int g_avgtot=0; // 32 bits on every
-unsigned long int g_tot_avg_tot=0; // 32 bits on every
 unsigned int g_avgcnt=0;
 unsigned int g_hours=0;
-float g_avg_avg=0;
-unsigned long int g_avg_avg_cnt=0;
 unsigned int g_unexpected_external_interrupts=0;
 unsigned int g_missed_external_interrupts=0;
 
+unsigned long int g_tot_avg_tot=0; // 32 bits on every
+unsigned long int g_avg_avg_cnt=0;
+unsigned char g_last_ok;
+
+void report_stats2();
+
+int g_total_difference=0;
+
+#define ONE_HOUR_IN_SECONDS 3600
+#define STATS_SAMPLE_PERIOD_SECONDS ONE_HOUR_IN_SECONDS
+unsigned int g_internals_first=0, g_externals_first=0;
+unsigned int g_track_none_ext_int=0, g_track_none_int_int=0;
+void reportClk2()
+{
+  unsigned int i,e,t,c;
+  if ((i=g_internal_pps_interrupt) || (e=g_external_pps_interrupt))
+  {
+    unsigned char this_ok;
+
+    t=g_isr_tracker;
+
+    if (!g_gps_lost)
+    {
+      if (g_isr_tracker==TRACK_INTERNAL_INT)
+        g_internals_first++;
+
+      if (g_isr_tracker==TRACK_EXTERNAL_INT)
+        g_externals_first++;
+
+      if (g_isr_tracker==TRACK_NONE_INT)
+      {
+        if (g_external_pps_interrupt)
+          g_track_none_ext_int++;
+
+        if (g_internal_pps_interrupt)
+          g_track_none_int_int++;
+      }
+    }
+
+    g_internal_pps_interrupt=0;
+    g_external_pps_interrupt=0;
+    g_isr_tracker=TRACK_NONE_INT;
+
+#if 0
+    c=(2*i) + e;
+    if (c!=t)
+    {
+      Serial.print(c);
+      Serial.println(t);
+    }
+#endif
+
+    if (g_internal_seconds > g_external_seconds+1)
+      gps_down();
+
+    this_ok = ((e) || (t==TRACK_EXTERNAL_INT));
+
+    if (this_ok && g_last_ok)
+    {
+      g_external_seconds=g_internal_seconds;
+      gps_back();
+    }
+
+    g_last_ok = this_ok;
+
+    if (g_internal_seconds==STATS_SAMPLE_PERIOD_SECONDS)
+    {
+      g_hours+=(STATS_SAMPLE_PERIOD_SECONDS/ONE_HOUR_IN_SECONDS);
+      g_avg_avg_cnt+=1;
+
+      long int extf=(long int)g_externals_first, intf=(long int)g_internals_first;
+      int diff=extf-intf;
+
+      g_total_difference += diff;
+
+      report_stats2(diff);
+      g_internals_first=0;
+      g_externals_first=0;
+      g_external_seconds=0;
+      g_internal_seconds=0;
+      g_gps_losses=0;
+    }
+  }
+}
 void reportClk()
 {
   if (g_internal_pps_interrupt)
@@ -363,32 +447,20 @@ void reportClk()
 
     if (gps_ok()) // take some readings
     {
-      unsigned int old_minv=g_minv;
-
       if (spin_external>g_maxv)
         g_maxv=spin_external;
 
       if (spin_external<g_minv)
         g_minv=spin_external;
 
-      if (((int)old_minv-(int)spin_external)<7)
-      {
-        g_avgtot+=spin_external;
-        g_avgcnt+=1;
-      }
-      else
-      {
-        Serial.print(spin_external);
-        Serial.println(" ignored.");
-      }
+      g_avgtot+=spin_external;
+      g_avgcnt+=1;
     }
 
-#define ONE_HOUR_IN_SECONDS 3600
-#define STATS_SAMPLE_PERIOD_SECONDS (2*ONE_HOUR_IN_SECONDS)
 
     if (g_internal_seconds==STATS_SAMPLE_PERIOD_SECONDS)
     {
-      g_avg_avg+=(float(g_avgtot)/float(g_avgcnt));
+      float favg=float(g_avgtot)/float(g_avgcnt);
       g_avg_avg_cnt+=1;
 
       g_hours+=(STATS_SAMPLE_PERIOD_SECONDS/ONE_HOUR_IN_SECONDS);
@@ -441,6 +513,39 @@ void short_stats(void)
   Serial.println(g_hours);
   Serial.print("Average: ");
   Serial.println(favg,4);
+  Serial.println();
+}
+
+void call_stats2()
+{
+  long int extf=(long int)g_externals_first, intf=(long int)g_internals_first;
+  int diff=extf-intf;
+
+  report_stats2(diff);
+}
+void report_stats2(int diff)
+{
+  Serial.println();
+  Serial.print("Hours: ");
+  Serial.println(g_hours);
+  Serial.print("Stats calcs done: ");
+  Serial.println(g_avg_avg_cnt);
+  Serial.print("Internals first: ");
+  Serial.println(g_internals_first);
+  Serial.print("Externals first: ");
+  Serial.println(g_externals_first);
+  Serial.print("Difference: ");
+  Serial.println(diff);
+  Serial.print("Total Difference: ");
+  Serial.println(g_total_difference);
+  Serial.print("No interrupt external: ");
+  Serial.println(g_track_none_ext_int);
+  Serial.print("No interrupt internal: ");
+  Serial.println(g_track_none_int_int);
+  Serial.print("Internal one second interrupts: ");
+  Serial.println(g_internal_seconds);
+  Serial.print("GPS losses: ");
+  Serial.println(g_gps_losses);
 }
 
 void report_stats(void)
@@ -474,7 +579,7 @@ void report_stats(void)
   Serial.print("Stats calcs done: ");
   Serial.println(g_avg_avg_cnt);
   Serial.print("Average average: ");
-  Serial.println(g_avg_avg);
+  Serial.println(float(g_tot_avg_tot))/float(g_avg_avg_cnt);
   Serial.print("Total total: ");
   Serial.println(g_tot_avg_tot);
   Serial.print("Average total: ");
@@ -503,7 +608,7 @@ char getchar_nano(void)
   // wait here
   while (Serial.available() < 1)
   {
-    reportClk();
+    reportClk2();
   }
 
   c = Serial.read();
@@ -691,7 +796,8 @@ void reboot() {
 
 static bool g_board_initialised;
 
-void loop() {
+void loop()
+{
   switch_to_external_clock();
 
   while(!g_board_initialised)
@@ -722,7 +828,7 @@ void loop() {
         partcmd('B', act_synth());
         partcmd('D', act_dac());
         partcmd('I', board_init());
-        partcmd('S', report_stats());
+        partcmd('S', call_stats2());
         partcmd('R', reboot());
     } while (0);
   }
