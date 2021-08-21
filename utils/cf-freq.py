@@ -10,7 +10,7 @@ import os
 import random
 import sys
 
-chunk = 1024*256
+chunk = 2048*256
 chunk = 1024*256
 
 g_server =  None
@@ -31,7 +31,7 @@ def send_msg(msg):
     g_server.listen(1)
     
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect("/tmp/mui-ext.s.2m")
+    s.connect("/tmp/mui-ext.s.6m")
     s.send(msg)
     s.close()
 
@@ -84,10 +84,10 @@ i=29200 #4m
 #i=55000 #4m top end
 #i=35400 #4m
 #i=38600 #2m
-i=37350 #2m
+#i=37420 #2m
 #i=45500 #2m top end
 #i=65534
-#i=18300 # 6m
+i=18620 # 6m
 #i=48000 # 14p4
 
 def get_seed_array():
@@ -154,7 +154,8 @@ while True:
     a.write("%d,%f\n"% (dacval, thefreq))
     a.close()
 
-    i+=8
+    #i+=8
+    i+=32 # 28 Apr 2021
     if i>=65536:
         break
 send_msg("ft8-txoff")

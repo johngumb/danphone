@@ -104,7 +104,12 @@ class WsjtxListener(socketserver.BaseRequestHandler):
 
             basefreq_and_band = req[2:].split(',')
             basefreq = int(basefreq_and_band[0])
-            band = basefreq_and_band[1].strip()
+            band_fb = basefreq_and_band[1].strip()
+
+            if self.server.m_ba_band != band_fb:
+                print("BAND ERROR %s %s" % (self.server.m_ba_band, band_fb))
+
+            band = self.server.m_ba_band
 
             if len(basefreq_and_band)==3:
                 mode=basefreq_and_band[2].strip()
@@ -156,6 +161,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             if band in g_valid_bands:
                 msg = "setband %s" % radio_band(band)
                 send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.4m")
+                self.server.m_ba_band=band
             else:
                 print("invalid band",band)
 
@@ -167,8 +173,14 @@ class WsjtxListener(socketserver.BaseRequestHandler):
                 msg = "pin1 %s" % pin1state
                 send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.2m")
         elif req.find('FR')==0:
-            (freqstr,mode,band) = req[2:].split(',')
+            (freqstr,mode,_band) = req[2:].split(',')
             freq = int(freqstr)
+
+            if self.server.m_ba_band != _band:
+                print("BAND ERROR %s %s" % (self.server.m_ba_band, _band))
+
+            # ignore band given to us for now on FR - it's sometimes wrong
+            band = self.server.m_ba_band
 
             if mode in ["FT8","FT4"]:
                 if band == "12m":
@@ -229,7 +241,8 @@ class RefOsc2m:
             self.m_params = [1.73913965e-01, -6.91653914e+03,  4.06637308e+04, -6.47198596e+03] # 23 Apr 2020 bust below 500
             #self.m_params = [1.73753907e-01, -6.56959414e+04,  3.59561199e+04, -6.45992558e+03]
             #self.m_params = [1.73778072e-01, -5.51817309e+04, 3.64226721e+04, -6.46177512e+03] # 25 apr works
-            self.m_params = [1.71348244e-01, -1.43946879e+06,  2.49851466e+04, -6.28558918e+03]
+            #self.m_params = [1.71348244e-01, -1.43946879e+06,  2.49851466e+04, -6.28558918e+03] # 28 apr 2021
+            self.m_params = [ 1.71692515e-01, -8.84875522e+05,  2.95587823e+04, -6.32940382e+03]
         if band == "4m":
             # look for drop to -16
             # 0.3 + (2.2-0.3)/2
@@ -257,6 +270,8 @@ class RefOsc2m:
             #self.m_params = [5.53113481e-02, -7.48653896e+06, 7.24091607e+02, -6.11406818e+02]
             self.m_params = [5.40635806e-02, -1.37705324e+07, -6.69474575e+03, -4.57521898e+02] # works 19bB 1475
             #self.m_params = [5.64278797e-02, -4.57861528e+06,  5.82838641e+03, -7.13670945e+02]
+            #self.m_params = [5.64932794e-02, -4.97440551e+06,  3.65159916e+03, -7.28100434e+02]
+            self.m_params = [5.62636129e-02, -5.83720261e+06,  2.00632558e+03, -6.96387752e+02]
 
     def dv_to_f(self, x):
         [a,b,c,d] = self.m_params
@@ -617,9 +632,9 @@ if __name__ == "__main__":
 
     establish_wsjtx_listener(wsj_listen_sock);
 
-    r2m = RefOsc2m("2m","/home/john/2mcaltx", "FT8")
+    r2m = RefOsc2m("6m","/home/john/6mcaltx", "FT8")
 
-    v = r2m.freq_to_dac(0,700)
+    v = r2m.freq_to_dac(0,2000)
 
     print(hex(v))
 
