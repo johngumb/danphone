@@ -104,12 +104,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
 
             basefreq_and_band = req[2:].split(',')
             basefreq = int(basefreq_and_band[0])
-            band_fb = basefreq_and_band[1].strip()
-
-            if self.server.m_ba_band != band_fb:
-                print("BAND ERROR %s %s" % (self.server.m_ba_band, band_fb))
-
-            band = self.server.m_ba_band
+            band = basefreq_and_band[1].strip()
 
             if len(basefreq_and_band)==3:
                 mode=basefreq_and_band[2].strip()
@@ -161,7 +156,6 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             if band in g_valid_bands:
                 msg = "setband %s" % radio_band(band)
                 send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.4m")
-                self.server.m_ba_band=band
             else:
                 print("invalid band",band)
 
@@ -173,14 +167,8 @@ class WsjtxListener(socketserver.BaseRequestHandler):
                 msg = "pin1 %s" % pin1state
                 send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.2m")
         elif req.find('FR')==0:
-            (freqstr,mode,_band) = req[2:].split(',')
+            (freqstr,mode,band) = req[2:].split(',')
             freq = int(freqstr)
-
-            if self.server.m_ba_band != _band:
-                print("BAND ERROR %s %s" % (self.server.m_ba_band, _band))
-
-            # ignore band given to us for now on FR - it's sometimes wrong
-            band = self.server.m_ba_band
 
             if mode in ["FT8","FT4"]:
                 if band == "12m":
