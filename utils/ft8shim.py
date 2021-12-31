@@ -82,6 +82,39 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             del self.server.m_radio_cmd_encoder
             self.server.m_radio_cmd_encoder = None
 
+    def procband(self, band):
+        mode = None
+        if band in ["12m", "2m", "10m"]:
+            if band == "12m":
+                fr = -7000
+            else:
+                fr = -8000
+            mode = "LSB"
+        if band in ["4m", "6m"]:
+            fr = -4000
+            mode = "USB"
+        if mode:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+            oscmsg = "setOsc %d" % fr
+            modemsg = "setMode %s" % mode
+            sock.sendto(oscmsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
+            sock.sendto(modemsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
+            sock.close()
+
+        if band in g_valid_bands:
+            msg = "setband %s" % radio_band(band)
+            send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.4m")
+        else:
+            print("invalid band",band)
+
+        if band in ["12m", "70cm", "10m", "2m"]:
+            if band == "2m":
+                pin1state = "off"
+            else:
+                pin1state = "on"
+            msg = "pin1 %s" % pin1state
+            send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.2m")
+
     def handle(self):
         self.data = self.request.recv(1024).strip()
 
@@ -134,40 +167,12 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             self.clear_radio_encoder()
 
         elif req.find('BA')==0:
-            band = req[2:]
-            mode = None
-            if band in ["12m", "2m", "10m"]:
-                if band == "12m":
-                    fr = -7000
-                else:
-                    fr = -8000
-                mode = "LSB"
-            if band in ["4m", "6m"]:
-                fr = -4000
-                mode = "USB"
-            if mode:
-                sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-                oscmsg = "setOsc %d" % fr
-                modemsg = "setMode %s" % mode
-                sock.sendto(oscmsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
-                sock.sendto(modemsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
-                sock.close()
-
-            if band in g_valid_bands:
-                msg = "setband %s" % radio_band(band)
-                send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.4m")
-            else:
-                print("invalid band",band)
-
-            if band in ["12m", "70cm", "10m", "2m"]:
-                if band == "2m":
-                    pin1state = "off"
-                else:
-                    pin1state = "on"
-                msg = "pin1 %s" % pin1state
-                send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.2m")
+            #band = req[2:]
+            #self.procband(band)
+            pass
         elif req.find('FR')==0:
             (freqstr,mode,band) = req[2:].split(',')
+            self.procband(band)
             freq = int(freqstr)
 
             if mode in ["FT8","FT4"]:
@@ -176,7 +181,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
                 else:
                     freq += 2000
 
-            if mode in ["FT8","FT4"]:
+            if mode in ["FT8","FT4"] and band in g_valid_bands:
                 # only set freq for FT8/FT4 atm
                 if band in g_transvert_offsets:
                     freq += g_transvert_offsets[band]
