@@ -2,7 +2,7 @@
 #
 # OpenPMR - tools to make old PMR radios useful.
 #
-# Copyright (C) 2013-2016  John Gumb, G4RDC
+# Copyright (C) 2013-2021  John Gumb, G4RDC
 #
 # This file is part of OpenPMR.
 
@@ -274,10 +274,10 @@ class ScanTimer(wx.Timer):
                 self.m_freqs = freqs
 
         elif twometres():
-            freqs = [145.5, 145.325, 29.6, 145.675, 29.4, 145.8]
+            freqs = [145.5, 29.6, 145.675, 29.4]
             f = 145.6
             i = 0
-            if False:
+            if True:
                 while f < 145.79:
                     if i != 3: # avoid 146.6375 DMR
                         freqs.append(f)
@@ -376,7 +376,7 @@ g_6_fan_snmpset="snmpset -v1 -c private apc.gumb.private 1.3.6.1.4.1.318.1.1.12.
 def log_temperature(rig, unconditional):
     global g_fan
     global g_6_fan_snmpset
-    t_hi = 24
+    t_hi = 25
     t_lo = 22
 
     (changed, temperature) = rig.take_temperature()
@@ -617,12 +617,14 @@ class MyFrame(wx.Frame):
 
             # 50MHz reception measured at 71.4MHz LO
             self.m_rig.set_ref_osc_dac(0xC38C, "/home/john/6mcal")
+            #self.m_rig.set_ref_osc_dac(0xC3B2, "/home/john/6mcal")
             self.m_audioserver="skate"
             socketext="6m"
         elif twometres():
             self.m_devid=("cli",("rudd",2217))
             self.m_rig.set_ctcss_fudge(0.9812)
-            self.m_rig.set_ref_osc_dac(0xBE4E, "/home/john/2mcal") # 19.3C
+            # was BF40 27 Apr 2021
+            self.m_rig.set_ref_osc_dac(0xBED2, "/home/john/2mcal") # 19.3C
             self.m_audioserver="rudd"
             socketext="2m"
         elif fourmetres():
@@ -833,11 +835,17 @@ class MyFrame(wx.Frame):
         self.m_rig.set_pin1(False)
 
         #print self.m_rig.command_duration()
+        self.m_10m_transvert=False
+        self.m_10m_transvert_lowpower=False
 
         self.Bind(EVT_DATA, self.OnData)
 
         ExtSocket+=socketext
         threading.Thread(target=socket_thread, args=(self,ExtSocket,)).start() 
+
+        if fourmetres():
+            # fan off initially
+            self.m_rig.execute_rig_cmd("pin15off")
 
         return
 
@@ -885,7 +893,8 @@ class MyFrame(wx.Frame):
             self.m_transmitting = True
             self.m_rig.enable_tx()
             self.m_rig.disable_audio()
-            self.m_rig.enable_pa()
+            if sys.argv[-1]=="p":
+                self.m_rig.enable_pa()
         elif data[0] in ['E','M','Q']:
             self.m_rig.execute_rig_cmd(data)
             print "cmd complete"
@@ -895,7 +904,7 @@ class MyFrame(wx.Frame):
         elif data in "pa-on":
             if sys.argv[-1]=="p":
                 self.m_rig.enable_pa()
-        elif data in "ft8-txoff":
+        elif data == "ft8-txoff":
             self.m_rig.enable_status_polling()
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()
@@ -1089,8 +1098,10 @@ class MyFrame(wx.Frame):
             if self.m_pin1_control.GetValue():
                 self.m_button_tx_power_level.SetValue(False)
                 self.onButtonTxPowerLevel(None)
+                self.m_10m_transvert=True
                 os.system("touch /tmp/noshift")
             else:
+                self.m_10m_transvert=False
                 if os.path.exists("/tmp/noshift"):
                     os.unlink("/tmp/noshift")
 
@@ -1109,6 +1120,26 @@ class MyFrame(wx.Frame):
     def onButtonTransmitAction(self,event):
         if self.m_tx_button.GetValue() and self.get_tx_lock():
             self.m_tx_rx.SetValue(True)
+            mp=145.35E6
+            if self.m_10m_transvert:
+                if self.m_freq > 144.0E6 and self.m_freq<144.7E6:
+                    # restrict power here if necessary
+                    # at bottom end of 10 metres
+                    self.m_rig.m_hwif.enqueue("P38")
+                    self.m_10m_transvert_lowpower=True
+                    pass
+                elif self.m_freq >= 144.7E6 and self.m_freq<mp:
+                    self.m_rig.m_hwif.enqueue("P00")
+                    self.m_10m_transvert_lowpower=True
+                elif self.m_freq == 140.916E6:
+                    print("12m hi power")
+                    self.m_rig.m_hwif.enqueue("P30")
+                    self.m_10m_transvert_lowpower=True
+                else:
+                    if self.m_freq >= mp:
+                        self.m_rig.m_hwif.enqueue("P08")
+                        self.m_10m_transvert_lowpower=True
+
             if len(sys.argv) > 1:
                 # check frequency before enabling PA
                 # maybe do not allow tx on 70.3875 or 70.4125
@@ -1133,6 +1164,10 @@ class MyFrame(wx.Frame):
                     unmute(self.m_audioserver)
             sdrunmute()
 
+            # back to default transverter power setting
+            if self.m_10m_transvert_lowpower:
+                self.m_rig.set_tx_power_low()
+                self.m_10m_transvert_lowpower=False
         self.onButtonTx(event)
         self.onButtonPA(event)
 
@@ -1321,11 +1356,17 @@ class MyFrame(wx.Frame):
                 self.m_pin1_control.SetValue(True)
             else:
                 self.m_pin1_control.SetValue(False)
+
             self.onButtonPin1(None)
 
     def setfreq(self,freqstr):
         freq = int(freqstr)
         reqstep = None
+
+        # sanity check
+        if freq < 40E6:
+            print("insane frequency ",freq)
+            return
 
         # choose best step
         for step in self.m_intsteps:
@@ -1333,7 +1374,9 @@ class MyFrame(wx.Frame):
                 reqstep = step
                 break
 
-        assert(reqstep)
+        if not reqstep:
+            print "Could not find frequency step for", freq
+            return
 
         self.m_freq = freq
         self.m_spin_ctrl_2.SetValue(self.m_freq/1E6)
