@@ -2,13 +2,13 @@
 #
 # OpenPMR - tools to make old PMR radios useful.
 #
-# Copyright (C) 2013-2021  John Gumb, G4RDC
+# Copyright (C) 2013-2022  John Gumb, G4RDC
 #
 # This file is part of OpenPMR.
 
 # OpenPMR is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the icense, or
+# the Free Software Foundation, either version 3 of the license, or
 # (at your option) any later version.
 
 # OpenPMR is distributed in the hope that it will be useful,
