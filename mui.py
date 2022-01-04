@@ -102,6 +102,7 @@ ID_BUTTON_EXT_ALARM=wx.NewId()
 ID_BUTTON_AUDIO_DISABLE=wx.NewId()
 ID_BUTTON_TX_SAFETY=wx.NewId()
 ID_BUTTON_PIN1=wx.NewId()
+ID_BUTTON_PIN15=wx.NewId()
 
 MUTED = False
 
@@ -744,6 +745,8 @@ class MyFrame(wx.Frame):
 
         self.m_pin1_control = wx.ToggleButton(self, ID_BUTTON_PIN1, "Pin1")
 
+        self.m_pin15_control = wx.ToggleButton(self, ID_BUTTON_PIN15, "Pin15")
+
         self.status_led_timer=StatusLEDtimer(self,400)
 
         #self.__set_properties()
@@ -774,6 +777,8 @@ class MyFrame(wx.Frame):
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_TX_SAFETY,self.onButtonTxSafety)
 
         wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_PIN1,self.onButtonPin1)
+
+        wx.EVT_TOGGLEBUTTON(self,ID_BUTTON_PIN15,self.onButtonPin15)
 
         # watch freq step here
 
@@ -843,9 +848,7 @@ class MyFrame(wx.Frame):
         ExtSocket+=socketext
         threading.Thread(target=socket_thread, args=(self,ExtSocket,)).start() 
 
-        if fourmetres():
-            # fan off initially
-            self.m_rig.execute_rig_cmd("pin15off")
+        self.m_rig.execute_rig_cmd("pin15off")
 
         return
 
@@ -1117,6 +1120,10 @@ class MyFrame(wx.Frame):
 
         self.m_rig.set_pin1(self.m_pin1_control.GetValue())
 
+    def onButtonPin15(self,event):
+        print "pin15"
+        self.m_rig.set_pin15(self.m_pin15_control.GetValue())
+
     def onButtonTransmitAction(self,event):
         if self.m_tx_button.GetValue() and self.get_tx_lock():
             self.m_tx_rx.SetValue(True)
@@ -1125,7 +1132,7 @@ class MyFrame(wx.Frame):
                 if self.m_freq > 144.0E6 and self.m_freq<144.7E6:
                     # restrict power here if necessary
                     # at bottom end of 10 metres
-                    self.m_rig.m_hwif.enqueue("P38")
+                    self.m_rig.m_hwif.enqueue("P18")
                     self.m_10m_transvert_lowpower=True
                     pass
                 elif self.m_freq >= 144.7E6 and self.m_freq<mp:
@@ -1281,6 +1288,8 @@ class MyFrame(wx.Frame):
         return
 
     def __do_layout(self):
+        display_pin15 = False
+
         sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
 
 #        sizer_1.Add(self.m_spin_ctrl_1 , 0, wx.ADJUST_MINSIZE, 0)
@@ -1297,6 +1306,8 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_disable_audio_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_tx_safety_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_pin1_control, 0, wx.ADJUST_MINSIZE, 0)
+        if display_pin15:
+            sizer_1.Add(self.m_pin15_control, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
 
