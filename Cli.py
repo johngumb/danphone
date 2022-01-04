@@ -110,7 +110,7 @@ class TelnetCLI:
         return (0, True, chbuf)
 
     def resync(self):
-        print("resyncing serial interface")
+        print(time.asctime(),"resyncing serial interface")
 
         startchar = 'a'
 
@@ -160,7 +160,7 @@ class TelnetCLI:
                     synchar = synchar + 1
                     syncount = 0
 
-
+        print(time.asctime(),"resyncing serial interface done")
 
     def xmit(self, msg):
 
