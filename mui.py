@@ -905,12 +905,18 @@ class MyFrame(wx.Frame):
             self.m_rig.disable_status_polling()
             self.m_rig.enable_tx(enable_tx_audio=False)
         elif data in "pa-on":
+            if self.m_10m_transvert:
+                self.set_transvert_power()
             if sys.argv[-1]=="p":
                 self.m_rig.enable_pa()
         elif data == "ft8-txoff":
             self.m_rig.enable_status_polling()
             self.m_rig.disable_tx()
             self.m_rig.disable_pa()
+            # back to default transverter power setting
+            if self.m_10m_transvert:
+                self.unset_transvert_power()
+
             log_temperature(self.m_rig, True)
         elif data.find("setband")==0:
             self.setband(data.split(' ')[-1])
@@ -1121,32 +1127,39 @@ class MyFrame(wx.Frame):
         self.m_rig.set_pin1(self.m_pin1_control.GetValue())
 
     def onButtonPin15(self,event):
-        print "pin15"
         self.m_rig.set_pin15(self.m_pin15_control.GetValue())
+
+    def set_transvert_power(self):
+        mp=145.35E6
+
+        if self.m_freq > 144.0E6 and self.m_freq<144.7E6:
+            # restrict power here if necessary
+            # at bottom end of 10 metres
+            self.m_rig.m_hwif.enqueue("P18")
+            self.m_10m_transvert_lowpower=True
+        elif self.m_freq >= 144.7E6 and self.m_freq<mp:
+            self.m_rig.m_hwif.enqueue("P00")
+            self.m_10m_transvert_lowpower=True
+        elif self.m_freq == 140.916E6:
+            print("12m hi power")
+            self.m_rig.m_hwif.enqueue("P30")
+            self.m_10m_transvert_lowpower=True
+        else:
+            if self.m_freq >= mp:
+                self.m_rig.m_hwif.enqueue("P08")
+                self.m_10m_transvert_lowpower=True
+
+    def unset_transvert_power(self):
+        # back to default transverter power setting
+        if self.m_10m_transvert_lowpower:
+            self.m_rig.set_tx_power_low()
+            self.m_10m_transvert_lowpower=False
 
     def onButtonTransmitAction(self,event):
         if self.m_tx_button.GetValue() and self.get_tx_lock():
             self.m_tx_rx.SetValue(True)
-            mp=145.35E6
             if self.m_10m_transvert:
-                if self.m_freq > 144.0E6 and self.m_freq<144.7E6:
-                    # restrict power here if necessary
-                    # at bottom end of 10 metres
-                    self.m_rig.m_hwif.enqueue("P18")
-                    self.m_10m_transvert_lowpower=True
-                    pass
-                elif self.m_freq >= 144.7E6 and self.m_freq<mp:
-                    self.m_rig.m_hwif.enqueue("P00")
-                    self.m_10m_transvert_lowpower=True
-                elif self.m_freq == 140.916E6:
-                    print("12m hi power")
-                    self.m_rig.m_hwif.enqueue("P30")
-                    self.m_10m_transvert_lowpower=True
-                else:
-                    if self.m_freq >= mp:
-                        self.m_rig.m_hwif.enqueue("P08")
-                        self.m_10m_transvert_lowpower=True
-
+                self.set_transvert_power()
             if len(sys.argv) > 1:
                 # check frequency before enabling PA
                 # maybe do not allow tx on 70.3875 or 70.4125
@@ -1172,9 +1185,9 @@ class MyFrame(wx.Frame):
             sdrunmute()
 
             # back to default transverter power setting
-            if self.m_10m_transvert_lowpower:
-                self.m_rig.set_tx_power_low()
-                self.m_10m_transvert_lowpower=False
+            if self.m_10m_transvert:
+                self.unset_transvert_power()
+
         self.onButtonTx(event)
         self.onButtonPA(event)
 
@@ -1288,8 +1301,6 @@ class MyFrame(wx.Frame):
         return
 
     def __do_layout(self):
-        display_pin15 = False
-
         sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
 
 #        sizer_1.Add(self.m_spin_ctrl_1 , 0, wx.ADJUST_MINSIZE, 0)
@@ -1306,8 +1317,7 @@ class MyFrame(wx.Frame):
         sizer_1.Add(self.m_disable_audio_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_tx_safety_button, 0, wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.m_pin1_control, 0, wx.ADJUST_MINSIZE, 0)
-        if display_pin15:
-            sizer_1.Add(self.m_pin15_control, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.m_pin15_control, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_spin_ctrl_2 , 0, wx.ADJUST_MINSIZE, 0)
 
