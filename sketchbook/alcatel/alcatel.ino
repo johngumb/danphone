@@ -11,6 +11,8 @@
  * Unlocked: 12.288? MHz fast ref, 13 MHz slow ref.
  * 12.283274 .. 12.291572
  * suspect range to be 1200..1400
+ * 13.1592 off VCO div for 1320 MHz.
+ * 16.7377 kHz off lmx for 1320 MHz.
  */
 #include <Wire.h>
 
@@ -202,16 +204,20 @@ void longint_to_array(unsigned long int val, byte *arr, int length)
   }
 }
 
-void sequence_A_lente(long int N)
+void sequence_A_lente(unsigned long int N)
 {
+  unsigned long int act_F;
+
 //      Contenu d'initialisation du registre F du circuit MX310 - LMX2326 :
-//byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,1};         // function latch
-  byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,1};
+    byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,1};         // function latch - original
+  //byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,1};         // phase output
 
 //      Contenu d'initialisation du registre R du circuit MX310 - LMX2326 :
 //      Reference is 13MHz.
 //      R = 832;  F_REF = 15.625 kHz;  pas à 24 GHz = 250 kHz :
-byte R_data[21]  = {0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0};         // R latch
+//byte R_data[21]  = {0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0};         // R latch works
+
+  byte R_data[21]  = {0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0};         // R latch
 
 // FREQUENCE DE SORTIE A = 6400,0 MHz :
 //byte N_data[21]         =     {0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1};    // N = 102400
@@ -220,7 +226,7 @@ byte R_data[21]  = {0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0};         // R lat
 // 1500MHz N=96000
 byte N_data[21]         =       {0,0,1,0,1,1,1,0,1,1,1, 0,0,0,0,0,0,0,0, 0,1};
 byte N_data_calc[21];
-//  long int N=96256; // 1504MHz
+//  unsigned long int N=96256; // 1504MHz
   //long int N;
   //N=96000; // 1500MHz
   //N=86000; // 1300MHz
@@ -231,6 +237,10 @@ byte N_data_calc[21];
   longint_to_array(N, &N_data_calc[1], 18);
   Serial.print("slow: ");
   Serial.println(N);
+
+  act_F = N * 15625;
+  Serial.print("slow freq: ");
+  Serial.println(act_F);
 
   N_data_calc[20]=1; // Control bits are 1, 0 i.e. LSB is 1.
  
@@ -304,7 +314,10 @@ void calcmx(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *m
   M = (DIVR/10) - 1;
   A = DIVR - (10*(M+1));
   Serial.print("calcmx:");
+  Serial.println(F);
+  Serial.println(VCXOF);
   Serial.println(DIVR);
+  Serial.print("calcmx remainder ");
   Serial.println(remainder);
   Serial.println(frac);
   Serial.println(M);
@@ -315,13 +328,16 @@ void calcmx(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *m
 //  A=((mx107&3)<<2)+( (mx106&0xC0)>>6 );
 //  frac=mx106&(~0xC0);
   mx106=frac+((A&0x03)<<6);
+  Serial.print("mx106 ");
   Serial.println(mx106);
 
   mx107=(A>>2) + (M<<2);
+  Serial.print("mx107 ");
   Serial.println(mx107);
 
   (*mx106_out)=mx106;
   (*mx107_out)=mx107;
+  Serial.println("endcalcmx");
 }
 
 void sequence_A_rapide(byte mx106, byte mx107)
@@ -362,17 +378,30 @@ void sequence_A_rapide(byte mx106, byte mx107)
   Serial.print("Fractional divide ratio:");
   Serial.print(frac);
   Serial.println("/64");
-  Serial.print("Freq ");
+  Serial.print("Fast Freq ");
   Serial.println(F);
+
+
+  Wire.beginTransmission(MX107_TXID);             // adresse MX107
+  Wire.write((byte)mx107);
+  Wire.endTransmission();
+
+  delay(100);
 
   Wire.beginTransmission(MX106_TXID);             // adresse MX106
   Wire.write((byte)mx106);
   Wire.endTransmission();                         // restart
 
-  Wire.beginTransmission(MX107_TXID);             // adresse MX107
-  Wire.write((byte)mx107);
+  delay(100);
+}
+
+void send_mx_byte(const int dest, unsigned char val)
+{
+  Wire.beginTransmission(dest);
+  Wire.write((byte)val);
   Wire.endTransmission();
 }
+
 #if 0
 typedef struct str_eedata
 {
@@ -449,11 +478,13 @@ int read_eeprom()
 
   return retval;
 }
+
 void setup() {
   // board runs at 20MHz.
 
   Wire.begin();
   Serial.begin(115200);
+  Serial.setTimeout(10000);
   Serial.println("boot");
 #if 0
   while (1)
@@ -473,6 +504,7 @@ void setup() {
   {
     Serial.println("eeprom not read ok");
     g_vcxo_freq = 12288000;
+    //g_vcxo_freq = 12283300;
   }
 
 #if 1
@@ -497,6 +529,21 @@ void setup() {
   Serial.println("setup done");
 }
 
+void testloop()
+{
+  unsigned int i;
+
+  while (1)
+  {
+  for (i=1; (i<64); i*=2)
+  {
+    Serial.print("sending ");
+    Serial.println(i);
+    send_mx_byte(MX107_TXID, i);
+    delay(2000);
+  }
+  }
+}
 void setfreq(unsigned long int F)
 {
   int mx106=0, mx107;
@@ -514,20 +561,24 @@ void setfreq(unsigned long int F)
   acquit_alarm(); // also seems to be needed
   enable_i2c_fast();
 
+  //testloop();
+
 #if 0
-  for (mx107=32;(mx107<60); mx107++)
+  for (mx107=7;(mx107<45); mx107++)
   {
     byte state;
-    for (mx106=0;(mx106<256); mx106++)
+    for (mx106=0;(mx106<1); mx106+=1)
     {
       Serial.println(mx106);
       Serial.println(mx107);
       sequence_A_rapide(mx106,mx107);
-      
+      delay(100);
       sequence_A_rapide(mx106,mx107);
 
       delay(1000);
       state=etat_synthe();
+      Serial.print("state ");
+      Serial.println(state&0x48, HEX);
       if ((state&0x48) == 0x0)
         break;
 
@@ -598,10 +649,16 @@ void setfreq(unsigned long int F)
 }
 
 void loop() {
-  String freqstr;
+  //String freqstr="1320"; //arbitrary default
+  //String freqstr="1327104000"; //arbitrary default
+  //String freqstr="1326700000"; //arbitrary default
+  //String freqstr="1326687500";
+  //String freqstr="1326596400";
+  //String freqstr="1326593750";
+    String freqstr="1500000000";
   unsigned long int F;
 
-  Serial.println("Freq (MHz)?");
+  Serial.println("Freq (Hz)?");
   while (1)
   {
     if (Serial.available())
@@ -611,8 +668,11 @@ void loop() {
     }
   }
 
-  F=freqstr.toInt() * 1000000;
+  //F=freqstr.toInt() * 1000000;
+  F=freqstr.toInt();
 
+  Serial.print("Requested freq ");
+  Serial.println(F);
   setfreq(F);
   setfreq(F);
 
@@ -650,4 +710,7 @@ void loop() {
   }
 #endif
 
+  Serial.println();
+
+  delay(10000);
 }
