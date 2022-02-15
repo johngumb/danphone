@@ -41,6 +41,8 @@ typedef struct str_eedata
 
 unsigned long int g_vcxo_freq;
 
+bool g_eeprom_ok=false;
+
 //PCF 8582C
 void i2c_eeprom_write_byte(int deviceaddress, unsigned int eeaddress, byte data)
 {
@@ -204,13 +206,18 @@ void longint_to_array(unsigned long int val, byte *arr, int length)
   }
 }
 
-void sequence_A_lente(unsigned long int N)
+void sequence_A_lente(unsigned long int F, unsigned long int R)
 {
+  unsigned int STEP=(13000000/R);
+  unsigned long int N=(F/STEP);
   unsigned long int act_F;
 
+// F bits numbered from 1. Two control bits first. F7 if set disconnects charge pump.
+// F3 F4 F5 0 1 0 provides divided VCO freq. 0 1 1 is "default" which seems to work.
+//
 //      Contenu d'initialisation du registre F du circuit MX310 - LMX2326 :
-    byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,1};         // function latch - original
-  //byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,1};         // phase output
+    byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,1,1};         // function latch - original
+  //byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,1}; // original
 
 //      Contenu d'initialisation du registre R du circuit MX310 - LMX2326 :
 //      Reference is 13MHz.
@@ -218,6 +225,7 @@ void sequence_A_lente(unsigned long int N)
 //byte R_data[21]  = {0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0};         // R latch works
 
   byte R_data[21]  = {0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0};         // R latch
+  byte R_data_calc[21];
 
 // FREQUENCE DE SORTIE A = 6400,0 MHz :
 //byte N_data[21]         =     {0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1};    // N = 102400
@@ -238,7 +246,21 @@ byte N_data_calc[21];
   Serial.print("slow: ");
   Serial.println(N);
 
-  act_F = N * 15625;
+  Serial.print("slow step: ");
+  Serial.println(STEP);
+
+  act_F = N * (13000000/R);
+
+  longint_to_array(R, &R_data[5], 14);
+
+#if 0
+  for (i=0; i<21; i++)
+  {
+    Serial.print(R_data[i]);
+    Serial.println(R_data_calc[i]);
+  }
+#endif
+
   Serial.print("slow freq: ");
   Serial.println(act_F);
 
@@ -320,13 +342,14 @@ void calcmx(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *m
   Serial.print("calcmx remainder ");
   Serial.println(remainder);
   Serial.println(frac);
-  Serial.println(M);
-  Serial.println(A);
+  Serial.print("M "); Serial.println(M);
+  Serial.print("A "); Serial.println(A);
 
 
 //  M=(mx107&0x3C)>>2;
 //  A=((mx107&3)<<2)+( (mx106&0xC0)>>6 );
 //  frac=mx106&(~0xC0);
+  //frac = 0; // HACK
   mx106=frac+((A&0x03)<<6);
   Serial.print("mx106 ");
   Serial.println(mx106);
@@ -371,8 +394,8 @@ void sequence_A_rapide(byte mx106, byte mx107)
   //F=VCXOF*(DIVR+(frac/64)); // assume here VCXO is running at 16MHz
                       // LMX must be programmed for same target freq.
   F=VCXOF*DIVR + ((frac*VCXOF)/64);
-  Serial.println(M);
-  Serial.println(A);
+  Serial.print("M ");Serial.println(M);
+  Serial.print("A ");Serial.println(A);
   Serial.print("Int divide ratio:");
   Serial.println(DIVR);
   Serial.print("Fractional divide ratio:");
@@ -420,7 +443,7 @@ unsigned int eecsum()
 {
   unsigned int csum=0;
   const unsigned char *ptr=(const unsigned char *)&eedata;
-  for (int i=0;(i<sizeof(eedata)-2);i++)
+  for (unsigned int i=0;(i<sizeof(eedata)-2);i++)
     csum+=ptr[i];
 
   csum+=sizeof(eedata);
@@ -457,7 +480,7 @@ void setup_eeprom()
   strcpy(eedata.m_model,"3CC08690ABAA");
   eedata.m_csum=eecsum();
 
-  for (int i=0; i<sizeof(eedata); i++)
+  for (unsigned int i=0; i<sizeof(eedata); i++)
     i2c_eeprom_write_byte(0x50, i, eeptr[i]);
 }
 
@@ -499,12 +522,13 @@ void setup() {
   {
     Serial.println("eeprom read ok");
     g_vcxo_freq = 16000000;
+    g_eeprom_ok = true;
   }
   else
   {
     Serial.println("eeprom not read ok");
     g_vcxo_freq = 12288000;
-    //g_vcxo_freq = 12283300;
+    g_eeprom_ok=false;
   }
 
 #if 1
@@ -550,7 +574,8 @@ void setfreq(unsigned long int F)
   int j;
   acquit_alarm();
   //F=1277952000;
-  sequence_A_lente(F/15625); // hardcoded R div; FIXME
+  //sequence_A_lente(F,650); // hardcoded R div; FIXME 832, 650=20kHz does seem to work
+  sequence_A_lente(F,832);
 
   calcmx(g_vcxo_freq, F, &mx106, &mx107);
 
@@ -564,10 +589,10 @@ void setfreq(unsigned long int F)
   //testloop();
 
 #if 0
-  for (mx107=7;(mx107<45); mx107++)
+  for (mx107=31;(mx107<50); mx107++)
   {
     byte state;
-    for (mx106=0;(mx106<1); mx106+=1)
+    for (mx106=0;(mx106<255); mx106+=4)
     {
       Serial.println(mx106);
       Serial.println(mx107);
@@ -658,6 +683,8 @@ void loop() {
     String freqstr="1500000000";
   unsigned long int F;
 
+  freqstr = (g_eeprom_ok) ? "1500000000" : "1320000000";
+
   Serial.println("Freq (Hz)?");
   while (1)
   {
@@ -674,11 +701,13 @@ void loop() {
   Serial.print("Requested freq ");
   Serial.println(F);
   setfreq(F);
-  setfreq(F);
 
-  delay(1000);
+  for (int i=0; i<5; i++)
+  {
+    delay(1000);
 
-  etat_synthe();
+    etat_synthe();
+  }
 
 #if 0
   long int N;
@@ -712,5 +741,5 @@ void loop() {
 
   Serial.println();
 
-  delay(10000);
+  delay(100);
 }
