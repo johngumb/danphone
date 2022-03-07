@@ -17,6 +17,8 @@
  * 
  * Unit 3CC08690AAAB 03
  * LM0210T0667
+ * SP8855E synth
+ * 13MHz slow VCO ref.
  * 0x01 0x02 ... 0x28
  */
 #include <Wire.h>
@@ -27,6 +29,7 @@
 
 typedef byte int8;
 
+const unsigned int EEOFFSET=2;
 typedef enum
 {
   Qualcomm=1,
@@ -369,7 +372,7 @@ void calcmx(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *m
   Serial.println("endcalcmx");
 }
 
-void sequence_A_rapide(byte mx106, byte mx107)
+void sequence_A_rapide_qualcom(byte mx106, byte mx107)
 {
   // FREQUENCE DE SORTIE A = 6400,0 MHz :
 
@@ -431,19 +434,6 @@ void send_mx_byte(const int dest, unsigned char val)
   Wire.endTransmission();
 }
 
-#if 0
-typedef struct str_eedata
-{
-  unsigned int m_eeversion;
-  unsigned int m_eedatsize;
-  unsigned int m_csum;
-  unsigned int m_lmx_freq_khz;
-  unsigned int m_vcxo_freq_khz;
-  char m_model[16];
-  unsigned int m_csum;
-} __attribute__((packed)) eedata_t;
-#endif
-
 static eedata_t eedata;
 unsigned int eecsum()
 {
@@ -459,7 +449,9 @@ unsigned int eecsum()
 bool check_eeprom_ok()
 {
   Serial.println("reading first byte");
-  i2c_eeprom_read_buffer(0x50, 0, (byte *) &eedata, sizeof(eedata));
+
+  // offset 2 to avoid existing data
+  i2c_eeprom_read_buffer(0x50, EEOFFSET, (byte *) &eedata, sizeof(eedata));
   return ((eecsum()==eedata.m_csum) && (eedata.m_eeversion==1));
 }
 
@@ -486,7 +478,7 @@ void setup_eeprom()
   strcpy(eedata.m_model,"3CC08690ABAA");
   eedata.m_csum=eecsum();
 
-  for (unsigned int i=0; i<sizeof(eedata); i++)
+  for (unsigned int i=EEOFFSET; i<sizeof(eedata); i++)
     i2c_eeprom_write_byte(0x50, i, eeptr[i]);
 }
 
@@ -515,7 +507,7 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(10000);
   Serial.println("boot");
-#if 1
+#if 0
   while (1)
  {
     read_bank(0x50, NULL);
@@ -602,9 +594,9 @@ void setfreq(unsigned long int F)
     {
       Serial.println(mx106);
       Serial.println(mx107);
-      sequence_A_rapide(mx106,mx107);
+      sequence_A_rapide_qualcom(mx106,mx107);
       delay(100);
-      sequence_A_rapide(mx106,mx107);
+      sequence_A_rapide_qualcom(mx106,mx107);
 
       delay(1000);
       state=etat_synthe();
@@ -618,30 +610,30 @@ void setfreq(unsigned long int F)
         break;
   }
 #endif
-  //sequence_A_rapide(5,0);
-  //sequence_A_rapide(224,33); // WORKS
-  //sequence_A_rapide(200,32); // bottom of range 1490.445
+  //sequence_A_rapide_qualcom(5,0);
+  //sequence_A_rapide_qualcom(224,33); // WORKS
+  //sequence_A_rapide_qualcom(200,32); // bottom of range 1490.445
 
   // VCO 16.004775 MHz 16.004763
-  //sequence_A_rapide(48,34);  // 1580.475MHz
-  //sequence_A_rapide(47,34);  // 1580.225MHz
-  //sequence_A_rapide(46,34);  // 1579.972MHz
-  //sequence_A_rapide(60,34);  // 1583.475MHz
-  //sequence_A_rapide(61,34);  // 1583.725MHz
-  //sequence_A_rapide(63,34);  // 1584.225MHz  // top of range?
-  //sequence_A_rapide(70,34);  // 1583.475MHz
-  //sequence_A_rapide(240,32); // 1500.00MHz
-  //sequence_A_rapide(240,32); // 1500.00MHz //1 count=25Hz? WORKS
-  //sequence_A_rapide(0,33); //1504 MHz
-  sequence_A_rapide(mx106,mx107); // new device, try 1300 Mhz
-  //sequence_A_rapide(0,37); 
+  //sequence_A_rapide_qualcom(48,34);  // 1580.475MHz
+  //sequence_A_rapide_qualcom(47,34);  // 1580.225MHz
+  //sequence_A_rapide_qualcom(46,34);  // 1579.972MHz
+  //sequence_A_rapide_qualcom(60,34);  // 1583.475MHz
+  //sequence_A_rapide_qualcom(61,34);  // 1583.725MHz
+  //sequence_A_rapide_qualcom(63,34);  // 1584.225MHz  // top of range?
+  //sequence_A_rapide_qualcom(70,34);  // 1583.475MHz
+  //sequence_A_rapide_qualcom(240,32); // 1500.00MHz
+  //sequence_A_rapide_qualcom(240,32); // 1500.00MHz //1 count=25Hz? WORKS
+  //sequence_A_rapide_qualcom(0,33); //1504 MHz
+  sequence_A_rapide_qualcom(mx106,mx107); // new device, try 1300 Mhz
+  //sequence_A_rapide_qualcom(0,37); 
 
 #if 0
   for (j=0; j<1000; j++)
   {
-    sequence_A_rapide(240,32);
+    sequence_A_rapide_qualcom(240,32);
     //delay(10);
-    sequence_A_rapide(241,32);
+    sequence_A_rapide_qualcom(241,32);
     //delay(10);
   }
 #endif
@@ -649,14 +641,14 @@ void setfreq(unsigned long int F)
 #if 0
   for (j=0;(j<8);j++)
   {
-    sequence_A_rapide(0,(1<<j));
+    sequence_A_rapide_qualcom(0,(1<<j));
     Serial.print(j);
     delay(1000);
   }
 
   for (j=0;(j<8);j++)
   {
-    sequence_A_rapide((1<<j),0);
+    sequence_A_rapide_qualcom((1<<j),0);
     Serial.print(j);
     delay(1000);
   }
@@ -673,7 +665,7 @@ void setfreq(unsigned long int F)
 
   // A1=128 mx106
   // A0==64 mx106
-  //sequence_A_rapide(0,32);
+  //sequence_A_rapide_qualcom(0,32);
 
   // 250kHz steps?
   disable_i2c_fast();
