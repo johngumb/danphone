@@ -1,4 +1,5 @@
-// 3CC08690ABAA
+// (14) 3CC08690ABAA 01 GBX434
+// LM0043T05F4 original
 
 /*
  * I2C addresses responding:
@@ -10,9 +11,13 @@
  * 0x01 0x04 ... 0x2C (byte 255)
  * Unlocked: 12.288? MHz fast ref, 13 MHz slow ref.
  * 12.283274 .. 12.291572
- * suspect range to be 1200..1400
+ * suspect range to be 1200..1400. Bottom end is 1229 MHz.
  * 13.1592 off VCO div for 1320 MHz.
  * 16.7377 kHz off lmx for 1320 MHz.
+ * 
+ * Unit 3CC08690AAAB 03
+ * LM0210T0667
+ * 0x01 0x02 ... 0x28
  */
 #include <Wire.h>
 
@@ -178,10 +183,10 @@ void acquit_alarm()
 
 byte etat_synthe()
 {
-  unsigned char a=0xFF;
+  unsigned char a=0xFF, b;
   Wire.requestFrom(MX105_TXID,1);
   if (Wire.available()) {
-    a = Wire.read();
+    b = a = Wire.read();
   
     a = ~a & 0x48;    // masque Al_OL : 0x08  déverrouillage PLL
                       // masque Al_SP : 0x40  VCXO hors limites
@@ -213,11 +218,12 @@ void sequence_A_lente(unsigned long int F, unsigned long int R)
   unsigned long int act_F;
 
 // F bits numbered from 1. Two control bits first. F7 if set disconnects charge pump.
-// F3 F4 F5 0 1 0 provides divided VCO freq. 0 1 1 is "default" which seems to work.
+// F3 F4 F5 0 1 0 provides divided VCO freq.
 //
 //      Contenu d'initialisation du registre F du circuit MX310 - LMX2326 :
-    byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,1,1};         // function latch - original
-  //byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,1}; // original
+    // Q3236 and LMX2326 lock detects are ANDed together in status
+    byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,1};         // function latch - original
+    //byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,1}; // original - lock nailed up
 
 //      Contenu d'initialisation du registre R du circuit MX310 - LMX2326 :
 //      Reference is 13MHz.
@@ -509,7 +515,7 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(10000);
   Serial.println("boot");
-#if 0
+#if 1
   while (1)
  {
     read_bank(0x50, NULL);
@@ -531,7 +537,7 @@ void setup() {
     g_eeprom_ok=false;
   }
 
-#if 1
+#if 0
   //i2c_eeprom_write_byte(0x50, 0, 0x88);
   //i2c_eeprom_write_byte(0x50, 10, 0x53);
   //i2c_eeprom_write_byte(0x50, 20, 0x78);
@@ -683,7 +689,7 @@ void loop() {
     String freqstr="1500000000";
   unsigned long int F;
 
-  freqstr = (g_eeprom_ok) ? "1500000000" : "1320000000";
+  freqstr = (g_eeprom_ok) ? "1500000000" : "1296000000";
 
   Serial.println("Freq (Hz)?");
   while (1)
@@ -702,10 +708,10 @@ void loop() {
   Serial.println(F);
   setfreq(F);
 
-  for (int i=0; i<5; i++)
+  for (int i=0; i<7; i++)
   {
     delay(1000);
-
+    acquit_alarm();
     etat_synthe();
   }
 
@@ -741,5 +747,5 @@ void loop() {
 
   Serial.println();
 
-  delay(100);
+  delay(10000);
 }
