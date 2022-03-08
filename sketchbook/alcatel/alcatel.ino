@@ -670,20 +670,24 @@ int read_eeprom()
   return retval;
 }
 
-void report_lock_status()
+byte report_lock_status()
 {
+  byte status=1;
   for (int i=0; i<10; i++)
   {
     delay(1000);
     acquit_alarm();
 
+    status = etat_synthe();
     // all alarms gone?
-    if (etat_synthe()==0)
+    if (status==0)
     {
       Serial.println("Locked");
       break;
     }
   }
+
+  return status;
 }
 
 void setup() {
@@ -889,10 +893,11 @@ void loop() {
     Serial.print("Requested freq ");
     Serial.println(F);
     setfreq(F);
-    persist_freq(F);
   }
 
-  report_lock_status();
+  // save frequency if locked
+  if ((report_lock_status()==0) && (F))
+     persist_freq(F);
 
   Serial.println();
 
