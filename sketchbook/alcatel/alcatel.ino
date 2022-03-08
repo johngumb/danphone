@@ -1,6 +1,8 @@
 // (14) 3CC08690ABAA 01 GBX434
 // LM0043T05F4 original
 
+// TODO sort out fast loop calculation
+
 /*
  * I2C addresses responding:
  * 22 50 A2 D0
@@ -28,6 +30,7 @@
 #define MX105_TXID 0x22
 #define MX106_TXID 0x20
 #define MX107_TXID 0x21
+#define EEPROM_I2CADDR 0x50
 
 typedef byte int8;
 
@@ -63,7 +66,7 @@ void persist_freq(unsigned long int freq)
   unsigned char *freqptr=(unsigned char *)&freq;
 
   for (int i=0; (i<sizeof(freq)); i++)
-    i2c_eeprom_write_byte(0x50, EEFREQOFFSET+i, freqptr[i]);
+    i2c_eeprom_write_byte(EEPROM_I2CADDR, EEFREQOFFSET+i, freqptr[i]);
 
   Serial.print(freq);
   Serial.println("Hz saved");
@@ -74,7 +77,7 @@ unsigned long int get_saved_freq()
   unsigned long int freq=0;
   unsigned char *freqptr=(unsigned char *)&freq;
 
-  i2c_eeprom_read_buffer(0x50, EEFREQOFFSET, (byte *) freqptr, sizeof(freq));
+  i2c_eeprom_read_buffer(EEPROM_I2CADDR, EEFREQOFFSET, (byte *) freqptr, sizeof(freq));
 
   return freq;
 }
@@ -580,7 +583,7 @@ bool check_eeprom_ok()
   Serial.println("checking eeprom");
 
   // offset 2 to avoid existing data
-  i2c_eeprom_read_buffer(0x50, EEOFFSET, (byte *) &g_eedata, sizeof(g_eedata));
+  i2c_eeprom_read_buffer(EEPROM_I2CADDR, EEOFFSET, (byte *) &g_eedata, sizeof(g_eedata));
   //Serial.println(eecsum(), HEX);
   //Serial.println(g_eedata.m_csum, HEX);
   //Serial.println(g_eedata.m_eeversion, HEX);
@@ -645,7 +648,7 @@ bool setup_eeprom()
   g_eedata.m_csum=eecsum();
 
   for (unsigned int i=0; (i<(sizeof(g_eedata))); i++)
-    i2c_eeprom_write_byte(0x50, i+EEOFFSET, eeptr[i]);
+    i2c_eeprom_write_byte(EEPROM_I2CADDR, i+EEOFFSET, eeptr[i]);
 
   return true;
 }
@@ -700,7 +703,7 @@ void setup() {
 #if 0
   while (1)
  {
-    read_bank(0x50, NULL);
+    read_bank(EEPROM_I2CADDR, NULL);
     delay(20000000);
  }
  #endif
