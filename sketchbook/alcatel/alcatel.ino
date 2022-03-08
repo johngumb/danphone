@@ -1,6 +1,7 @@
 // (14) 3CC08690ABAA 01 GBX434
 // LM0043T05F4 original
 
+// TODO persist the last set frequency?
 /*
  * I2C addresses responding:
  * 22 50 A2 D0
@@ -19,6 +20,8 @@
  * LM0210T0667
  * SP8855E synth
  * 13MHz slow VCO ref.
+ * min freq 1103 MHz
+ * max freq 1308 MHz
  * 0x01 0x02 ... 0x28
  */
 #include <Wire.h>
@@ -29,11 +32,12 @@
 
 typedef byte int8;
 
-const unsigned int EEOFFSET=2;
+const unsigned int EEOFFSET=8;
+const unsigned int EEFREQOFFSET=128;
 typedef enum
 {
   Qualcomm=1,
-  Other
+  Plessey
 } fast_synth_t;
 
 typedef struct str_eedata
@@ -42,10 +46,14 @@ typedef struct str_eedata
   unsigned int m_eedatsize;
   unsigned int m_lmx_freq_khz;
   unsigned int m_vcxo_freq_khz;
+  unsigned int m_freq_min_mhz;
+  unsigned int m_freq_max_mhz;
   fast_synth_t m_fast_synth_type;
   char m_model[16];
-  unsigned int m_csum; // must be at end
+  unsigned char m_csum; // must be at end
 } __attribute__((packed)) eedata_t;
+
+static eedata_t g_eedata;
 
 unsigned long int g_vcxo_freq;
 
@@ -329,7 +337,39 @@ void disable_i2c_fast()
   Wire.endTransmission();
 }
 
-void calcmx(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *mx107_out)
+
+void calcmx_plessey(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *mx107_out)
+{
+  unsigned long int DIVR, remainder, frac;
+  unsigned char mx106, mx107, N;
+
+  DIVR=F/VCXOF;
+
+  remainder = (F - (DIVR * VCXOF));
+  frac = (remainder * 64)/VCXOF;
+
+  N = DIVR;
+
+  Serial.print("calcmx_plessey:");
+  Serial.println(F);
+  Serial.println(VCXOF);
+  Serial.println(DIVR);
+  Serial.println(frac);
+
+  mx106=frac+((N&0x03)<<6);
+  Serial.print("mx106 ");
+  Serial.println(mx106);
+
+  mx107=(N>>2);
+  Serial.print("mx107 ");
+  Serial.println(mx107);
+
+  (*mx106_out)=mx106;
+  (*mx107_out)=mx107;
+  Serial.println("endcalcmx_plessey");
+}
+
+void calcmx_qualcom(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *mx107_out)
 {
   unsigned long int DIVR, remainder, frac, M, A;
   unsigned char mx106, mx107;
@@ -344,11 +384,11 @@ void calcmx(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *m
 
   M = (DIVR/10) - 1;
   A = DIVR - (10*(M+1));
-  Serial.print("calcmx:");
+  Serial.print("calcmx_qualcom:");
   Serial.println(F);
   Serial.println(VCXOF);
   Serial.println(DIVR);
-  Serial.print("calcmx remainder ");
+  Serial.print("calcmx_qualcom remainder ");
   Serial.println(remainder);
   Serial.println(frac);
   Serial.print("M "); Serial.println(M);
@@ -369,14 +409,16 @@ void calcmx(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *m
 
   (*mx106_out)=mx106;
   (*mx107_out)=mx107;
-  Serial.println("endcalcmx");
+  Serial.println("endcalcmx_qualcom");
 }
 
 void sequence_A_rapide_qualcom(byte mx106, byte mx107)
 {
   // FREQUENCE DE SORTIE A = 6400,0 MHz :
 
-  unsigned long int M,A,DIVR,frac,F;
+  unsigned long int M,A,DIVR,frac,F,VCXOF;
+
+  VCXOF=g_vcxo_freq;
 
   // div=10*(M+1) + A
   
@@ -397,7 +439,6 @@ void sequence_A_rapide_qualcom(byte mx106, byte mx107)
 
   DIVR=(10*(M+1))+A;
   // F=16*(DIVR+frac/64)
-#define VCXOF g_vcxo_freq
 //#define VCXOF 12288000
   //F=VCXOF*DIVR+(frac/4); //16 megs
   //F=VCXOF*(DIVR+(frac/64)); // assume here VCXO is running at 16MHz
@@ -427,6 +468,58 @@ void sequence_A_rapide_qualcom(byte mx106, byte mx107)
   delay(100);
 }
 
+void sequence_A_rapide_plessey(byte mx106, byte mx107)
+{
+  // FREQUENCE DE SORTIE A = 6400,0 MHz :
+
+  unsigned long int DIVR,frac,F,VCXOF;
+  unsigned char N;
+
+  VCXOF=g_vcxo_freq;
+
+  // N7=32 mx107 ?? MBZ?
+  // N6=16 mx107
+  // N5=8 mx107
+  // N4=4 mx107
+  // N3==2 mx107
+  // N2==1 mx107
+
+  // N1=128 mx106
+  // N0==64 mx106
+
+  N=((mx107&0x1F)<<2) +( (mx106&0xC0)>>6 );
+  frac=mx106&(~0xC0); // low 6 bits
+
+  DIVR=N;
+  // F=16*(DIVR+frac/64)
+//#define VCXOF g_vcxo_freq
+//#define VCXOF 12288000
+//#define VCXOF 16000000
+  //F=VCXOF*DIVR+(frac/4); //16 megs
+  //F=VCXOF*(DIVR+(frac/64)); // assume here VCXO is running at 16MHz
+                      // LMX must be programmed for same target freq.
+  F=VCXOF*DIVR + ((frac*VCXOF)/64);
+  Serial.print("Int divide ratio:");
+  Serial.println(N);
+  Serial.print("Fractional divide ratio:");
+  Serial.print(frac);
+  Serial.println("/64");
+  Serial.print("Fast Freq ");
+  Serial.println(F);
+
+  Wire.beginTransmission(MX107_TXID);             // adresse MX107
+  Wire.write((byte)mx107);
+  Wire.endTransmission();
+
+  delay(100);
+
+  Wire.beginTransmission(MX106_TXID);             // adresse MX106
+  Wire.write((byte)mx106);
+  Wire.endTransmission();                         // restart
+
+  delay(100);
+}
+
 void send_mx_byte(const int dest, unsigned char val)
 {
   Wire.beginTransmission(dest);
@@ -434,52 +527,108 @@ void send_mx_byte(const int dest, unsigned char val)
   Wire.endTransmission();
 }
 
-static eedata_t eedata;
-unsigned int eecsum()
+unsigned char eecsum()
 {
-  unsigned int csum=0;
-  const unsigned char *ptr=(const unsigned char *)&eedata;
-  for (unsigned int i=0;(i<sizeof(eedata)-2);i++)
+  unsigned char csum=0;
+  const unsigned char *ptr=(const unsigned char *)&g_eedata;
+
+  // -1 to exclude the checksum itself from the summing process
+  for (unsigned int i=0;(i<sizeof(g_eedata)-1);i++)
     csum+=ptr[i];
 
-  csum+=sizeof(eedata);
+  // might as well include expected size of structure in checksum
+  csum+=sizeof(g_eedata);
+
   return csum;
 }
 
+/*
+typedef struct str_eedata
+{
+  unsigned int m_eeversion;
+  unsigned int m_eedatsize;
+  unsigned int m_lmx_freq_khz;
+  unsigned int m_vcxo_freq_khz;
+  unsigned int m_freq_min_mhz;
+  unsigned int m_freq_max_mhz;
+  fast_synth_t m_fast_synth_type;
+  char m_model[16];
+  unsigned char m_csum; // must be at end
+} __attribute__((packed)) eedata_t;
+*/
 bool check_eeprom_ok()
 {
-  Serial.println("reading first byte");
+  Serial.println("checking eeprom");
 
   // offset 2 to avoid existing data
-  i2c_eeprom_read_buffer(0x50, EEOFFSET, (byte *) &eedata, sizeof(eedata));
-  return ((eecsum()==eedata.m_csum) && (eedata.m_eeversion==1));
+  i2c_eeprom_read_buffer(0x50, EEOFFSET, (byte *) &g_eedata, sizeof(g_eedata));
+  //Serial.println(eecsum(), HEX);
+  //Serial.println(g_eedata.m_csum, HEX);
+  //Serial.println(g_eedata.m_eeversion, HEX);
+  return ((eecsum()==g_eedata.m_csum) && (g_eedata.m_eeversion==1));
 }
 
 void report_eeprom()
 {
   Serial.print("Model: ");
-  Serial.println(eedata.m_model);
-  Serial.print("EEversion: ");
-  Serial.println(eedata.m_eeversion);
+  Serial.println(g_eedata.m_model);
+  //Serial.print("EEversion: ");
+  //Serial.println(g_eedata.m_eeversion);
   //Serial.print("Checksum: ");
-  //Serial.println(eedata.m_csum);
+  //Serial.println(g_eedata.m_csum);
+  Serial.print("Minimum Frequency: ");
+  Serial.print(g_eedata.m_freq_min_mhz);
+  Serial.println(" MHz");
+  Serial.print("Maximum Frequency: ");
+  Serial.print(g_eedata.m_freq_max_mhz);
+  Serial.println(" MHz");
+  Serial.print("VCXO Centre Frequency: ");
+  Serial.print(g_eedata.m_vcxo_freq_khz);
+  Serial.println(" kHz");
+  Serial.print("Fast synth type: ");
+  switch(g_eedata.m_fast_synth_type)
+  {
+    case Plessey: Serial.println("Plessey"); break;
+    case Qualcomm: Serial.println("Qualcomm"); break;
+    default: Serial.println("unknown"); break;
+  }
 }
 
-void setup_eeprom()
+bool setup_eeprom()
 {
-  const unsigned char *eeptr=(const unsigned char *)&eedata;
-  
-  memset(&eedata, 0, sizeof(eedata));
-  eedata.m_eedatsize=sizeof(eedata);
-  eedata.m_eeversion=1;
-  eedata.m_lmx_freq_khz=13000;
-  eedata.m_vcxo_freq_khz=16000;
-  eedata.m_fast_synth_type=Qualcomm;
-  strcpy(eedata.m_model,"3CC08690ABAA");
-  eedata.m_csum=eecsum();
+  const unsigned char *eeptr=(const unsigned char *)&g_eedata;
 
-  for (unsigned int i=EEOFFSET; i<sizeof(eedata); i++)
-    i2c_eeprom_write_byte(0x50, i, eeptr[i]);
+  Serial.println("Setting up eeprom...");
+  memset(&g_eedata, 0, sizeof(g_eedata));
+  g_eedata.m_eedatsize=sizeof(g_eedata);
+  g_eedata.m_eeversion=1;
+
+//  g_eedata.m_lmx_freq_khz=13000;
+//  g_eedata.m_vcxo_freq_khz=16000;
+//  g_eedata.m_fast_synth_type=Qualcomm;
+//  strcpy(g_eedata.m_model,"3CC08690ABAA");
+
+/* Unit 3CC08690AAAB 03
+ * LM0210T0667
+ * SP8855E synth
+ * 13MHz slow TCXO ref.
+ * 12.288 MHz fast VCXO ref.
+ * min freq 1103 MHz
+ * max freq 1308 MHz
+ */
+  g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_vcxo_freq_khz=12288;
+  g_eedata.m_fast_synth_type=Plessey;
+  g_eedata.m_freq_min_mhz=1103;
+  g_eedata.m_freq_max_mhz=1308;
+  strcpy(g_eedata.m_model,"3CC08690AAAB 03");
+
+  g_eedata.m_csum=eecsum();
+
+  for (unsigned int i=0; (i<(sizeof(g_eedata))); i++)
+    i2c_eeprom_write_byte(0x50, i+EEOFFSET, eeptr[i]);
+
+  return true;
 }
 
 int read_eeprom()
@@ -494,7 +643,9 @@ int read_eeprom()
   else
   {
     Serial.println("Checksum invalid");
-    //setup_eeprom();
+    //retval=setup_eeprom();
+    if (retval)
+      report_eeprom();
   }
 
   return retval;
@@ -511,15 +662,17 @@ void setup() {
   while (1)
  {
     read_bank(0x50, NULL);
-    delay(2000);
+    delay(20000000);
  }
  #endif
 
+  // delay prevents hang on read_eeprom
   delay(1000);
   if (read_eeprom())
+  //if(0)
   {
     Serial.println("eeprom read ok");
-    g_vcxo_freq = 16000000;
+    g_vcxo_freq = ((unsigned long int) g_eedata.m_vcxo_freq_khz) * 1000;
     g_eeprom_ok = true;
   }
   else
@@ -528,23 +681,6 @@ void setup() {
     g_vcxo_freq = 12288000;
     g_eeprom_ok=false;
   }
-
-#if 0
-  //i2c_eeprom_write_byte(0x50, 0, 0x88);
-  //i2c_eeprom_write_byte(0x50, 10, 0x53);
-  //i2c_eeprom_write_byte(0x50, 20, 0x78);
-  //i2c_eeprom_read_buffer(0x50, 0, NULL, 20);
-  //for (int j=0;j<8;j++)
-    //testdat[j]=j+1;
-    //i2c_eeprom_write_byte(0x50, j, j+1);
-  //i2ec_eeprom_write_page(0x50, 0, testdat, 5);
-  //i2c_eeprom_read_buffer(0x50, 0, NULL, 20);
-  //read_bank(0x50, NULL);
- // Serial.println();
- // read_bank(0x50, NULL);
-#endif
-
-  //read_bank(0x50, NULL);
 
   Serial.print("VCXO freq is ");
   Serial.println(g_vcxo_freq);
@@ -575,7 +711,8 @@ void setfreq(unsigned long int F)
   //sequence_A_lente(F,650); // hardcoded R div; FIXME 832, 650=20kHz does seem to work
   sequence_A_lente(F,832);
 
-  calcmx(g_vcxo_freq, F, &mx106, &mx107);
+  //calcmx_qualcom(g_vcxo_freq, F, &mx106, &mx107);
+  calcmx_plessey(g_vcxo_freq, F, &mx106, &mx107);
 
   delay(1000); // seems to be needed; setfreq succeeds if we call it twice with this in.
 
@@ -625,8 +762,9 @@ void setfreq(unsigned long int F)
   //sequence_A_rapide_qualcom(240,32); // 1500.00MHz
   //sequence_A_rapide_qualcom(240,32); // 1500.00MHz //1 count=25Hz? WORKS
   //sequence_A_rapide_qualcom(0,33); //1504 MHz
-  sequence_A_rapide_qualcom(mx106,mx107); // new device, try 1300 Mhz
-  //sequence_A_rapide_qualcom(0,37); 
+
+  //sequence_A_rapide_qualcom(mx106,mx107); // new device, try 1300 Mhz
+  sequence_A_rapide_plessey(mx106,mx107);
 
 #if 0
   for (j=0; j<1000; j++)
@@ -669,6 +807,13 @@ void setfreq(unsigned long int F)
 
   // 250kHz steps?
   disable_i2c_fast();
+
+#if 0
+  {
+    int mx106a, mx107a;
+    calcmx_plessey(16000000, 1600000000, &mx106a, &mx107a);
+  }
+#endif
 }
 
 void loop() {
@@ -700,44 +845,17 @@ void loop() {
   Serial.println(F);
   setfreq(F);
 
-  for (int i=0; i<7; i++)
+  for (int i=0; i<10; i++)
   {
     delay(1000);
     acquit_alarm();
-    etat_synthe();
+
+    // all alarms gone?
+    if (etat_synthe()==0)
+      break;
   }
-
-#if 0
-  long int N;
-  for (N=83000;(N<90000);N++)
-  {
-    byte state;
-    Serial.println(N);
-    sequence_A_lente(N);
-    delay(4000);
-    state=etat_synthe();
-    if ((state&0x48) == 0x0)
-        break;
-  }
-#endif
-
-#if 0
-  byte *i2caddrs, i;
-
-  i2caddrs = find_i2caddrs();
-
-  if (i2caddrs)
-  {
-    Serial.println("loop: i2caddrs:");
-  
-    for (i=0; (i2caddrs[i] != 0xFF); i++)
-    {
-      Serial.println(i2caddrs[i], HEX);
-    }
-  }
-#endif
 
   Serial.println();
 
-  delay(10000);
+  delay(100);
 }
