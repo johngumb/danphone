@@ -865,13 +865,7 @@ void setfreq(unsigned long int F)
 }
 
 void loop() {
-  //String freqstr="1320"; //arbitrary default
-  //String freqstr="1327104000"; //arbitrary default
-  //String freqstr="1326700000"; //arbitrary default
-  //String freqstr="1326687500";
-  //String freqstr="1326596400";
-  //String freqstr="1326593750";
-    String freqstr="1500000000";
+  String freqstr;
   unsigned long int F;
 
   freqstr = (g_eeprom_ok) ? "1500000000" : "1296000000";
