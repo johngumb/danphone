@@ -1,7 +1,6 @@
 // (14) 3CC08690ABAA 01 GBX434
 // LM0043T05F4 original
 
-// TODO persist the last set frequency?
 /*
  * I2C addresses responding:
  * 22 50 A2 D0
@@ -59,6 +58,26 @@ unsigned long int g_vcxo_freq;
 
 bool g_eeprom_ok=false;
 
+void persist_freq(unsigned long int freq)
+{
+  unsigned char *freqptr=(unsigned char *)&freq;
+
+  for (int i=0; (i<sizeof(freq)); i++)
+    i2c_eeprom_write_byte(0x50, EEFREQOFFSET+i, freqptr[i]);
+
+  Serial.print(freq);
+  Serial.println("Hz saved");
+}
+
+unsigned long int get_saved_freq()
+{
+  unsigned long int freq=0;
+  unsigned char *freqptr=(unsigned char *)&freq;
+
+  i2c_eeprom_read_buffer(0x50, EEFREQOFFSET, (byte *) freqptr, sizeof(freq));
+
+  return freq;
+}
 //PCF 8582C
 void i2c_eeprom_write_byte(int deviceaddress, unsigned int eeaddress, byte data)
 {
@@ -651,6 +670,22 @@ int read_eeprom()
   return retval;
 }
 
+void report_lock_status()
+{
+  for (int i=0; i<10; i++)
+  {
+    delay(1000);
+    acquit_alarm();
+
+    // all alarms gone?
+    if (etat_synthe()==0)
+    {
+      Serial.println("Locked");
+      break;
+    }
+  }
+}
+
 void setup() {
   // board runs at 20MHz.
 
@@ -667,6 +702,7 @@ void setup() {
  #endif
 
   // delay prevents hang on read_eeprom
+  // To recover from hang, try stopping reading eeprom as first action and re-upload?
   delay(1000);
   if (read_eeprom())
   //if(0)
@@ -684,6 +720,18 @@ void setup() {
 
   Serial.print("VCXO freq is ");
   Serial.println(g_vcxo_freq);
+
+  if (g_eeprom_ok)
+  {
+    unsigned long int Fsaved(get_saved_freq());
+    Serial.print("Setting saved frequency (Hz): ");
+    Serial.println(Fsaved);
+
+    setfreq(Fsaved);
+
+    report_lock_status();
+  }
+
   Serial.println("setup done");
 }
 
@@ -828,6 +876,7 @@ void loop() {
 
   freqstr = (g_eeprom_ok) ? "1500000000" : "1296000000";
 
+  Serial.println("Enter 0 to report status");
   Serial.println("Freq (Hz)?");
   while (1)
   {
@@ -841,19 +890,15 @@ void loop() {
   //F=freqstr.toInt() * 1000000;
   F=freqstr.toInt();
 
-  Serial.print("Requested freq ");
-  Serial.println(F);
-  setfreq(F);
-
-  for (int i=0; i<10; i++)
+  if (F)
   {
-    delay(1000);
-    acquit_alarm();
-
-    // all alarms gone?
-    if (etat_synthe()==0)
-      break;
+    Serial.print("Requested freq ");
+    Serial.println(F);
+    setfreq(F);
+    persist_freq(F);
   }
+
+  report_lock_status();
 
   Serial.println();
 
