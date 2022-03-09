@@ -1164,6 +1164,8 @@ class MyFrame(wx.Frame):
 
     def onButtonTransmitAction(self,event):
         if self.m_tx_button.GetValue() and self.get_tx_lock():
+            if socket.gethostname()=='m4400':
+                os.system("amixer sset 'Dock Mic Boost' 2")
             self.m_tx_rx.SetValue(True)
             if self.m_10m_transvert:
                 self.set_transvert_power()
