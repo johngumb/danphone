@@ -4,6 +4,12 @@ def get_ctcss(tx_freq):
         if (tx_freq >= 145.6E6) and (tx_freq <= 145.8E6) and os.path.exists("/tmp/noshift"):
                 return 0
 
+        # if on 10 metres working split tx/rx use ctcss if specified
+        ctcss="/tmp/ctcss"
+        if os.path.exists(ctcss):
+            with open(ctcss) as f:
+                return float(f.read())
+
         if tx_freq in [51.34E6, 51.35E6, 51.3E6, 50.52E6, 70.4375E6]: # GB3AM, GB3CT, GB3ZY, GB3WX, MB7FM
             result = 77.0
         elif tx_freq in [51.32E6]: # GB3XD
