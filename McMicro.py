@@ -1,7 +1,7 @@
 #
 # OpenPMR - tools to make old PMR radios useful.
 #
-# Copyright (C) 2013  John Gumb, G4RDC
+# Copyright (C) 2013-2021  John Gumb, G4RDC
 #
 # This file is part of OpenPMR.
 
@@ -161,9 +161,6 @@ class McMicro:
     def enable_tx(self, ctcss = 0, enable_tx_audio = True):
         #print("enable_tx")
 
-        if self.m_tx_freq in [50.05E6, 50.016E6]:
-            return
-
         self.tune(self.m_tx_freq)
 
         if enable_tx_audio:
@@ -236,7 +233,7 @@ class McMicro:
             #3W without
             self.m_hwif.enqueue("P16")
         if self.m_hwif.server()=="rudd":
-            self.m_hwif.enqueue("P28")
+            self.m_hwif.enqueue("P30")
         else:
             self.m_shiftreg.setbit(self.SR_TX_POWER_HI_LO)
 
@@ -439,6 +436,8 @@ class McMicro:
             tx_offset = 5E5
         elif (freq >= 145.6E6) and (freq <= 145.8E6) and not os.path.exists("/tmp/noshift"):
             tx_offset = -6E5
+        elif os.path.exists("/tmp/shift10") and self.m_hwif.server()=="rudd":
+            tx_offset = -1E5
         else:
             tx_offset = 0
 
@@ -589,6 +588,12 @@ class McMicro:
             self.m_hwif.enqueue("pin1on")
         else:
             self.m_hwif.enqueue("pin1off")
+
+    def set_pin15(self, val):
+        if val:
+            self.m_hwif.enqueue("pin15on")
+        else:
+            self.m_hwif.enqueue("pin15off")
 
     def take_temperature(self):
         # silabs-c8051-temperature.pdf AN103
