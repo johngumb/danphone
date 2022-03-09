@@ -39,7 +39,7 @@ const unsigned int EEFREQOFFSET=128;
 typedef enum
 {
   Qualcomm=1,
-  Plessey
+  Zarlink
 } fast_synth_t;
 
 typedef struct str_eedata
@@ -57,7 +57,7 @@ typedef struct str_eedata
 
 static eedata_t g_eedata;
 
-unsigned long int g_vcxo_freq;
+unsigned long int g_vcxo_freq, g_curfreq;
 
 bool g_eeprom_ok=false;
 
@@ -72,6 +72,7 @@ void persist_freq(unsigned long int freq)
   Serial.println("Hz saved");
 }
 
+// not covered by checksum
 unsigned long int get_saved_freq()
 {
   unsigned long int freq=0;
@@ -360,7 +361,7 @@ void disable_i2c_fast()
 }
 
 
-void calcmx_plessey(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *mx107_out)
+void calcmx_zarlink(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *mx107_out)
 {
   unsigned long int DIVR, remainder, frac;
   unsigned char mx106, mx107, N;
@@ -372,7 +373,7 @@ void calcmx_plessey(unsigned long int VCXOF, unsigned long int F, int *mx106_out
 
   N = DIVR;
 
-  Serial.print("calcmx_plessey:");
+  Serial.print("calcmx_zarlink:");
   Serial.println(F);
   Serial.println(VCXOF);
   Serial.println(DIVR);
@@ -388,7 +389,7 @@ void calcmx_plessey(unsigned long int VCXOF, unsigned long int F, int *mx106_out
 
   (*mx106_out)=mx106;
   (*mx107_out)=mx107;
-  Serial.println("endcalcmx_plessey");
+  Serial.println("endcalcmx_zarlink");
 }
 
 void calcmx_qualcom(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *mx107_out)
@@ -490,7 +491,7 @@ void sequence_A_rapide_qualcom(byte mx106, byte mx107)
   delay(100);
 }
 
-void sequence_A_rapide_plessey(byte mx106, byte mx107)
+void sequence_A_rapide_zarlink(byte mx106, byte mx107)
 {
   // FREQUENCE DE SORTIE A = 6400,0 MHz :
 
@@ -554,6 +555,7 @@ unsigned char eecsum()
   unsigned char csum=0;
   const unsigned char *ptr=(const unsigned char *)&g_eedata;
 
+  // TODO deal with size of structure and version changing
   // -1 to exclude the checksum itself from the summing process
   for (unsigned int i=0;(i<sizeof(g_eedata)-1);i++)
     csum+=ptr[i];
@@ -582,7 +584,7 @@ bool check_eeprom_ok()
 {
   Serial.println("checking eeprom");
 
-  // offset 2 to avoid existing data
+  // offset to avoid existing data
   i2c_eeprom_read_buffer(EEPROM_I2CADDR, EEOFFSET, (byte *) &g_eedata, sizeof(g_eedata));
   //Serial.println(eecsum(), HEX);
   //Serial.println(g_eedata.m_csum, HEX);
@@ -610,7 +612,7 @@ void report_eeprom()
   Serial.print("Fast synth type: ");
   switch(g_eedata.m_fast_synth_type)
   {
-    case Plessey: Serial.println("Plessey"); break;
+    case Zarlink: Serial.println("Zarlink"); break;
     case Qualcomm: Serial.println("Qualcomm"); break;
     default: Serial.println("unknown"); break;
   }
@@ -640,7 +642,7 @@ bool setup_eeprom()
  */
   g_eedata.m_lmx_freq_khz=13000;
   g_eedata.m_vcxo_freq_khz=12288;
-  g_eedata.m_fast_synth_type=Plessey;
+  g_eedata.m_fast_synth_type=Zarlink;
   g_eedata.m_freq_min_mhz=1103;
   g_eedata.m_freq_max_mhz=1308;
   strcpy(g_eedata.m_model,"3CC08690AAAB 03");
@@ -761,13 +763,18 @@ void setfreq(unsigned long int F)
 {
   int mx106=0, mx107;
   int j;
+
+  // stash the requested frequency - whether it works or not
+  g_curfreq=F;
+
   acquit_alarm();
-  //F=1277952000;
+
+  // TODO clean up slow loop step (i.e. R div)
   //sequence_A_lente(F,650); // hardcoded R div; FIXME 832, 650=20kHz does seem to work
   sequence_A_lente(F,832);
 
   //calcmx_qualcom(g_vcxo_freq, F, &mx106, &mx107);
-  calcmx_plessey(g_vcxo_freq, F, &mx106, &mx107);
+  calcmx_zarlink(g_vcxo_freq, F, &mx106, &mx107);
 
   delay(1000); // seems to be needed; setfreq succeeds if we call it twice with this in.
 
@@ -819,7 +826,7 @@ void setfreq(unsigned long int F)
   //sequence_A_rapide_qualcom(0,33); //1504 MHz
 
   //sequence_A_rapide_qualcom(mx106,mx107); // new device, try 1300 Mhz
-  sequence_A_rapide_plessey(mx106,mx107);
+  sequence_A_rapide_zarlink(mx106,mx107);
 
 #if 0
   for (j=0; j<1000; j++)
@@ -866,7 +873,7 @@ void setfreq(unsigned long int F)
 #if 0
   {
     int mx106a, mx107a;
-    calcmx_plessey(16000000, 1600000000, &mx106a, &mx107a);
+    calcmx_zarlink(16000000, 1600000000, &mx106a, &mx107a);
   }
 #endif
 }
@@ -877,7 +884,7 @@ void loop() {
 
   freqstr = (g_eeprom_ok) ? "1500000000" : "1296000000";
 
-  Serial.println("Enter 0 to report status");
+  Serial.println("Enter special values 0 for status or 1 for the current frequency");
   Serial.println("Freq (Hz)?");
   while (1)
   {
@@ -891,15 +898,21 @@ void loop() {
   //F=freqstr.toInt() * 1000000;
   F=freqstr.toInt();
 
-  if (F)
+  // I suppose we need to think about a CLI here
+  if (F>1)
   {
     Serial.print("Requested freq ");
     Serial.println(F);
     setfreq(F);
   }
+  else if (F==1)
+  {
+    Serial.print("Current requested frequency: ");
+    Serial.print(g_curfreq);
+  }
 
   // save frequency if locked
-  if ((report_lock_status()==0) && (F))
+  if ((report_lock_status()==0) && (F) && (F!=1))
      persist_freq(F);
 
   Serial.println();
