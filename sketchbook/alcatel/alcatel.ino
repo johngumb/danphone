@@ -916,6 +916,4 @@ void loop() {
      persist_freq(F);
 
   Serial.println();
-
-  delay(100);
 }
