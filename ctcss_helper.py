@@ -4,7 +4,7 @@ def get_ctcss(tx_freq):
         if (tx_freq >= 145.6E6) and (tx_freq <= 145.8E6) and os.path.exists("/tmp/noshift"):
                 return 0
 
-        # if on 10 metres working split tx/rx use ctcss if specified
+        # use ctcss if specified
         ctcss="/tmp/ctcss"
         if os.path.exists(ctcss):
             with open(ctcss) as f:
