@@ -878,11 +878,21 @@ void setfreq(unsigned long int F)
 #endif
 }
 
+void report_freq(unsigned long int freq)
+{
+  unsigned long int output_freq=(freq/1000)*4;
+  Serial.print(freq);
+  Serial.print("Hz (");
+  Serial.print(output_freq);
+  Serial.println("kHz)");
+}
+
 void loop() {
   String freqstr;
   unsigned long int F;
 
-  freqstr = (g_eeprom_ok) ? "1500000000" : "1296000000";
+  Serial.print("Current requested frequency: ");
+  report_freq(g_curfreq);
 
   Serial.println("Enter special values 0 for status or 1 for the current frequency");
   Serial.println("Freq (Hz)?");
@@ -895,20 +905,19 @@ void loop() {
     }
   }
 
-  //F=freqstr.toInt() * 1000000;
   F=freqstr.toInt();
 
   // I suppose we need to think about a CLI here
   if (F>1)
   {
     Serial.print("Requested freq ");
-    Serial.println(F);
+    report_freq(F);
     setfreq(F);
   }
   else if (F==1)
   {
     Serial.print("Current requested frequency: ");
-    Serial.print(g_curfreq);
+    report_freq(g_curfreq);
   }
 
   // save frequency if locked
