@@ -225,8 +225,17 @@ byte etat_synthe()
     a = ~a & 0x48;    // masque Al_OL : 0x08  déverrouillage PLL
                       // masque Al_SP : 0x40  VCXO hors limites
   
-  
-    Serial.println(a,HEX);        // synthétiseur OK  --> a = 0x00
+    if (a&0x48)
+    {
+      if (a&0x08)
+        Serial.print("PLL unlocked");
+      if ((a&0x48)==0x48)
+        Serial.print("; ");
+      if (a&0x40)
+        Serial.print("VCXO out of range");
+      Serial.println();
+      Serial.println(a&0x48, HEX);
+    }
   }
   return a;     
 }
