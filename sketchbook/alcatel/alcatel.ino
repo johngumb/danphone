@@ -396,7 +396,7 @@ void calcmx_zarlink(unsigned long int VCXOF, unsigned long int F, int *mx106_out
   Serial.println("endcalcmx_zarlink");
 }
 
-void calcmx_qualcom(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *mx107_out)
+void calcmx_qualcomm(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *mx107_out)
 {
   unsigned long int DIVR, remainder, frac, M, A;
   unsigned char mx106, mx107;
@@ -435,14 +435,18 @@ void calcmx_qualcom(unsigned long int VCXOF, unsigned long int F, int *mx106_out
 
   (*mx106_out)=mx106;
   (*mx107_out)=mx107;
-  Serial.println("endcalcmx_qualcom");
+  Serial.println("endcalcmx_qualcomm");
 }
 
-void sequence_A_rapide_qualcom(byte mx106, byte mx107)
+void sequence_A_rapide_qualcomm(byte mx106, byte mx107)
 {
   unsigned long int M,A,DIVR,frac,F,VCXOF;
 
   VCXOF=g_vcxo_freq;
+
+
+  // M3=1 pin 10
+  // R=0
 
   // div=10*(M+1) + A
   
@@ -535,13 +539,6 @@ void sequence_A_rapide_zarlink(byte mx106, byte mx107)
   Wire.endTransmission();                         // restart
 
   delay(100);
-}
-
-void send_mx_byte(const int dest, unsigned char val)
-{
-  Wire.beginTransmission(dest);
-  Wire.write((byte)val);
-  Wire.endTransmission();
 }
 
 unsigned char eecsum()
@@ -749,29 +746,30 @@ void setfreq(unsigned long int F)
   //sequence_A_lente(F,650); // hardcoded R div; FIXME 832, 650=20kHz does seem to work
   sequence_A_lente(F,832);
 
-  //calcmx_qualcom(g_vcxo_freq, F, &mx106, &mx107);
-  calcmx_zarlink(g_vcxo_freq, F, &mx106, &mx107);
-
-  // M3=1 pin 10
-  // R=0
   enable_i2c_fast();
-
-  sequence_A_rapide_zarlink(mx106,mx107);
-
-  // div=10*(M+1) + A
   
-  // M3=32 mx107
-  // M2=16 mx107
-  // M1=8 mx107
-  // M0=4 mx107
-  
-  // A3==2 mx107
-  // A2==1 mx107
+  switch(g_eedata.m_fast_synth_type)
+  {
+    case Qualcomm:
+    {
+      calcmx_qualcomm(g_vcxo_freq, F, &mx106, &mx107);
+      sequence_A_rapide_qualcomm(mx106,mx107);
+    }
+    break;
 
-  // A1=128 mx106
-  // A0==64 mx106
+    case Zarlink:
+    {
+      calcmx_zarlink(g_vcxo_freq, F, &mx106, &mx107);
+      sequence_A_rapide_zarlink(mx106,mx107);
+    }
+    break;
 
-  // 250kHz steps?
+    default:
+    {
+      Serial.println("*** ERROR unknown fast synth type");
+    }
+  }
+
   disable_i2c_fast();
 }
 
