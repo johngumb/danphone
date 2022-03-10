@@ -767,8 +767,6 @@ void setfreq(unsigned long int F)
   // stash the requested frequency - whether it works or not
   g_curfreq=F;
 
-  acquit_alarm();
-
   // TODO clean up slow loop step (i.e. R div)
   //sequence_A_lente(F,650); // hardcoded R div; FIXME 832, 650=20kHz does seem to work
   sequence_A_lente(F,832);
@@ -776,11 +774,8 @@ void setfreq(unsigned long int F)
   //calcmx_qualcom(g_vcxo_freq, F, &mx106, &mx107);
   calcmx_zarlink(g_vcxo_freq, F, &mx106, &mx107);
 
-  delay(1000); // seems to be needed; setfreq succeeds if we call it twice with this in.
-
   // M3=1 pin 10
   // R=0
-  acquit_alarm(); // also seems to be needed
   enable_i2c_fast();
 
   //testloop();
@@ -869,13 +864,6 @@ void setfreq(unsigned long int F)
 
   // 250kHz steps?
   disable_i2c_fast();
-
-#if 0
-  {
-    int mx106a, mx107a;
-    calcmx_zarlink(16000000, 1600000000, &mx106a, &mx107a);
-  }
-#endif
 }
 
 void report_freq(unsigned long int freq)
