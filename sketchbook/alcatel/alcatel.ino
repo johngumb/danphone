@@ -274,10 +274,6 @@ void sequence_A_lente(unsigned long int F, unsigned long int R)
 // 1500MHz N=96000
 byte N_data[21]         =       {0,0,1,0,1,1,1,0,1,1,1, 0,0,0,0,0,0,0,0, 0,1};
 byte N_data_calc[21];
-//  unsigned long int N=96256; // 1504MHz
-  //long int N;
-  //N=96000; // 1500MHz
-  //N=86000; // 1300MHz
   int i;
 
   memset(N_data_calc, 0, sizeof(N_data_calc));
@@ -360,7 +356,6 @@ void disable_i2c_fast()
   Wire.endTransmission();
 }
 
-
 void calcmx_zarlink(unsigned long int VCXOF, unsigned long int F, int *mx106_out, int *mx107_out)
 {
   unsigned long int DIVR, remainder, frac;
@@ -402,7 +397,6 @@ void calcmx_qualcom(unsigned long int VCXOF, unsigned long int F, int *mx106_out
   remainder = (F - (DIVR * VCXOF));
   frac = (remainder * 64)/VCXOF;
 
-  
   //10*(M+1))+A = DIVR;
 
   M = (DIVR/10) - 1;
@@ -437,8 +431,6 @@ void calcmx_qualcom(unsigned long int VCXOF, unsigned long int F, int *mx106_out
 
 void sequence_A_rapide_qualcom(byte mx106, byte mx107)
 {
-  // FREQUENCE DE SORTIE A = 6400,0 MHz :
-
   unsigned long int M,A,DIVR,frac,F,VCXOF;
 
   VCXOF=g_vcxo_freq;
@@ -461,11 +453,7 @@ void sequence_A_rapide_qualcom(byte mx106, byte mx107)
   frac=mx106&(~0xC0);
 
   DIVR=(10*(M+1))+A;
-  // F=16*(DIVR+frac/64)
-//#define VCXOF 12288000
-  //F=VCXOF*DIVR+(frac/4); //16 megs
-  //F=VCXOF*(DIVR+(frac/64)); // assume here VCXO is running at 16MHz
-                      // LMX must be programmed for same target freq.
+
   F=VCXOF*DIVR + ((frac*VCXOF)/64);
   Serial.print("M ");Serial.println(M);
   Serial.print("A ");Serial.println(A);
@@ -476,7 +464,6 @@ void sequence_A_rapide_qualcom(byte mx106, byte mx107)
   Serial.println("/64");
   Serial.print("Fast Freq ");
   Serial.println(F);
-
 
   Wire.beginTransmission(MX107_TXID);             // adresse MX107
   Wire.write((byte)mx107);
@@ -493,8 +480,6 @@ void sequence_A_rapide_qualcom(byte mx106, byte mx107)
 
 void sequence_A_rapide_zarlink(byte mx106, byte mx107)
 {
-  // FREQUENCE DE SORTIE A = 6400,0 MHz :
-
   unsigned long int DIVR,frac,F,VCXOF;
   unsigned char N;
 
@@ -744,25 +729,9 @@ void setup() {
   Serial.println("setup done");
 }
 
-void testloop()
-{
-  unsigned int i;
-
-  while (1)
-  {
-  for (i=1; (i<64); i*=2)
-  {
-    Serial.print("sending ");
-    Serial.println(i);
-    send_mx_byte(MX107_TXID, i);
-    delay(2000);
-  }
-  }
-}
 void setfreq(unsigned long int F)
 {
   int mx106=0, mx107;
-  int j;
 
   // stash the requested frequency - whether it works or not
   g_curfreq=F;
@@ -778,76 +747,8 @@ void setfreq(unsigned long int F)
   // R=0
   enable_i2c_fast();
 
-  //testloop();
-
-#if 0
-  for (mx107=31;(mx107<50); mx107++)
-  {
-    byte state;
-    for (mx106=0;(mx106<255); mx106+=4)
-    {
-      Serial.println(mx106);
-      Serial.println(mx107);
-      sequence_A_rapide_qualcom(mx106,mx107);
-      delay(100);
-      sequence_A_rapide_qualcom(mx106,mx107);
-
-      delay(1000);
-      state=etat_synthe();
-      Serial.print("state ");
-      Serial.println(state&0x48, HEX);
-      if ((state&0x48) == 0x0)
-        break;
-
-    }
-    if ((state&0x48) == 0x0)
-        break;
-  }
-#endif
-  //sequence_A_rapide_qualcom(5,0);
-  //sequence_A_rapide_qualcom(224,33); // WORKS
-  //sequence_A_rapide_qualcom(200,32); // bottom of range 1490.445
-
-  // VCO 16.004775 MHz 16.004763
-  //sequence_A_rapide_qualcom(48,34);  // 1580.475MHz
-  //sequence_A_rapide_qualcom(47,34);  // 1580.225MHz
-  //sequence_A_rapide_qualcom(46,34);  // 1579.972MHz
-  //sequence_A_rapide_qualcom(60,34);  // 1583.475MHz
-  //sequence_A_rapide_qualcom(61,34);  // 1583.725MHz
-  //sequence_A_rapide_qualcom(63,34);  // 1584.225MHz  // top of range?
-  //sequence_A_rapide_qualcom(70,34);  // 1583.475MHz
-  //sequence_A_rapide_qualcom(240,32); // 1500.00MHz
-  //sequence_A_rapide_qualcom(240,32); // 1500.00MHz //1 count=25Hz? WORKS
-  //sequence_A_rapide_qualcom(0,33); //1504 MHz
-
-  //sequence_A_rapide_qualcom(mx106,mx107); // new device, try 1300 Mhz
   sequence_A_rapide_zarlink(mx106,mx107);
 
-#if 0
-  for (j=0; j<1000; j++)
-  {
-    sequence_A_rapide_qualcom(240,32);
-    //delay(10);
-    sequence_A_rapide_qualcom(241,32);
-    //delay(10);
-  }
-#endif
-  
-#if 0
-  for (j=0;(j<8);j++)
-  {
-    sequence_A_rapide_qualcom(0,(1<<j));
-    Serial.print(j);
-    delay(1000);
-  }
-
-  for (j=0;(j<8);j++)
-  {
-    sequence_A_rapide_qualcom((1<<j),0);
-    Serial.print(j);
-    delay(1000);
-  }
-#endif
   // div=10*(M+1) + A
   
   // M3=32 mx107
@@ -860,7 +761,6 @@ void setfreq(unsigned long int F)
 
   // A1=128 mx106
   // A0==64 mx106
-  //sequence_A_rapide_qualcom(0,32);
 
   // 250kHz steps?
   disable_i2c_fast();
