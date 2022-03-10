@@ -512,13 +512,7 @@ void sequence_A_rapide_zarlink(byte mx106, byte mx107)
   frac=mx106&(~0xC0); // low 6 bits
 
   DIVR=N;
-  // F=16*(DIVR+frac/64)
-//#define VCXOF g_vcxo_freq
-//#define VCXOF 12288000
-//#define VCXOF 16000000
-  //F=VCXOF*DIVR+(frac/4); //16 megs
-  //F=VCXOF*(DIVR+(frac/64)); // assume here VCXO is running at 16MHz
-                      // LMX must be programmed for same target freq.
+
   F=VCXOF*DIVR + ((frac*VCXOF)/64);
   Serial.print("Int divide ratio:");
   Serial.println(N);
@@ -737,7 +731,7 @@ void setup() {
 
 void setfreq(unsigned long int F)
 {
-  int mx106=0, mx107;
+  int mx106=0, mx107=0;
 
   // stash the requested frequency - whether it works or not
   g_curfreq=F;
@@ -805,7 +799,7 @@ void loop() {
   // I suppose we need to think about a CLI here
   if (F>1)
   {
-    Serial.print("Requested freq ");
+    Serial.print("Requested frequency: ");
     report_freq(F);
     setfreq(F);
   }
