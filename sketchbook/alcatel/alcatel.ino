@@ -2,6 +2,7 @@
 // LM0043T05F4 original
 
 // TODO slow loop frequency step (R value) selection
+// TODO serial numbers in eeprom?
 
 /*
  * I2C addresses responding:
@@ -48,12 +49,16 @@ typedef struct str_eedata
 {
   unsigned int m_eeversion;
   unsigned int m_eedatsize;
+  unsigned long int m_serialno;
   unsigned int m_lmx_freq_khz;
   unsigned int m_vcxo_freq_khz;
   unsigned int m_freq_min_mhz;
   unsigned int m_freq_max_mhz;
   fast_synth_t m_fast_synth_type;
-  char m_model[16];
+  bool m_ignore_vcxo_out_of_range;
+  char m_model_pcb[16];
+  char m_model_sticker[32];
+  char m_model_sticker_lm[16];
   unsigned char m_csum; // must be at end
 } __attribute__((packed)) eedata_t;
 
@@ -67,7 +72,7 @@ void persist_freq(unsigned long int freq)
 {
   const unsigned char *freqptr=(unsigned char *)&freq;
 
-  for (int i=0; (i<sizeof(freq)); i++)
+  for (unsigned int i=0; (i<sizeof(freq)); i++)
     i2c_eeprom_write_byte(EEPROM_I2CADDR, EEFREQOFFSET+i, freqptr[i]);
 
   Serial.print(freq);
@@ -130,7 +135,6 @@ int read_bank(byte i2caddr, byte *data)
 {
    int addr=0; //first address
     byte printed=0;
-    byte csum=0;
     byte tres[10];
     byte cval;
     byte j;
@@ -178,6 +182,7 @@ int read_bank(byte i2caddr, byte *data)
     return bank_length;
 }
 
+#if 0
 byte *find_i2caddrs()
 {
   byte i=0;
@@ -206,6 +211,7 @@ byte *find_i2caddrs()
   else
     return NULL;
 }
+#endif
 
 void acquit_alarm()
 {
@@ -219,10 +225,10 @@ void acquit_alarm()
 
 byte etat_synthe()
 {
-  unsigned char a=0xFF, b;
+  unsigned char a=0xFF;
   Wire.requestFrom(MX105_TXID,1);
   if (Wire.available()) {
-    b = a = Wire.read();
+    a = Wire.read();
   
     a = ~a & 0x48;    // masque Al_OL : 0x08  déverrouillage PLL
                       // masque Al_SP : 0x40  VCXO hors limites
@@ -555,20 +561,6 @@ unsigned char eecsum()
   return csum;
 }
 
-/*
-typedef struct str_eedata
-{
-  unsigned int m_eeversion;
-  unsigned int m_eedatsize;
-  unsigned int m_lmx_freq_khz;
-  unsigned int m_vcxo_freq_khz;
-  unsigned int m_freq_min_mhz;
-  unsigned int m_freq_max_mhz;
-  fast_synth_t m_fast_synth_type;
-  char m_model[16];
-  unsigned char m_csum; // must be at end
-} __attribute__((packed)) eedata_t;
-*/
 bool check_eeprom_ok()
 {
   Serial.println("checking eeprom");
@@ -583,12 +575,18 @@ bool check_eeprom_ok()
 
 void report_eeprom()
 {
-  Serial.print("Model: ");
-  Serial.println(g_eedata.m_model);
+  Serial.print("Model (PCB): ");
+  Serial.println(g_eedata.m_model_pcb);
+  Serial.print("Model (sticker): ");
+  Serial.println(g_eedata.m_model_sticker);
+  Serial.print("Model (sticker lm): ");
+  Serial.println(g_eedata.m_model_sticker_lm);
   //Serial.print("EEversion: ");
   //Serial.println(g_eedata.m_eeversion);
   //Serial.print("Checksum: ");
   //Serial.println(g_eedata.m_csum);
+  Serial.print("Serial number: ");
+  Serial.println(g_eedata.m_serialno);
   Serial.print("Minimum Frequency: ");
   Serial.print(g_eedata.m_freq_min_mhz);
   Serial.println(" MHz");
@@ -605,6 +603,8 @@ void report_eeprom()
     case Qualcomm: Serial.println("Qualcomm"); break;
     default: Serial.println("unknown"); break;
   }
+  if (g_eedata.m_ignore_vcxo_out_of_range)
+    Serial.println("Ignore VCXO out of range hack set");
 }
 
 bool setup_eeprom()
@@ -616,12 +616,30 @@ bool setup_eeprom()
   g_eedata.m_eedatsize=sizeof(g_eedata);
   g_eedata.m_eeversion=1;
 
-//  g_eedata.m_lmx_freq_khz=13000;
-//  g_eedata.m_vcxo_freq_khz=16000;
-//  g_eedata.m_fast_synth_type=Qualcomm;
-//  strcpy(g_eedata.m_model,"3CC08690ABAA");
+#if 0
+/* Unit "3CC08697AAAA 02" (PCB) "(24) 3CC08692AAAA 04 GBX431" (sticker)
+ * LM0304T00M4
+ * Qualcomm synth
+ * 13MHz slow TCXO ref.
+ * 12.288 MHz fast VCXO ref. Out of range voltage warning odd.
+ * min freq 1230 MHz
+ * max freq 1400 MHz
+ */
+  // input level problem on pfd, hacked with potential divider network.
+  g_eedata.m_serialno=2;
+  g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_vcxo_freq_khz=12288;
+  g_eedata.m_fast_synth_type=Qualcomm;
+  g_eedata.m_freq_min_mhz=1230;
+  g_eedata.m_freq_max_mhz=1400;
+  strcpy(g_eedata.m_model_pcb,"3CC08697AAAA 02");
+  strcpy(g_eedata.m_model_sticker,"(24) 3CC08692AAAA 04 GBX431");
+  strcpy(g_eedata.m_model_sticker_lm,"LM0304T00M4");
+  g_eedata.m_ignore_vcxo_out_of_range=true; //hack
+#endif
 
-/* Unit 3CC08690AAAB 03
+#if 0
+/* Unit "3CC09469AAAB03" (PCB) "(07) 3CC09359AAAB 03" (sticker)
  * LM0210T0667
  * SP8855E synth
  * 13MHz slow TCXO ref.
@@ -629,12 +647,16 @@ bool setup_eeprom()
  * min freq 1103 MHz
  * max freq 1308 MHz
  */
+  g_eedata.m_serialno=3;
   g_eedata.m_lmx_freq_khz=13000;
   g_eedata.m_vcxo_freq_khz=12288;
   g_eedata.m_fast_synth_type=Zarlink;
   g_eedata.m_freq_min_mhz=1103;
   g_eedata.m_freq_max_mhz=1300;
-  strcpy(g_eedata.m_model,"3CC09469AAAB03");
+  strcpy(g_eedata.m_model_pcb,"3CC09469AAAB03");
+  strcpy(g_eedata.m_model_sticker,"(07) 3CC09359AAAB 03");
+  strcpy(g_eedata.m_model_sticker_lm,"LM0210T0667");
+#endif
 
   g_eedata.m_csum=eecsum();
 
@@ -648,6 +670,7 @@ int read_eeprom()
 {
   int retval=0;
 
+  // uncomment this to setup the eeprom
   //retval=setup_eeprom();
 
   if (check_eeprom_ok())
@@ -675,6 +698,10 @@ byte report_lock_status()
     acquit_alarm();
 
     status = etat_synthe();
+
+    if (g_eedata.m_ignore_vcxo_out_of_range)
+      status &= ~0x40;
+
     // all alarms gone?
     if (status==0)
     {
