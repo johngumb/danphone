@@ -1,7 +1,7 @@
 // (14) 3CC08690ABAA 01 GBX434
 // LM0043T05F4 original
 
-// TODO sort out fast loop calculation
+// TODO slow loop frequency step (R value) selection
 
 /*
  * I2C addresses responding:
@@ -27,9 +27,11 @@
  */
 #include <Wire.h>
 
+// PCF 8574 i2c GPIO devices
 #define MX105_TXID 0x22
 #define MX106_TXID 0x20
 #define MX107_TXID 0x21
+
 #define EEPROM_I2CADDR 0x50
 
 typedef byte int8;
@@ -63,7 +65,7 @@ bool g_eeprom_ok=false;
 
 void persist_freq(unsigned long int freq)
 {
-  unsigned char *freqptr=(unsigned char *)&freq;
+  const unsigned char *freqptr=(unsigned char *)&freq;
 
   for (int i=0; (i<sizeof(freq)); i++)
     i2c_eeprom_write_byte(EEPROM_I2CADDR, EEFREQOFFSET+i, freqptr[i]);
@@ -375,7 +377,7 @@ void calcmx_zarlink(unsigned long int VCXOF, unsigned long int F, int *mx106_out
   remainder = (F - (DIVR * VCXOF));
   frac = (remainder * 64)/VCXOF;
 
-  N = DIVR;
+  N = DIVR; // no prescaler
 
   Serial.print("calcmx_zarlink:");
   Serial.println(F);
@@ -406,7 +408,7 @@ void calcmx_qualcomm(unsigned long int VCXOF, unsigned long int F, int *mx106_ou
   remainder = (F - (DIVR * VCXOF));
   frac = (remainder * 64)/VCXOF;
 
-  //10*(M+1))+A = DIVR;
+  //10*(M+1))+A = DIVR; Q3236 datasheet, dual modulus prescaler in use
 
   M = (DIVR/10) - 1;
   A = DIVR - (10*(M+1));
@@ -443,7 +445,6 @@ void sequence_A_rapide_qualcomm(byte mx106, byte mx107)
   unsigned long int M,A,DIVR,frac,F,VCXOF;
 
   VCXOF=g_vcxo_freq;
-
 
   // M3=1 pin 10
   // R=0
