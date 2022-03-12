@@ -426,7 +426,7 @@ void calcmx_qualcomm(unsigned long int VCXOF, unsigned long int F, int *mx106_ou
 //  M=(mx107&0x3C)>>2;
 //  A=((mx107&3)<<2)+( (mx106&0xC0)>>6 );
 //  frac=mx106&(~0xC0);
-  //frac = 0; // HACK
+
   mx106=frac+((A&0x03)<<6);
   Serial.print("mx106 0x");
   Serial.println(mx106,HEX);
