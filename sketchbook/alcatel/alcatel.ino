@@ -377,7 +377,7 @@ void calcmx_zarlink(unsigned long int VCXOF, unsigned long int F, int *mx106_out
   remainder = (F - (DIVR * VCXOF));
   frac = (remainder * 64)/VCXOF;
 
-  N = DIVR; // no prescaler
+  N = DIVR;
 
   Serial.print("calcmx_zarlink:");
   Serial.println(F);
