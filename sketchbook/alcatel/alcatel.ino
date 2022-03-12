@@ -945,6 +945,7 @@ void loop() {
   }
   else if (F==0)
   {
+    // print this before status as that takes a while
     Serial.print("Current requested frequency: ");
     report_freq(g_curfreq);
   }
