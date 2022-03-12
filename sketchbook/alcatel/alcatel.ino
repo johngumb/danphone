@@ -559,7 +559,6 @@ void sequence_A_rapide_zarlink(byte mx106, byte mx107)
   delay(100);
 }
 
-
 byte report_lock_status()
 {
   byte status=1;
@@ -582,6 +581,18 @@ byte report_lock_status()
   }
 
   return status;
+}
+
+void read_string(String &outstr)
+{
+  while (1)
+  {
+    if (Serial.available())
+    {
+      outstr = Serial.readStringUntil('\n');
+      break;
+    }
+  }
 }
 
 void setfreq(unsigned long int F)
@@ -704,14 +715,7 @@ bool setup_eeprom()
   Serial.println("Setting up eeprom...");
 
   Serial.println("Are you sure (Y/n)?");
-  while (1)
-  {
-    if (Serial.available())
-    {
-      yn = Serial.readStringUntil('\n');
-      break;
-    }
-  }
+  read_string(yn);
 
   if (!yn.equals("Y"))
     return false;
@@ -863,7 +867,7 @@ void reboot() {
   Serial.println();
   _PROTECTED_WRITE(WDT.CTRLA,WDT_PERIOD_8CLK_gc); // arm the watchdog
   while (1); // upset the 'dog.
-}i
+}
 
 void setup() {
   // board runs at 20MHz.
@@ -927,14 +931,8 @@ void loop() {
 
   Serial.println("Enter special values 0 for status and current frequency; 1 for reboot");
   Serial.println("Freq (Hz)?");
-  while (1)
-  {
-    if (Serial.available())
-    {
-      freqstr = Serial.readStringUntil('\n');
-      break;
-    }
-  }
+
+  read_string(freqstr);
 
   F=freqstr.toInt();
 
