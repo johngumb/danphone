@@ -815,7 +815,7 @@ void setup() {
   Wire.begin();
   Wire.setTimeout(10000);
   Serial.begin(115200);
-  Serial.setTimeout(10000);
+  Serial.setTimeout(100);
   Serial.println("boot");
 
   // delay prevents hang on read_eeprom
