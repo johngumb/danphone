@@ -46,8 +46,8 @@ const unsigned int EEOFFSET=8;
 const unsigned int EEFREQOFFSET=128;
 typedef enum
 {
-  Qualcomm=1,
-  Zarlink
+  Qualcomm_Q3236=1,
+  Zarlink_SP8855E
 } fast_synth_t;
 
 typedef enum
@@ -466,8 +466,8 @@ void sequence_A_rapide_qualcomm(byte mx106, byte mx107)
 
   VCXOF=g_vcxo_freq;
 
-  // M3=1 pin 10
-  // R=0
+  // M3 pin 10 on Q3236
+  // R=0, hardwired
 
   // div=10*(M+1) + A
   
@@ -522,7 +522,7 @@ void sequence_A_rapide_zarlink(byte mx106, byte mx107)
   // N10=0 (hardwired)
   // N9=0  (hardwired)
   // N8=0  (hardwired)
-  // N7=0  (hardwired) maybe bit 4 on mx107 is unused for zarlink?
+  // N7=0  (hardwired) maybe bit 4 on mx107 is unused for zarlink based units?
   // N6=16 mx107
   // N5=8 mx107
   // N4=4 mx107
@@ -610,14 +610,14 @@ void setfreq(unsigned long int F)
 
   switch(g_eedata.m_fast_synth_type)
   {
-    case Qualcomm:
+    case Qualcomm_Q3236:
     {
       calcmx_qualcomm(g_vcxo_freq, F, &mx106, &mx107);
       sequence_A_rapide_qualcomm(mx106,mx107);
     }
     break;
 
-    case Zarlink:
+    case Zarlink_SP8855E:
     {
       calcmx_zarlink(g_vcxo_freq, F, &mx106, &mx107);
       sequence_A_rapide_zarlink(mx106,mx107);
@@ -699,8 +699,8 @@ void report_eeprom()
   Serial.print("Fast synth type: ");
   switch(g_eedata.m_fast_synth_type)
   {
-    case Zarlink: Serial.println("Zarlink"); break;
-    case Qualcomm: Serial.println("Qualcomm"); break;
+    case Zarlink_SP8855E: Serial.println("Zarlink SP8855E"); break;
+    case Qualcomm_Q3236: Serial.println("Qualcomm Q3236"); break;
     default: Serial.println("unknown"); break;
   }
   if (g_eedata.m_ignore_vcxo_out_of_range)
@@ -727,7 +727,7 @@ bool setup_eeprom()
 #if 0
 /* Unit "3CC08670ABAA 03" (PCB) "(14) 3CC10676ABAA 04 GBX434" (sticker)
  * LM0043T05F4
- * Qualcomm synth
+ * Qualcomm_Q3236 synth
  * 13MHz slow TCXO ref.
  * 16 MHz fast VCXO ref.
  * min freq 1485 MHz
@@ -737,7 +737,7 @@ bool setup_eeprom()
   g_eedata.m_lmx_freq_khz=13000;
   g_eedata.m_calibration=goledge;
   g_eedata.m_vcxo_freq_khz=16000;
-  g_eedata.m_fast_synth_type=Qualcomm;
+  g_eedata.m_fast_synth_type=Qualcomm_Q3236;
   g_eedata.m_freq_min_mhz=1485;
   g_eedata.m_freq_max_mhz=1718;
   strcpy(g_eedata.m_model_pcb,"3CC08670ABAA 03");
@@ -748,7 +748,7 @@ bool setup_eeprom()
 #if 0
 /* Unit "3CC08697AAAA 02" (PCB) "(24) 3CC08692AAAA 04 GBX431" (sticker)
  * LM0304T00M4
- * Qualcomm synth
+ * Qualcomm_Q3236 synth
  * 13MHz slow TCXO ref.
  * 12.288 MHz fast VCXO ref. Out of range voltage warning odd.
  * min freq 1230 MHz
@@ -759,7 +759,7 @@ bool setup_eeprom()
   g_eedata.m_lmx_freq_khz=13000;
   g_eedata.m_calibration=goledge;
   g_eedata.m_vcxo_freq_khz=12288;
-  g_eedata.m_fast_synth_type=Qualcomm;
+  g_eedata.m_fast_synth_type=Qualcomm_Q3236;
   g_eedata.m_freq_min_mhz=1230;
   g_eedata.m_freq_max_mhz=1400;
   strcpy(g_eedata.m_model_pcb,"3CC08697AAAA 02");
@@ -781,7 +781,7 @@ bool setup_eeprom()
   g_eedata.m_lmx_freq_khz=13000;
   g_eedata.m_calibration=goledge;
   g_eedata.m_vcxo_freq_khz=12288;
-  g_eedata.m_fast_synth_type=Zarlink;
+  g_eedata.m_fast_synth_type=Zarlink_SP8855E;
   g_eedata.m_freq_min_mhz=1103;
   g_eedata.m_freq_max_mhz=1300;
   strcpy(g_eedata.m_model_pcb,"3CC09469AAAB03");
@@ -802,7 +802,7 @@ bool setup_eeprom()
   g_eedata.m_lmx_freq_khz=13000;
   g_eedata.m_calibration=rough;
   g_eedata.m_vcxo_freq_khz=12288;
-  g_eedata.m_fast_synth_type=Zarlink;
+  g_eedata.m_fast_synth_type=Zarlink_SP8855E;
   g_eedata.m_freq_min_mhz=1187;
   g_eedata.m_freq_max_mhz=1390;
   strcpy(g_eedata.m_model_pcb,"");
@@ -823,7 +823,7 @@ bool setup_eeprom()
   g_eedata.m_lmx_freq_khz=13000;
   g_eedata.m_calibration=none;
   g_eedata.m_vcxo_freq_khz=12288;
-  g_eedata.m_fast_synth_type=Zarlink;
+  g_eedata.m_fast_synth_type=Zarlink_SP8855E;
   g_eedata.m_freq_min_mhz=1220;
   g_eedata.m_freq_max_mhz=1439;
   strcpy(g_eedata.m_model_pcb,"");
@@ -876,7 +876,7 @@ void setup() {
   Wire.setTimeout(10000);
   Serial.begin(115200);
   Serial.setTimeout(100);
-  Serial.println("boot");
+  Serial.println("\nboot");
 
   // delay prevents hang on read_eeprom
   // To recover from hang, try stopping reading eeprom as first action and re-upload
