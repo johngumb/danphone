@@ -28,6 +28,9 @@
  *
  * Unit "(09) 3CC08692AAAB 03"
  * eeprom: 0x01 0x04 ... 0x28
+ *
+ * Unit "(05) 3CC09359ABAB 01"
+ * eeprom: 0x00 0x02 ... 0x28
  */
 #include <Wire.h>
 
@@ -730,6 +733,28 @@ bool setup_eeprom()
   strcpy(g_eedata.m_model_sticker,"(07) 3CC09359AAAB 03");
   strcpy(g_eedata.m_model_sticker_lm,"LM0210T0667");
 #endif
+
+#if 0
+/* Unit "" (PCB) "(05) 3CC09359ABAB 01" (sticker)
+ * LM0045T06P7
+ * SP8855E synth
+ * 13MHz slow TCXO ref.
+ * 12.288 MHz fast VCXO ref.
+ * min freq 1220 MHz
+ * max freq 1390 MHz
+ */
+  g_eedata.m_serialno=5;
+  g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_calibration=none;
+  g_eedata.m_vcxo_freq_khz=12288;
+  g_eedata.m_fast_synth_type=Zarlink;
+  g_eedata.m_freq_min_mhz=1220;
+  g_eedata.m_freq_max_mhz=1439;
+  strcpy(g_eedata.m_model_pcb,"");
+  strcpy(g_eedata.m_model_sticker,"(05) 3CC09359ABAB 01");
+  strcpy(g_eedata.m_model_sticker_lm,"LM0045T06P7");
+#endif
+
   g_eedata.m_csum=eecsum();
 
   for (unsigned int i=0; (i<(sizeof(g_eedata))); i++)
@@ -872,6 +897,7 @@ void setfreq(unsigned long int F)
     {
       Serial.println("*** ERROR unknown fast synth type");
     }
+    break;
   }
 
   disable_i2c_fast();
@@ -900,7 +926,7 @@ void loop() {
   Serial.print("Current requested frequency: ");
   report_freq(g_curfreq);
 
-  Serial.println("Enter special values 0 for status, 1 for the current frequency or 2 for reboot");
+  Serial.println("Enter special values 0 for status and current frequency; 1 for reboot");
   Serial.println("Freq (Hz)?");
   while (1)
   {
@@ -914,24 +940,24 @@ void loop() {
   F=freqstr.toInt();
 
   // I suppose we need to think about a CLI here
-  if (F>2)
+  if (F>1)
   {
     Serial.print("Requested frequency: ");
     report_freq(F);
     setfreq(F);
   }
-  else if (F==1)
+  else if (F==0)
   {
     Serial.print("Current requested frequency: ");
     report_freq(g_curfreq);
   }
-  else if (F==2)
+  else if (F==1)
   {
     reboot();
   }
 
-  // save frequency if locked
-  if ((report_lock_status()==0) && (F) && (F!=1))
+  // save frequency if locked and we have a valid frequency
+  if ((report_lock_status()==0) && (F>1))
      persist_freq(F);
 
   Serial.println();
