@@ -48,6 +48,14 @@ typedef enum
   Zarlink
 } fast_synth_t;
 
+typedef enum
+{
+  none=1,
+  rough,
+  goledge,
+} calibration_t;
+
+
 typedef struct str_eedata
 {
   unsigned int m_eeversion;
@@ -58,6 +66,7 @@ typedef struct str_eedata
   unsigned int m_freq_min_mhz;
   unsigned int m_freq_max_mhz;
   fast_synth_t m_fast_synth_type;
+  calibration_t m_calibration;
   bool m_ignore_vcxo_out_of_range;
   char m_model_pcb[16];
   char m_model_sticker[32];
@@ -599,6 +608,8 @@ void report_eeprom()
   Serial.print("VCXO Centre Frequency: ");
   Serial.print(g_eedata.m_vcxo_freq_khz);
   Serial.println(" kHz");
+  Serial.print("Calibration: ");
+  Serial.println(g_eedata.m_calibration);
   Serial.print("Fast synth type: ");
   switch(g_eedata.m_fast_synth_type)
   {
@@ -639,13 +650,13 @@ bool setup_eeprom()
  * LM0043T05F4
  * Qualcomm synth
  * 13MHz slow TCXO ref.
- * 16 MHz fast VCXO ref. Out of range voltage warning odd.
+ * 16 MHz fast VCXO ref.
  * min freq 1485 MHz
  * max freq 1718 MHz
  */
-  // input level problem on pfd, hacked with potential divider network.
   g_eedata.m_serialno=1;
   g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_calibration=goledge;
   g_eedata.m_vcxo_freq_khz=16000;
   g_eedata.m_fast_synth_type=Qualcomm;
   g_eedata.m_freq_min_mhz=1485;
@@ -667,6 +678,7 @@ bool setup_eeprom()
   // input level problem on pfd, hacked with potential divider network.
   g_eedata.m_serialno=2;
   g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_calibration=goledge;
   g_eedata.m_vcxo_freq_khz=12288;
   g_eedata.m_fast_synth_type=Qualcomm;
   g_eedata.m_freq_min_mhz=1230;
@@ -688,6 +700,7 @@ bool setup_eeprom()
  */
   g_eedata.m_serialno=3;
   g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_calibration=goledge;
   g_eedata.m_vcxo_freq_khz=12288;
   g_eedata.m_fast_synth_type=Zarlink;
   g_eedata.m_freq_min_mhz=1103;
@@ -697,7 +710,7 @@ bool setup_eeprom()
   strcpy(g_eedata.m_model_sticker_lm,"LM0210T0667");
 #endif
 
-#if 1
+#if 0
 /* Unit "" (PCB) "(09) 3CC08692AAAB 03" (sticker)
  * LM0217T029T
  * SP8855E synth
@@ -708,6 +721,7 @@ bool setup_eeprom()
  */
   g_eedata.m_serialno=4;
   g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_calibration=rough;
   g_eedata.m_vcxo_freq_khz=12288;
   g_eedata.m_fast_synth_type=Zarlink;
   g_eedata.m_freq_min_mhz=1187;
