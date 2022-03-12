@@ -232,9 +232,9 @@ void acquit_alarm()
 {
   Wire.beginTransmission(MX105_TXID);
 
-  Wire.write((byte)0xF8);                          // Ac_Al = 1, LE = 0, clock = 0
-  Wire.write((byte)0x68);                          // Ac_Al = 0, LE = 0, clock = 0
-  Wire.write((byte)0xF8);                          // Ac_Al = 1, LE = 0, clock = 0
+  Wire.write((byte)0xF8);   // Ac_Al = 1, LE = 0, clock = 0
+  Wire.write((byte)0x68);   // Ac_Al = 0, LE = 0, clock = 0
+  Wire.write((byte)0xF8);   // Ac_Al = 1, LE = 0, clock = 0
   Wire.endTransmission();
 }
 
@@ -779,7 +779,6 @@ int read_eeprom()
   else
   {
     Serial.println("Checksum invalid");
-    //retval=setup_eeprom();
     if (retval)
       report_eeprom();
   }
