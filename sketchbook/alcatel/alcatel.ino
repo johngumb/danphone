@@ -809,58 +809,6 @@ byte report_lock_status()
   return status;
 }
 
-void setup() {
-  // board runs at 20MHz.
-
-  Wire.begin();
-  Wire.setTimeout(10000);
-  Serial.begin(115200);
-  Serial.setTimeout(100);
-  Serial.println("boot");
-
-  // delay prevents hang on read_eeprom
-  // To recover from hang, try stopping reading eeprom as first action and re-upload
-  // hence if (0) below.
-  delay(1500);
-
-#if 0
-  while (1)
- {
-    read_bank(EEPROM_I2CADDR, NULL);
-    delay(20000000);
- }
- #endif
-
-  if (read_eeprom())
-  //if(0)
-  {
-    Serial.println("eeprom read ok");
-    g_vcxo_freq = ((unsigned long int) g_eedata.m_vcxo_freq_khz) * 1000;
-    g_eeprom_ok = true;
-  }
-  else
-  {
-    Serial.println("eeprom not read ok");
-    g_vcxo_freq = 12288000;
-    g_eeprom_ok=false;
-  }
-
-  Serial.print("VCXO freq is ");
-  Serial.println(g_vcxo_freq);
-
-  if (g_eeprom_ok)
-  {
-    unsigned long int Fsaved(get_saved_freq());
-    Serial.print("Setting saved frequency (Hz): ");
-    Serial.println(Fsaved);
-
-    setfreq(Fsaved);
-
-    report_lock_status();
-  }
-
-  Serial.println("setup done");
-}
 
 void setfreq(unsigned long int F)
 {
@@ -915,6 +863,59 @@ void reboot() {
   Serial.println();
   _PROTECTED_WRITE(WDT.CTRLA,WDT_PERIOD_8CLK_gc); // arm the watchdog
   while (1); // upset the 'dog.
+}
+
+void setup() {
+  // board runs at 20MHz.
+
+  Wire.begin();
+  Wire.setTimeout(10000);
+  Serial.begin(115200);
+  Serial.setTimeout(100);
+  Serial.println("boot");
+
+  // delay prevents hang on read_eeprom
+  // To recover from hang, try stopping reading eeprom as first action and re-upload
+  // hence if (0) below.
+  delay(1500);
+
+#if 0
+  while (1)
+ {
+    read_bank(EEPROM_I2CADDR, NULL);
+    delay(20000000);
+ }
+ #endif
+
+  if (read_eeprom())
+  //if(0)
+  {
+    Serial.println("eeprom read ok");
+    g_vcxo_freq = ((unsigned long int) g_eedata.m_vcxo_freq_khz) * 1000;
+    g_eeprom_ok = true;
+  }
+  else
+  {
+    Serial.println("eeprom not read ok");
+    g_vcxo_freq = 12288000;
+    g_eeprom_ok=false;
+  }
+
+  Serial.print("VCXO freq is ");
+  Serial.println(g_vcxo_freq);
+
+  if (g_eeprom_ok)
+  {
+    unsigned long int Fsaved(get_saved_freq());
+    Serial.print("Setting saved frequency (Hz): ");
+    Serial.println(Fsaved);
+
+    setfreq(Fsaved);
+
+    report_lock_status();
+  }
+
+  Serial.println("setup done");
 }
 
 void loop() {
