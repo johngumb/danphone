@@ -386,12 +386,12 @@ void calcmx_zarlink(unsigned long int VCXOF, unsigned long int F, int *mx106_out
   Serial.println(frac);
 
   mx106=frac+((N&0x03)<<6);
-  Serial.print("mx106 ");
-  Serial.println(mx106);
+  Serial.print("mx106 0x");
+  Serial.println(mx106,HEX);
 
   mx107=(N>>2);
-  Serial.print("mx107 ");
-  Serial.println(mx107);
+  Serial.print("mx107 0x");
+  Serial.println(mx107,HEX);
 
   (*mx106_out)=mx106;
   (*mx107_out)=mx107;
@@ -428,12 +428,12 @@ void calcmx_qualcomm(unsigned long int VCXOF, unsigned long int F, int *mx106_ou
 //  frac=mx106&(~0xC0);
   //frac = 0; // HACK
   mx106=frac+((A&0x03)<<6);
-  Serial.print("mx106 ");
-  Serial.println(mx106);
+  Serial.print("mx106 0x");
+  Serial.println(mx106,HEX);
 
   mx107=(A>>2) + (M<<2);
-  Serial.print("mx107 ");
-  Serial.println(mx107);
+  Serial.print("mx107 0x");
+  Serial.println(mx107,HEX);
 
   (*mx106_out)=mx106;
   (*mx107_out)=mx107;
@@ -499,7 +499,10 @@ void sequence_A_rapide_zarlink(byte mx106, byte mx107)
 
   VCXOF=g_vcxo_freq;
 
-  // N7=32 mx107 ?? MBZ?
+  // N10=0 (hardwired)
+  // N9=0  (hardwired)
+  // N8=0  (hardwired)
+  // N7=0  (hardwired)
   // N6=16 mx107
   // N5=8 mx107
   // N4=4 mx107
