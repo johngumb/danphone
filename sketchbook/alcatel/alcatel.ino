@@ -559,6 +559,79 @@ void sequence_A_rapide_zarlink(byte mx106, byte mx107)
   delay(100);
 }
 
+
+byte report_lock_status()
+{
+  byte status=1;
+  for (int i=0; i<10; i++)
+  {
+    delay(1000);
+    acquit_alarm();
+
+    status = etat_synthe();
+
+    if (g_eedata.m_ignore_vcxo_out_of_range)
+      status &= ~0x40;
+
+    // all alarms gone?
+    if (status==0)
+    {
+      Serial.println("Locked");
+      break;
+    }
+  }
+
+  return status;
+}
+
+void setfreq(unsigned long int F)
+{
+  int mx106=0, mx107=0;
+
+  // stash the requested frequency - whether it works or not
+  g_curfreq=F;
+
+  // TODO clean up slow loop step (i.e. R div)
+  //sequence_A_lente(F,650); // hardcoded R div; FIXME 832, 650=20kHz does seem to work
+  sequence_A_lente(F,832);
+
+  enable_i2c_fast();
+
+  switch(g_eedata.m_fast_synth_type)
+  {
+    case Qualcomm:
+    {
+      calcmx_qualcomm(g_vcxo_freq, F, &mx106, &mx107);
+      sequence_A_rapide_qualcomm(mx106,mx107);
+    }
+    break;
+
+    case Zarlink:
+    {
+      calcmx_zarlink(g_vcxo_freq, F, &mx106, &mx107);
+      sequence_A_rapide_zarlink(mx106,mx107);
+    }
+    break;
+
+    default:
+    {
+      Serial.println("*** ERROR unknown fast synth type");
+    }
+    break;
+  }
+
+  disable_i2c_fast();
+}
+
+void report_freq(unsigned long int freq)
+{
+  unsigned long int output_freq=(freq/1000)*4;
+  Serial.print(freq);
+  Serial.print("Hz (");
+  Serial.print(output_freq);
+  Serial.println("kHz)");
+}
+
 unsigned char eecsum()
 {
   unsigned char csum=0;
@@ -785,85 +858,12 @@ int read_eeprom()
   return retval;
 }
 
-byte report_lock_status()
-{
-  byte status=1;
-  for (int i=0; i<10; i++)
-  {
-    delay(1000);
-    acquit_alarm();
-
-    status = etat_synthe();
-
-    if (g_eedata.m_ignore_vcxo_out_of_range)
-      status &= ~0x40;
-
-    // all alarms gone?
-    if (status==0)
-    {
-      Serial.println("Locked");
-      break;
-    }
-  }
-
-  return status;
-}
-
-
-void setfreq(unsigned long int F)
-{
-  int mx106=0, mx107=0;
-
-  // stash the requested frequency - whether it works or not
-  g_curfreq=F;
-
-  // TODO clean up slow loop step (i.e. R div)
-  //sequence_A_lente(F,650); // hardcoded R div; FIXME 832, 650=20kHz does seem to work
-  sequence_A_lente(F,832);
-
-  enable_i2c_fast();
-  
-  switch(g_eedata.m_fast_synth_type)
-  {
-    case Qualcomm:
-    {
-      calcmx_qualcomm(g_vcxo_freq, F, &mx106, &mx107);
-      sequence_A_rapide_qualcomm(mx106,mx107);
-    }
-    break;
-
-    case Zarlink:
-    {
-      calcmx_zarlink(g_vcxo_freq, F, &mx106, &mx107);
-      sequence_A_rapide_zarlink(mx106,mx107);
-    }
-    break;
-
-    default:
-    {
-      Serial.println("*** ERROR unknown fast synth type");
-    }
-    break;
-  }
-
-  disable_i2c_fast();
-}
-
-void report_freq(unsigned long int freq)
-{
-  unsigned long int output_freq=(freq/1000)*4;
-  Serial.print(freq);
-  Serial.print("Hz (");
-  Serial.print(output_freq);
-  Serial.println("kHz)");
-}
-
 void reboot() {
   Serial.println("rebooting...");
   Serial.println();
   _PROTECTED_WRITE(WDT.CTRLA,WDT_PERIOD_8CLK_gc); // arm the watchdog
   while (1); // upset the 'dog.
-}
+}i
 
 void setup() {
   // board runs at 20MHz.
