@@ -2,7 +2,6 @@
 // LM0043T05F4 original
 
 // TODO slow loop frequency step (R value) selection
-// TODO serial numbers in eeprom?
 
 /*
  * I2C addresses responding:
