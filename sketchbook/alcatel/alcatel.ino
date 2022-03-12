@@ -25,6 +25,9 @@
  * min freq 1103 MHz
  * max freq 1308 MHz
  * 0x01 0x02 ... 0x28
+ *
+ * Unit "(09) 3CC08692AAAB 03"
+ * eeprom: 0x01 0x04 ... 0x28
  */
 #include <Wire.h>
 
@@ -610,8 +613,23 @@ void report_eeprom()
 bool setup_eeprom()
 {
   const unsigned char *eeptr=(const unsigned char *)&g_eedata;
+  String yn;
 
   Serial.println("Setting up eeprom...");
+
+  Serial.println("Are you sure (Y/n)?");
+  while (1)
+  {
+    if (Serial.available())
+    {
+      yn = Serial.readStringUntil('\n');
+      break;
+    }
+  }
+
+  if (!yn.equals("Y"))
+    return false;
+
   memset(&g_eedata, 0, sizeof(g_eedata));
   g_eedata.m_eedatsize=sizeof(g_eedata);
   g_eedata.m_eeversion=1;
@@ -679,11 +697,31 @@ bool setup_eeprom()
   strcpy(g_eedata.m_model_sticker_lm,"LM0210T0667");
 #endif
 
+#if 1
+/* Unit "" (PCB) "(09) 3CC08692AAAB 03" (sticker)
+ * LM0217T029T
+ * SP8855E synth
+ * 13MHz slow TCXO ref.
+ * 12.288 MHz fast VCXO ref.
+ * min freq 1187 MHz
+ * max freq 1390 MHz
+ */
+  g_eedata.m_serialno=4;
+  g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_vcxo_freq_khz=12288;
+  g_eedata.m_fast_synth_type=Zarlink;
+  g_eedata.m_freq_min_mhz=1187;
+  g_eedata.m_freq_max_mhz=1390;
+  strcpy(g_eedata.m_model_pcb,"");
+  strcpy(g_eedata.m_model_sticker,"(07) 3CC09359AAAB 03");
+  strcpy(g_eedata.m_model_sticker_lm,"LM0210T0667");
+#endif
   g_eedata.m_csum=eecsum();
 
   for (unsigned int i=0; (i<(sizeof(g_eedata))); i++)
     i2c_eeprom_write_byte(EEPROM_I2CADDR, i+EEOFFSET, eeptr[i]);
 
+  Serial.println("Setting up eeprom...done");
   return true;
 }
 
@@ -742,6 +780,12 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(10000);
   Serial.println("boot");
+
+  // delay prevents hang on read_eeprom
+  // To recover from hang, try stopping reading eeprom as first action and re-upload
+  // hence if (0) below.
+  delay(1500);
+
 #if 0
   while (1)
  {
@@ -750,9 +794,6 @@ void setup() {
  }
  #endif
 
-  // delay prevents hang on read_eeprom
-  // To recover from hang, try stopping reading eeprom as first action and re-upload?
-  delay(1500);
   if (read_eeprom())
   //if(0)
   {
