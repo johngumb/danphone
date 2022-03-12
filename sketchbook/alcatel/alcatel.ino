@@ -633,8 +633,8 @@ bool setup_eeprom()
   g_eedata.m_vcxo_freq_khz=12288;
   g_eedata.m_fast_synth_type=Zarlink;
   g_eedata.m_freq_min_mhz=1103;
-  g_eedata.m_freq_max_mhz=1308;
-  strcpy(g_eedata.m_model,"3CC08690AAAB 03");
+  g_eedata.m_freq_max_mhz=1300;
+  strcpy(g_eedata.m_model,"3CC09469AAAB03");
 
   g_eedata.m_csum=eecsum();
 
@@ -647,6 +647,8 @@ bool setup_eeprom()
 int read_eeprom()
 {
   int retval=0;
+
+  //retval=setup_eeprom();
 
   if (check_eeprom_ok())
   {
@@ -701,7 +703,7 @@ void setup() {
 
   // delay prevents hang on read_eeprom
   // To recover from hang, try stopping reading eeprom as first action and re-upload?
-  delay(1000);
+  delay(1500);
   if (read_eeprom())
   //if(0)
   {
