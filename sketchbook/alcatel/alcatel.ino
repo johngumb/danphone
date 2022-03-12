@@ -617,6 +617,27 @@ bool setup_eeprom()
   g_eedata.m_eeversion=1;
 
 #if 0
+/* Unit "3CC08670ABAA 03" (PCB) "(14) 3CC10676ABAA 04 GBX434" (sticker)
+ * LM0043T05F4
+ * Qualcomm synth
+ * 13MHz slow TCXO ref.
+ * 16 MHz fast VCXO ref. Out of range voltage warning odd.
+ * min freq 1485 MHz
+ * max freq 1718 MHz
+ */
+  // input level problem on pfd, hacked with potential divider network.
+  g_eedata.m_serialno=1;
+  g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_vcxo_freq_khz=16000;
+  g_eedata.m_fast_synth_type=Qualcomm;
+  g_eedata.m_freq_min_mhz=1485;
+  g_eedata.m_freq_max_mhz=1718;
+  strcpy(g_eedata.m_model_pcb,"3CC08670ABAA 03");
+  strcpy(g_eedata.m_model_sticker,"(14) 3CC10676ABAA 04 GBX434");
+  strcpy(g_eedata.m_model_sticker_lm,"LM0043T05F4");
+#endif
+
+#if 0
 /* Unit "3CC08697AAAA 02" (PCB) "(24) 3CC08692AAAA 04 GBX431" (sticker)
  * LM0304T00M4
  * Qualcomm synth
@@ -645,7 +666,7 @@ bool setup_eeprom()
  * 13MHz slow TCXO ref.
  * 12.288 MHz fast VCXO ref.
  * min freq 1103 MHz
- * max freq 1308 MHz
+ * max freq 1300 MHz (lock dodgy above that)
  */
   g_eedata.m_serialno=3;
   g_eedata.m_lmx_freq_khz=13000;
@@ -717,6 +738,7 @@ void setup() {
   // board runs at 20MHz.
 
   Wire.begin();
+  Wire.setTimeout(10000);
   Serial.begin(115200);
   Serial.setTimeout(10000);
   Serial.println("boot");
@@ -809,6 +831,13 @@ void report_freq(unsigned long int freq)
   Serial.println("kHz)");
 }
 
+void reboot() {
+  Serial.println("rebooting...");
+  Serial.println();
+  _PROTECTED_WRITE(WDT.CTRLA,WDT_PERIOD_8CLK_gc); // arm the watchdog
+  while (1); // upset the 'dog.
+}
+
 void loop() {
   String freqstr;
   unsigned long int F;
@@ -816,7 +845,7 @@ void loop() {
   Serial.print("Current requested frequency: ");
   report_freq(g_curfreq);
 
-  Serial.println("Enter special values 0 for status or 1 for the current frequency");
+  Serial.println("Enter special values 0 for status, 1 for the current frequency or 2 for reboot");
   Serial.println("Freq (Hz)?");
   while (1)
   {
@@ -830,7 +859,7 @@ void loop() {
   F=freqstr.toInt();
 
   // I suppose we need to think about a CLI here
-  if (F>1)
+  if (F>2)
   {
     Serial.print("Requested frequency: ");
     report_freq(F);
@@ -840,6 +869,10 @@ void loop() {
   {
     Serial.print("Current requested frequency: ");
     report_freq(g_curfreq);
+  }
+  else if (F==2)
+  {
+    reboot();
   }
 
   // save frequency if locked
