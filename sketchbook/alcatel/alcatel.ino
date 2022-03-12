@@ -44,6 +44,7 @@ typedef byte int8;
 
 const unsigned int EEOFFSET=8;
 const unsigned int EEFREQOFFSET=128;
+
 typedef enum
 {
   Qualcomm_Q3236=1,
@@ -56,7 +57,6 @@ typedef enum
   rough,
   goledge,
 } calibration_t;
-
 
 typedef struct str_eedata
 {
@@ -564,8 +564,8 @@ byte report_lock_status()
   byte status=1;
   for (int i=0; i<10; i++)
   {
-    delay(1000);
     acquit_alarm();
+    delay(1000);
 
     status = etat_synthe();
 
