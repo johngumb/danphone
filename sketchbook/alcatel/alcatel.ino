@@ -502,7 +502,7 @@ void sequence_A_rapide_zarlink(byte mx106, byte mx107)
   // N10=0 (hardwired)
   // N9=0  (hardwired)
   // N8=0  (hardwired)
-  // N7=0  (hardwired)
+  // N7=0  (hardwired) maybe bit 4 on mx107 is unused for zarlink?
   // N6=16 mx107
   // N5=8 mx107
   // N4=4 mx107
