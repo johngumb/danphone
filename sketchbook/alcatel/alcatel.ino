@@ -261,26 +261,27 @@ void sequence_A_lente(unsigned long int F, unsigned long int R)
   unsigned long int N=(F/STEP);
   unsigned long int act_F;
 
-//
-// 5 bit swallow counter (N1..N5)
-// 13 bit B counter (N6..N18)
-// 'GO Bit' N19
-//
-// F bits numbered from 1. Two control bits first. F7 if set disconnects charge pump.
-//
-// Pin 14 (Fo/LD) behaviour:
-// F3 F4 F5
-// 0  0  0  TRI STATE
-// 0  0  1  R divider output (Fr)
-// 0  1  0  N divider output: provides divided VCO freq (Fp)
-// 0  1  1  Serial data output
-// 1  0  0  Lock detect output (see LMX2326.pdf)
-// 1  0  1  n-Channel open drain lock detect output (see LMX2326.pdf)
-// 1  1  0  Active high
-// 1  1  1  Active low
-//
-//      Contenu d'initialisation du registre F du circuit MX310 - LMX2326 :
-    // Q3236 and LMX2326 lock detects are ANDed together in status
+/*
+ * 5 bit swallow counter (N1..N5)
+ * 13 bit B counter (N6..N18)
+ * 'GO Bit' N19
+ *
+ * F bits numbered from 1. Two control bits first. F7 if set disconnects charge pump.
+ *
+ * Pin 14 (Fo/LD) behaviour:
+ * F3 F4 F5
+ * 0  0  0  TRI STATE
+ * 0  0  1  R divider output (Fr)
+ * 0  1  0  N divider output: provides divided VCO freq (Fp)
+ * 0  1  1  Serial data output
+ * 1  0  0  Lock detect output (see LMX2326.pdf)
+ * 1  0  1  n-Channel open drain lock detect output (see LMX2326.pdf)
+ * 1  1  0  Active high
+ * 1  1  1  Active low
+ *
+ */
+    // Contenu d'initialisation du registre F du circuit MX310 - LMX2326 :
+    // Q3236/SP8855E and LMX2326 lock detects are ANDed together in status
     byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,1};         // function latch - original
     //byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,1}; // original - lock nailed up
 
