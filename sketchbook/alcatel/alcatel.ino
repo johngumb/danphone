@@ -45,6 +45,8 @@ typedef byte int8;
 const unsigned int EEOFFSET=8;
 const unsigned int EEFREQOFFSET=128;
 
+const int DEFAULT_LOCK_STATUS_ATTEMPTS=10;
+
 typedef enum
 {
   Qualcomm_Q3236=1,
@@ -103,6 +105,7 @@ unsigned long int get_saved_freq()
 
   return freq;
 }
+
 //PCF 8582C
 void i2c_eeprom_write_byte(int deviceaddress, unsigned int eeaddress, byte data)
 {
@@ -460,7 +463,7 @@ void calcmx_qualcomm(unsigned long int VCXOF, unsigned long int F, int *mx106_ou
   Serial.println("endcalcmx_qualcomm");
 }
 
-void sequence_A_rapide_qualcomm(byte mx106, byte mx107)
+void decode_qualcomm(byte mx106, byte mx107)
 {
   unsigned long int M,A,DIVR,frac,F,VCXOF;
 
@@ -498,6 +501,11 @@ void sequence_A_rapide_qualcomm(byte mx106, byte mx107)
   Serial.println("/64");
   Serial.print("Fast Freq ");
   Serial.println(F);
+}
+
+void sequence_A_rapide(byte mx106, byte mx107)
+{
+  enable_i2c_fast();
 
   Wire.beginTransmission(MX107_TXID);             // adresse MX107
   Wire.write((byte)mx107);
@@ -510,9 +518,11 @@ void sequence_A_rapide_qualcomm(byte mx106, byte mx107)
   Wire.endTransmission();                         // restart
 
   delay(100);
+
+  disable_i2c_fast();
 }
 
-void sequence_A_rapide_zarlink(byte mx106, byte mx107)
+void decode_zarlink(byte mx106, byte mx107)
 {
   unsigned long int DIVR,frac,F,VCXOF;
   unsigned char N;
@@ -545,24 +555,12 @@ void sequence_A_rapide_zarlink(byte mx106, byte mx107)
   Serial.println("/64");
   Serial.print("Fast Freq ");
   Serial.println(F);
-
-  Wire.beginTransmission(MX107_TXID);             // adresse MX107
-  Wire.write((byte)mx107);
-  Wire.endTransmission();
-
-  delay(100);
-
-  Wire.beginTransmission(MX106_TXID);             // adresse MX106
-  Wire.write((byte)mx106);
-  Wire.endTransmission();                         // restart
-
-  delay(100);
 }
 
-byte report_lock_status()
+byte report_lock_status(int attempts)
 {
   byte status=1;
-  for (int i=0; i<10; i++)
+  for (int i=0; i<attempts; i++)
   {
     acquit_alarm();
     delay(1000);
@@ -606,21 +604,21 @@ void setfreq(unsigned long int F)
   //sequence_A_lente(F,650); // hardcoded R div; FIXME 832, 650=20kHz does seem to work
   sequence_A_lente(F,832);
 
-  enable_i2c_fast();
-
   switch(g_eedata.m_fast_synth_type)
   {
     case Qualcomm_Q3236:
     {
       calcmx_qualcomm(g_vcxo_freq, F, &mx106, &mx107);
-      sequence_A_rapide_qualcomm(mx106,mx107);
+      decode_qualcomm(mx106,mx107);
+      sequence_A_rapide(mx106,mx107);
     }
     break;
 
     case Zarlink_SP8855E:
     {
       calcmx_zarlink(g_vcxo_freq, F, &mx106, &mx107);
-      sequence_A_rapide_zarlink(mx106,mx107);
+      decode_zarlink(mx106,mx107);
+      sequence_A_rapide(mx106,mx107);
     }
     break;
 
@@ -630,8 +628,6 @@ void setfreq(unsigned long int F)
     }
     break;
   }
-
-  disable_i2c_fast();
 }
 
 void report_freq(unsigned long int freq)
@@ -916,7 +912,7 @@ void setup() {
 
     setfreq(Fsaved);
 
-    report_lock_status();
+    report_lock_status(DEFAULT_LOCK_STATUS_ATTEMPTS);
   }
 
   Serial.println("setup done");
@@ -925,7 +921,9 @@ void setup() {
 void loop() {
   String freqstr;
   unsigned long int F;
+  int attempts;
 
+  attempts=DEFAULT_LOCK_STATUS_ATTEMPTS;
   Serial.print("Current requested frequency: ");
   report_freq(g_curfreq);
 
@@ -948,6 +946,7 @@ void loop() {
     // print this before status as that takes a while
     Serial.print("Current requested frequency: ");
     report_freq(g_curfreq);
+    attempts=1;
   }
   else if (F==1)
   {
@@ -955,7 +954,7 @@ void loop() {
   }
 
   // save frequency if locked and we have a valid frequency
-  if ((report_lock_status()==0) && (F>1))
+  if ((report_lock_status(attempts)==0) && (F>1))
      persist_freq(F);
 
   Serial.println();
