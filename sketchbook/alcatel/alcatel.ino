@@ -199,37 +199,6 @@ int read_bank(byte i2caddr, byte *data)
     return bank_length;
 }
 
-#if 0
-byte *find_i2caddrs()
-{
-  byte i=0;
-  byte i2caddr=1;
-  static byte i2caddrs[10];
-
-  memset(i2caddrs, 0xFF, sizeof(i2caddrs));
-
-  while (i2caddr) // wrap at 256 == 0
-  {
-    Wire.beginTransmission(i2caddr);
-    // may hang
-    Wire.requestFrom(i2caddr,1); // access the first address from the memory
-
-    if (Wire.available())
-    {
-        Serial.println(i2caddr, HEX);
-        i2caddrs[i++] = i2caddr;
-    }
-    i2caddr++;
-    delay(10);
-  }
-
-  if (i)
-    return i2caddrs;
-  else
-    return NULL;
-}
-#endif
-
 void acquit_alarm()
 {
   Wire.beginTransmission(MX105_TXID);
@@ -301,8 +270,8 @@ void sequence_A_lente(unsigned long int F, unsigned long int R)
   byte R_data[21]  = {0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0};         // R latch
   byte R_data_calc[21];
 
-// FREQUENCE DE SORTIE A = 6400,0 MHz :
-//byte N_data[21]         =     {0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1};    // N = 102400
+  // FREQUENCE DE SORTIE A = 6400,0 MHz :
+  //byte N_data[21]         =     {0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1}; // N = 102400
 
 
 // 1500MHz N=96000
@@ -609,7 +578,7 @@ void setfreq(unsigned long int F)
     case Qualcomm_Q3236:
     {
       calcmx_qualcomm(g_vcxo_freq, F, &mx106, &mx107);
-      decode_qualcomm(mx106,mx107);
+      decode_qualcomm(mx106,mx107); // cross check
       sequence_A_rapide(mx106,mx107);
     }
     break;
@@ -617,7 +586,7 @@ void setfreq(unsigned long int F)
     case Zarlink_SP8855E:
     {
       calcmx_zarlink(g_vcxo_freq, F, &mx106, &mx107);
-      decode_zarlink(mx106,mx107);
+      decode_zarlink(mx106,mx107);  // cross check
       sequence_A_rapide(mx106,mx107);
     }
     break;
