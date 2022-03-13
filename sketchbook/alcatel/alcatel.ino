@@ -209,6 +209,10 @@ void acquit_alarm()
   Wire.endTransmission();
 }
 
+/*
+ * NOTE that both synthesiser lock detect outputs are ANDed together
+ * in hardware on the board (reported as Al_OL)
+ */
 byte etat_synthe()
 {
   unsigned char a=0xFF;
@@ -255,7 +259,17 @@ void sequence_A_lente(unsigned long int F, unsigned long int R)
   unsigned long int act_F;
 
 // F bits numbered from 1. Two control bits first. F7 if set disconnects charge pump.
-// F3 F4 F5 0 1 0 provides divided VCO freq.
+//
+// Pin 14 (Fo/LD) behaviour:
+// F3 F4 F5
+// 0  0  0  TRI STATE
+// 0  0  1  R divider output (Fr)
+// 0  1  0  N divider output: provides divided VCO freq (Fp)
+// 0  1  1  Serial data output
+// 1  0  0  Lock detect output (see LMX2326.pdf)
+// 1  0  1  n-Channel open drain lock detect output (see LMX2326.pdf)
+// 1  1  0  Active high
+// 1  1  1
 //
 //      Contenu d'initialisation du registre F du circuit MX310 - LMX2326 :
     // Q3236 and LMX2326 lock detects are ANDed together in status
