@@ -43,8 +43,6 @@
 
 #define EEPROM_I2CADDR 0x50
 
-typedef byte int8;
-
 const unsigned int EEOFFSET=8;          // preserve existing data, fwiw
 const unsigned int EEFREQOFFSET=128;    // drop current frequency in the middle
 
