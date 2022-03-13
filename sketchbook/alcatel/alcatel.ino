@@ -33,6 +33,9 @@
  */
 #include <Wire.h>
 
+/*
+ * I2C addressess
+ */
 // PCF 8574 i2c GPIO devices
 #define MX105_TXID 0x22
 #define MX106_TXID 0x20
@@ -42,8 +45,8 @@
 
 typedef byte int8;
 
-const unsigned int EEOFFSET=8;
-const unsigned int EEFREQOFFSET=128;
+const unsigned int EEOFFSET=8;          // preserve existing data, fwiw
+const unsigned int EEFREQOFFSET=128;    // drop current frequency in the middle
 
 const int DEFAULT_LOCK_STATUS_ATTEMPTS=10;
 
@@ -866,7 +869,7 @@ void setup() {
   // board runs at 20MHz.
 
   Wire.begin();
-  Wire.setTimeout(10000); // no idea if this helps
+  Wire.setTimeout(10000); // no idea if this helps with eeprom read hangs
   Serial.begin(115200);
   Serial.setTimeout(100);
   Serial.println("\nboot");
