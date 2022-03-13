@@ -41,6 +41,7 @@
 #define MX106_TXID 0x20
 #define MX107_TXID 0x21
 
+//PCF 8582C 256 byte eeprom
 #define EEPROM_I2CADDR 0x50
 
 const unsigned int EEOFFSET=8;          // preserve existing data, fwiw
