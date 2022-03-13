@@ -264,6 +264,7 @@ void sequence_A_lente(unsigned long int F, unsigned long int R)
 //
 // 5 bit swallow counter (N1..N5)
 // 13 bit B counter (N6..N18)
+// 'GO Bit' N19
 //
 // F bits numbered from 1. Two control bits first. F7 if set disconnects charge pump.
 //
