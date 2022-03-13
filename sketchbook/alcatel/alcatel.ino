@@ -371,10 +371,16 @@ void calcmx_zarlink(unsigned long int VCXOF, unsigned long int F, int *mx106_out
 
   N = DIVR;
 
-  Serial.print("calcmx_zarlink:");
+  Serial.print("calcmx_zarlink: ");
+  Serial.print("Frequency: ");
   Serial.println(F);
+  Serial.print("VCXO frequency: ");
   Serial.println(VCXOF);
+  Serial.print("Division ratio: ");
   Serial.println(DIVR);
+  Serial.print("Remainder: ");
+  Serial.println(remainder);
+  Serial.print("Fractional part: ");
   Serial.println(frac);
 
   mx106=frac+((N&0x03)<<6);
@@ -404,12 +410,16 @@ void calcmx_qualcomm(unsigned long int VCXOF, unsigned long int F, int *mx106_ou
 
   M = (DIVR/10) - 1;
   A = DIVR - (10*(M+1));
-  Serial.print("calcmx_qualcom:");
+  Serial.print("calcmx_qualcom: ");
+  Serial.print("Frequency: ");
   Serial.println(F);
+  Serial.print("VCXO frequency: ");
   Serial.println(VCXOF);
+  Serial.print("Division ratio: ");
   Serial.println(DIVR);
-  Serial.print("calcmx_qualcom remainder ");
+  Serial.print("Remainder: ");
   Serial.println(remainder);
+  Serial.print("Fractional part: ");
   Serial.println(frac);
   Serial.print("M "); Serial.println(M);
   Serial.print("A "); Serial.println(A);
@@ -842,7 +852,7 @@ void setup() {
   // board runs at 20MHz.
 
   Wire.begin();
-  Wire.setTimeout(10000);
+  Wire.setTimeout(10000); // no idea if this helps
   Serial.begin(115200);
   Serial.setTimeout(100);
   Serial.println("\nboot");
