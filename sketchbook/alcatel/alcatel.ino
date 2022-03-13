@@ -543,6 +543,12 @@ void decode_zarlink(byte mx106, byte mx107)
 
   DIVR=N;
 
+  /*
+   * NOTE the VCXO freq will be adjusted above/below
+   * its nominal value by the LMX2326 output to ensure
+   * both the slow and fast loops remain in lock
+   * targeting the frequency requested on the slow loop.
+   */
   F=VCXOF*DIVR + ((frac*VCXOF)/64);
   Serial.print("Int divide ratio:");
   Serial.println(N);
