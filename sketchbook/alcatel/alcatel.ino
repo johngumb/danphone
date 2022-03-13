@@ -605,7 +605,7 @@ void setfreq(unsigned long int F)
     case Qualcomm_Q3236:
     {
       calcmx_qualcomm(g_vcxo_freq, F, &mx106, &mx107);
-      //decode_qualcomm(mx106,mx107); // cross check
+      decode_qualcomm(mx106,mx107); // cross check
       sequence_A_rapide(mx106,mx107);
     }
     break;
@@ -613,7 +613,7 @@ void setfreq(unsigned long int F)
     case Zarlink_SP8855E:
     {
       calcmx_zarlink(g_vcxo_freq, F, &mx106, &mx107);
-      //decode_zarlink(mx106,mx107);  // cross check
+      decode_zarlink(mx106,mx107);  // cross check
       sequence_A_rapide(mx106,mx107);
     }
     break;
