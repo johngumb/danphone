@@ -43,11 +43,14 @@ import threading
 import socket
 import string
 
+import ctcss_helper
+import subprocess
+
 DataEvent, EVT_DATA = wx.lib.newevent.NewEvent()
 
 ExtSocket = "/tmp/mui-ext.s."
 
-g_display_pin15 = False
+g_display_pin15 = True
 
 def stop_extthread(Socket):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -952,7 +955,18 @@ class MyFrame(wx.Frame):
 
     def onButtonTx(self,event):
         if self.m_tx_rx.GetValue():
-            self.m_rig.enable_tx()
+            
+            (ctcss_freq, ctcss_in_hw) = ctcss_helper.get_ctcss(self.m_rig.m_tx_freq)
+
+            if not ctcss_in_hw and ctcss_freq:
+                self.m_swctcss = subprocess.Popen(["/home/john/ctcss", "-f %s" % ctcss_freq ])
+                jack_cmd("jack_connect ctcss:output %s:to_slave_1" % self.m_rig.m_hwif.server())
+                
+                self.m_rig.enable_tx()
+            else:
+                self.m_swctcss = None
+                
+                self.m_rig.enable_tx(ctcss=ctcss_freq) # hardware does ctcss
 
             self.m_tx = True
 
@@ -961,6 +975,10 @@ class MyFrame(wx.Frame):
         else:
             self.m_rig.disable_tx()
 
+            if self.m_swctcss:
+                self.m_swctcss.terminate()
+                self.m_swctcss = None
+    
             self.m_tx = False
 
             # maybe get rid of this
