@@ -32,6 +32,7 @@ typedef struct
     int phase;
     int tablesize;
     float freq;
+    float amplitude;
 }
 paTestData;
 
@@ -82,6 +83,8 @@ jack_shutdown (void *arg)
 static int srate(jack_nframes_t nframes, void *arg)
 {
 	paTestData *data = (paTestData*)arg;
+    float amp=data->amplitude;
+
 	printf("the sample rate is now %" PRIu32 "/sec\n", nframes);
 
     data->tablesize = (nframes*10)/(int)(data->freq*10);
@@ -89,7 +92,7 @@ static int srate(jack_nframes_t nframes, void *arg)
 
 	for(int i=0; i<data->tablesize; i++ )
     {
-        data->sine[i] = 0.5 * (float) sin( ((double)i/(double)data->tablesize) * M_PI * 2. );
+        data->sine[i] = amp * (float) sin( ((double)i/(double)data->tablesize) * M_PI * 2. );
     }
     data->phase = 0;
 
@@ -106,16 +109,19 @@ main (int argc, char *argv[])
 	jack_status_t status;
 	paTestData data;
 	int c;
-    float floatfreq=77.0;
+    float floatfreq=77.0, floatamp=0.2;
     char servername[256]={0};
     char clientname[256]={0};
 
-    while ((c = getopt (argc, argv, "c:f:s:")) != -1)
+    while ((c = getopt (argc, argv, "c:f:s:a:")) != -1)
     {
         switch (c)
         {
         case 'f':
             floatfreq = atof(optarg);
+            break;
+        case 'a':
+            floatamp = atof(optarg);
             break;
         case 's':
             strcpy(servername, optarg);
@@ -155,6 +161,7 @@ main (int argc, char *argv[])
 	}
 
     data.freq = floatfreq;
+    data.amplitude = floatamp;
 
 	/* open a client connection to the JACK server */
 
