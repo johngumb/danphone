@@ -64,3 +64,5 @@ if [ -z "$1" ]; then
    skate
    skate
 fi
+npa
+nr

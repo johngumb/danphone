@@ -1,6 +1,12 @@
 #!/bin/bash
 
 #ssh root@tang "sync; sync"
+echo "confirm y/n"
+read yn
+
+if [ "${yn}" != "y" ]; then
+exit 0
+fi
 
 if [ -z "$1" ]; then
 sh /home/john/sys x
