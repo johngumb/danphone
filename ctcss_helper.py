@@ -1,6 +1,6 @@
 import os
 
-def get_ctcss(tx_freq):
+def get_ctcss(tx_freq, transvert_10m):
         ctcss_in_hw = True
 
         if (tx_freq >= 145.6E6) and (tx_freq <= 145.8E6) and os.path.exists("/tmp/noshift"):
@@ -10,7 +10,11 @@ def get_ctcss(tx_freq):
         ctcss="/tmp/ctcss"
         if os.path.exists(ctcss):
             with open(ctcss) as f:
-                return (float(f.read()), False) ## maybe better in  hw
+                return (float(f.read()), False) ## maybe better in hw
+
+        # generally we don't want to run ctcss on 10m
+        if transvert_10m:
+                return (0, True)
 
         if tx_freq in [51.34E6, 51.35E6, 51.3E6, 50.52E6, 70.4375E6]: # GB3AM, GB3CT, GB3ZY, GB3WX, MB7FM
             result = 77.0

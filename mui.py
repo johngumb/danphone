@@ -247,6 +247,8 @@ def mute(audioserver, expect_success=True):
     global MUTED
     if not MUTED:
         cmd=string.join(["jack_disconnect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
+        if audioserver=="rudd":
+            cmd+=";jack_disconnect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
         jack_cmd(cmd, expect_success)
         MUTED = True
     return
@@ -255,6 +257,8 @@ def unmute(audioserver):
     global MUTED
     if MUTED:
         cmd=string.join(["jack_connect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
+        if audioserver=="rudd":
+            cmd+=";jack_connect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
         jack_cmd(cmd)
         MUTED = False
     return
@@ -955,8 +959,8 @@ class MyFrame(wx.Frame):
 
     def onButtonTx(self,event):
         if self.m_tx_rx.GetValue():
-            
-            (ctcss_freq, ctcss_in_hw) = ctcss_helper.get_ctcss(self.m_rig.m_tx_freq)
+
+            (ctcss_freq, ctcss_in_hw) = ctcss_helper.get_ctcss(self.m_rig.m_tx_freq, self.m_10m_transvert)
 
             if not ctcss_in_hw and ctcss_freq:
                 self.m_swctcss = subprocess.Popen(["/home/john/ctcss", "-f %s" % ctcss_freq ])
