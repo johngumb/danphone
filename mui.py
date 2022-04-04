@@ -247,8 +247,8 @@ def mute(audioserver, expect_success=True):
     global MUTED
     if not MUTED:
         cmd=string.join(["jack_disconnect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
-        if audioserver=="rudd":
-            cmd+=";jack_disconnect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
+
+        cmd+=";jack_disconnect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
         jack_cmd(cmd, expect_success)
         MUTED = True
     return
@@ -257,8 +257,8 @@ def unmute(audioserver):
     global MUTED
     if MUTED:
         cmd=string.join(["jack_connect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
-        if audioserver=="rudd":
-            cmd+=";jack_connect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
+
+        cmd+=";jack_connect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
         jack_cmd(cmd)
         MUTED = False
     return
@@ -298,14 +298,17 @@ class ScanTimer(wx.Timer):
                     i += 1
             self.m_freqs = freqs
         else:
-            self.m_freqs = (70.45, 70.425)
+            #
+            # bold assumption we're 4 metres
+            #
+            self.m_freqs = [70.45, 70.425, 70.475, 70.45, 70.4, 70.45, 70.375]
 
         return
 
     def Notify(self):
         wx.WakeUpIdle()
 
-        if os.path.exists("/tmp/scan") and not self.target.m_rig.squelch_open() and (sixmetres() or twometres()):
+        if os.path.exists("/tmp/scan") and not self.target.m_rig.squelch_open():
 
             if self.m_idx==len(self.m_freqs):
                 self.m_idx=0
