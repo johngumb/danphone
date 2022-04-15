@@ -51,6 +51,7 @@ DataEvent, EVT_DATA = wx.lib.newevent.NewEvent()
 ExtSocket = "/tmp/mui-ext.s."
 
 g_display_pin15 = True
+g_gstreamer = False
 
 def stop_extthread(Socket):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -248,7 +249,8 @@ def mute(audioserver, expect_success=True):
     if not MUTED:
         cmd=string.join(["jack_disconnect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
 
-        cmd+=";jack_disconnect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
+        if g_gstreamer:
+            cmd+=";jack_disconnect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
         jack_cmd(cmd, expect_success)
         MUTED = True
     return
@@ -258,7 +260,8 @@ def unmute(audioserver):
     if MUTED:
         cmd=string.join(["jack_connect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
 
-        cmd+=";jack_connect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
+        if g_gstreamer:
+            cmd+=";jack_connect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
         jack_cmd(cmd)
         MUTED = False
     return
@@ -1485,6 +1488,9 @@ def closedown():
     # cmdseq.sh has responsibility for deleting /tmp/danphone-cmdseq
     if os.path.exists(g_fifo):
         g_pipe.close()
+
+    if os.path.exists("/tmp/noshift"):
+        os.unlink("/tmp/noshift")
 
 class MyApp(wx.App):
     def OnInit(self):
