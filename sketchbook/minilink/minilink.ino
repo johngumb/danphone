@@ -30,7 +30,7 @@ void setup() {
   //digitalWrite(SRLATCH, LOW);
   //digitalWrite(SROE, LOW);
 
-  txlatchselect(0x01);
+  txlatchselect(~0x01);
 }
 
 void txlatchselect(unsigned char device)
@@ -67,7 +67,6 @@ void loop() {
   Serial.print("IN2 ");
   Serial.println(v2);
 
-  txlatchselect(0x01);
   Serial.println("LOW");
   txlatch(LOW);
   delay(5000);
