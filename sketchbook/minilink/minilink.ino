@@ -1,10 +1,10 @@
 #include <SPI.h>
 
-#define SRLATCH 8
-#define SROE 7
+#define SRLATCH 8 // orange
+#define SROE 7 // yellow 
 
-#define IN1 6
-#define IN2 5
+#define IN1 6 // green
+#define IN2 5 // blue
 #define DATA 11
 
 #define LED 13
@@ -31,6 +31,23 @@ void setup() {
   digitalWrite(SROE, LOW);
 }
 
+void txlatch(int level)
+{
+  Serial.print("tx latch ");
+  Serial.println(level);
+
+  if (level)
+    SPI.transfer(0x01);
+  else
+    SPI.transfer(0x00);
+
+  digitalWrite(SRLATCH, LOW);
+  delay(10);
+  digitalWrite(SRLATCH, HIGH);
+  delay(10);
+  digitalWrite(SRLATCH, LOW); 
+}
+
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
@@ -43,17 +60,13 @@ void loop() {
   Serial.print("IN2 ");
   Serial.println(v2);
   
-  Serial.println("writing...");
-  SPI.transfer(0x01);  
-
-  digitalWrite(SRLATCH, LOW);
-  delay(100);
-  digitalWrite(SRLATCH, HIGH);
-  delay(100);
-  digitalWrite(SRLATCH, LOW);
+  txlatch(LOW);
+  delay(5000);
+  txlatch(HIGH);
+  delay(5000);
   
 
   //digitalWrite(LED, digitalRead(IN2));
 
-  delay(5000);
+  //delay(5000);
 }
