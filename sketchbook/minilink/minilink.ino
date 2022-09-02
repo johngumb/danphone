@@ -27,8 +27,21 @@ void setup() {
   pinMode(DATA, OUTPUT);
   pinMode(LED, OUTPUT);
 
+  //digitalWrite(SRLATCH, LOW);
+  //digitalWrite(SROE, LOW);
+
+  txlatchselect(0x01);
+}
+
+void txlatchselect(unsigned char device)
+{
+  SPI.transfer(device);
+
   digitalWrite(SRLATCH, LOW);
-  digitalWrite(SROE, LOW);
+  delay(10);
+  digitalWrite(SRLATCH, HIGH);
+  delay(10);
+  digitalWrite(SRLATCH, LOW); 
 }
 
 void txlatch(int level)
@@ -37,15 +50,9 @@ void txlatch(int level)
   Serial.println(level);
 
   if (level)
-    SPI.transfer(0x01);
+      digitalWrite(SROE, HIGH);
   else
-    SPI.transfer(0x00);
-
-  digitalWrite(SRLATCH, LOW);
-  delay(10);
-  digitalWrite(SRLATCH, HIGH);
-  delay(10);
-  digitalWrite(SRLATCH, LOW); 
+      digitalWrite(SROE, LOW);
 }
 
 void loop() {
@@ -59,9 +66,13 @@ void loop() {
   Serial.println(v1);
   Serial.print("IN2 ");
   Serial.println(v2);
-  
+
+  txlatchselect(0x01);
+  Serial.println("LOW");
   txlatch(LOW);
   delay(5000);
+
+  Serial.println("HIGH");
   txlatch(HIGH);
   delay(5000);
   
