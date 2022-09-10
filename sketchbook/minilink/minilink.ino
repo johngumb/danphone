@@ -30,7 +30,7 @@ void setup() {
   digitalWrite(SRLATCH, LOW);
   digitalWrite(SROE, HIGH);
 
-  txlatchselect(~0x02);
+  txlatchselect(~0x01);
 }
 
 void txlatchselect(unsigned char device)
@@ -75,31 +75,19 @@ void loop() {
   Serial.print("IN2 ");
   Serial.println(v2);
 
-#if 1
+#if 0
   Serial.println("LOW");
   txlatch(LOW);
-  v2=digitalRead(IN2);
-  Serial.print("IN2 ");
-  Serial.println(v2);
-
-
-  delay(500);
+  delay(5000);
 
   Serial.println("HIGH");
   txlatch(HIGH);
-  v2=digitalRead(IN2);
-  Serial.print("IN2 ");
-  Serial.println(v2);
-
-
-  delay(500);
+  delay(5000);
 #endif
 
-#if 0
   tx_synth_write(0x8D, 0x80, 0x12);
   tx_synth_write(0x00, 0x01, 0xA0);
   tx_synth_write(0x05, 0xD9, 0x31);
-#endif
 
   //txlatch(LOW);
   
