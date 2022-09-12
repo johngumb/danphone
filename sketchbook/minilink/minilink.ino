@@ -10,6 +10,7 @@
 #define LED 13
 
 #define TXLATCH (~0x01)
+#define RXLATCH (~0x02)
 
 void setup()
 {
@@ -92,10 +93,10 @@ void loop() {
   synth_write(0x00, 0x01, 0xA0);
   synth_write(0x05, 0xD9, 0x31);
 
-  //txlatch(LOW);
-  
-
-  //digitalWrite(LED, digitalRead(IN2));
+  latchselect(RXLATCH);
+  synth_write(0x8D, 0x80, 0x12);
+  synth_write(0x00, 0x01, 0xA0);
+  synth_write(0x04, 0xA6, 0x01);
 
   delay(500);
 }
