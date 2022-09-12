@@ -11,6 +11,9 @@
 
 #define TXLATCH (~0x01)
 #define RXLATCH (~0x02)
+#define MAX_PA_LATCH (~0x03)
+
+
 
 void setup()
 {
@@ -74,18 +77,20 @@ void loop() {
 
   v1=digitalRead(IN1);
   v2=digitalRead(IN2);
+
+  // update messages as we update FPGA code
   Serial.print("Rx Lock AND Tx Lock ");
   Serial.println(v1);
-  Serial.print("IN2 ");
+  Serial.print("PA Alarm ");
   Serial.println(v2);
 
 #if 0
   Serial.println("LOW");
-  txlatch(LOW);
+  latch(LOW);
   delay(5000);
 
   Serial.println("HIGH");
-  txlatch(HIGH);
+  latch(HIGH);
   delay(5000);
 #endif
 
