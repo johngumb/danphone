@@ -63,6 +63,7 @@ void synth_write(unsigned char v1, unsigned char v2, unsigned char v3)
    SPI.transfer(v3);
    latch(HIGH);
 
+  // TODO is this delay really necessary?
   delay(10);
 }
 
@@ -73,7 +74,7 @@ void loop() {
 
   v1=digitalRead(IN1);
   v2=digitalRead(IN2);
-  Serial.print("IN1 ");
+  Serial.print("Rx Lock AND Tx Lock ");
   Serial.println(v1);
   Serial.print("IN2 ");
   Serial.println(v2);
