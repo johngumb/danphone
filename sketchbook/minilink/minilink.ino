@@ -9,7 +9,10 @@
 
 #define LED 13
 
-void setup() {
+#define TXLATCH (~0x01)
+
+void setup()
+{
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("Minilink");
@@ -29,11 +32,9 @@ void setup() {
 
   digitalWrite(SRLATCH, LOW);
   digitalWrite(SROE, HIGH);
-
-  txlatchselect(~0x01);
 }
 
-void txlatchselect(unsigned char device)
+void latchselect(unsigned char device)
 {
   SPI.transfer(device);
 
@@ -44,7 +45,7 @@ void txlatchselect(unsigned char device)
   digitalWrite(SRLATCH, LOW); 
 }
 
-void txlatch(int level)
+void latch(int level)
 {
   if (level)
       digitalWrite(SROE, HIGH);
@@ -54,11 +55,12 @@ void txlatch(int level)
 
 void tx_synth_write(unsigned char v1, unsigned char v2, unsigned char v3)
 {
-   txlatch(LOW);
+   latchselect(TXLATCH);
+   latch(LOW);
    SPI.transfer(v1);
    SPI.transfer(v2);
    SPI.transfer(v3);
-   txlatch(HIGH);
+   latch(HIGH);
 
   delay(10);
 }
