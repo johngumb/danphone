@@ -53,9 +53,9 @@ void latch(int level)
       digitalWrite(SROE, LOW);
 }
 
-void tx_synth_write(unsigned char v1, unsigned char v2, unsigned char v3)
+void synth_write(unsigned char v1, unsigned char v2, unsigned char v3)
 {
-   latchselect(TXLATCH);
+  // TODO ensure latch has been set to tx or rx synth?
    latch(LOW);
    SPI.transfer(v1);
    SPI.transfer(v2);
@@ -87,9 +87,10 @@ void loop() {
   delay(5000);
 #endif
 
-  tx_synth_write(0x8D, 0x80, 0x12);
-  tx_synth_write(0x00, 0x01, 0xA0);
-  tx_synth_write(0x05, 0xD9, 0x31);
+  latchselect(TXLATCH);
+  synth_write(0x8D, 0x80, 0x12);
+  synth_write(0x00, 0x01, 0xA0);
+  synth_write(0x05, 0xD9, 0x31);
 
   //txlatch(LOW);
   
