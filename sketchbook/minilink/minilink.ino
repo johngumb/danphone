@@ -9,11 +9,9 @@
 
 #define LED 13
 
-#define TXLATCH (~0x01)
-#define RXLATCH (~0x02)
-#define MAX_PA_LATCH (~0x03)
-
-
+#define TXLATCH (~(1<<0))
+#define RXLATCH (~(1<<1))
+#define MAX_PA_LATCH (~(1<<2))
 
 void setup()
 {
@@ -57,9 +55,8 @@ void latch(int level)
       digitalWrite(SROE, LOW);
 }
 
-void synth_write(unsigned char v1, unsigned char v2, unsigned char v3)
+void write3(unsigned char v1, unsigned char v2, unsigned char v3)
 {
-  // TODO ensure latch has been set to tx or rx synth?
    latch(LOW);
    SPI.transfer(v1);
    SPI.transfer(v2);
@@ -68,6 +65,24 @@ void synth_write(unsigned char v1, unsigned char v2, unsigned char v3)
 
   // TODO is this delay really necessary?
   delay(10);
+}
+
+void init_mesfet_dcc()
+{
+  Serial.println("init_mesfet_dcc");
+ 
+  // see MAX11014 p69
+  latchselect(MAX_PA_LATCH);
+  write3(0x64, 0x00, 0x00); // Removes the global power-down.
+
+  write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014.
+  write3(0x74, 0x00, 0x20); // Arms the full reset.
+  write3(0x74, 0x00, 0x40); // Completes the full reset.
+  write3(0x74, 0x00, 0x20); // Arms the full reset.
+  write3(0x74, 0x00, 0x40); // Completes the full reset.
+  write3(0xF6, 0x00, 0x00); // Read of FLAG register to verify reset good. Code should read 0xX042 if reset good.
+  write3(0x64, 0x00, 0x00); // Removes the global power-down.
+  write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014. 
 }
 
 void loop() {
@@ -95,14 +110,16 @@ void loop() {
 #endif
 
   latchselect(TXLATCH);
-  synth_write(0x8D, 0x80, 0x12);
-  synth_write(0x00, 0x01, 0xA0);
-  synth_write(0x05, 0xD9, 0x31);
+  write3(0x8D, 0x80, 0x12);
+  write3(0x00, 0x01, 0xA0);
+  write3(0x05, 0xD9, 0x31);
 
   latchselect(RXLATCH);
-  synth_write(0x8D, 0x80, 0x12);
-  synth_write(0x00, 0x01, 0xA0);
-  synth_write(0x04, 0xA6, 0x01);
+  write3(0x8D, 0x80, 0x12);
+  write3(0x00, 0x01, 0xA0);
+  write3(0x04, 0xA6, 0x01);
+
+  init_mesfet_dcc();
 
   delay(500);
 }
