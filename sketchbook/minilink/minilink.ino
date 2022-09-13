@@ -11,7 +11,7 @@
 
 #define TXLATCH (~(1<<0))
 #define RXLATCH (~(1<<1))
-#define MAX_PA_LATCH (~(1<<2))
+#define DCC_DRIVER_LATCH (~(1<<2))
 
 void setup()
 {
@@ -67,12 +67,12 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
   delay(10);
 }
 
-void init_mesfet_dcc()
+void init_mesfet_dcc(unsigned char dcc_latch)
 {
   Serial.println("init_mesfet_dcc");
  
   // see MAX11014 p69
-  latchselect(MAX_PA_LATCH);
+  latchselect(dcc_latch);
   write3(0x64, 0x00, 0x00); // Removes the global power-down.
 
   write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014.
@@ -119,7 +119,7 @@ void loop() {
   write3(0x00, 0x01, 0xA0);
   write3(0x04, 0xA6, 0x01);
 
-  init_mesfet_dcc();
+  init_mesfet_dcc(DCC_DRIVER_LATCH);
 
   delay(500);
 }
