@@ -69,6 +69,7 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
 
 void init_mesfet_dcc(unsigned char dcc_latch)
 {
+  unsigned char val;
   Serial.println("init_mesfet_dcc");
  
   // see MAX11014 p69
@@ -80,9 +81,11 @@ void init_mesfet_dcc(unsigned char dcc_latch)
   write3(0x74, 0x00, 0x40); // Completes the full reset.
   write3(0x74, 0x00, 0x20); // Arms the full reset.
   write3(0x74, 0x00, 0x40); // Completes the full reset.
-  write3(0xF6, 0x00, 0x00); // Read of FLAG register to verify reset good. Code should read 0xX042 if reset good.
+  SPI.transfer(0xF6); // Read of FLAG register to verify reset good. Code should read 0xX042 if reset good.
+  val=SPI.transfer(0);
+  Serial.println(val,HEX);
   write3(0x64, 0x00, 0x00); // Removes the global power-down.
-  write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014. 
+  write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014.
 }
 
 void loop() {
@@ -96,8 +99,8 @@ void loop() {
   // update messages as we update FPGA code
   Serial.print("Rx Lock AND Tx Lock ");
   Serial.println(v1);
-  Serial.print("PA Alarm ");
-  Serial.println(v2);
+//  Serial.print("PA Alarm ");
+//  Serial.println(v2);
 
 #if 0
   Serial.println("LOW");
