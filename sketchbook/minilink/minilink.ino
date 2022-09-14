@@ -4,14 +4,15 @@
 #define SROE 7 // yellow 
 
 #define IN1 6 // green
-#define IN2 5 // blue
 #define DATA 11
+#define DATA_IN 12
 
 #define LED 13
 
 #define TXLATCH (~(1<<0))
 #define RXLATCH (~(1<<1))
 #define DCC_DRIVER_LATCH (~(1<<2))
+#define DCC_PA_LATCH (~(1<<3))
 
 void setup()
 {
@@ -21,15 +22,15 @@ void setup()
 
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
-  SPI.setDataMode(SPI_MODE0);
+  SPI.setDataMode(SPI_MODE2); // ??? seems to work
   SPI.setClockDivider(SPI_CLOCK_DIV64);
 
   pinMode(SRLATCH, OUTPUT);
   pinMode(SROE, OUTPUT);
   pinMode(IN1, INPUT);
-  pinMode(IN2, INPUT);
+  //pinMode(IN2, INPUT);
 
-  pinMode(DATA, OUTPUT);
+  //pinMode(DATA, OUTPUT);
   pinMode(LED, OUTPUT);
 
   digitalWrite(SRLATCH, LOW);
@@ -64,37 +65,65 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
    latch(HIGH);
 
   // TODO is this delay really necessary?
-  delay(10);
+  //delay(10);
 }
 
+void readfifo()
+{
+  unsigned char val1, val2;
+  latch(LOW);
+  SPI.transfer(0x80);
+  val1=SPI.transfer(0);
+  val2=SPI.transfer(0);
+  latch(HIGH);
+  
+  Serial.println(val1,HEX);
+  Serial.println(val2,HEX);
+}
 void init_mesfet_dcc(unsigned char dcc_latch)
 {
-  unsigned char val;
+  unsigned char val1, val2;
   Serial.println("init_mesfet_dcc");
  
   // see MAX11014 p69
   latchselect(dcc_latch);
   write3(0x64, 0x00, 0x00); // Removes the global power-down.
-
   write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014.
   write3(0x74, 0x00, 0x20); // Arms the full reset.
   write3(0x74, 0x00, 0x40); // Completes the full reset.
   write3(0x74, 0x00, 0x20); // Arms the full reset.
   write3(0x74, 0x00, 0x40); // Completes the full reset.
+  
+  delay(1);
+
+  latch(LOW);
   SPI.transfer(0xF6); // Read of FLAG register to verify reset good. Code should read 0xX042 if reset good.
-  val=SPI.transfer(0);
-  Serial.println(val,HEX);
+  val1=SPI.transfer(0);
+  val2=SPI.transfer(0);
+  latch(HIGH);
+  
+  Serial.println(val1,HEX);
+  Serial.println(val2,HEX);
+
+  readfifo();
+  readfifo();
+
   write3(0x64, 0x00, 0x00); // Removes the global power-down.
   write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014.
+
+  // reverse engineered from Saleae
+  write3(0x38, 0x00, 0x40);
+  write3(0x3C, 0x00, 0x14);
+  write3(0x4E, 0x00, 0x00);
+  write3(0x4A, 0x00, 0x00);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
-  int v1, v2;
+  int v1;
 
   v1=digitalRead(IN1);
-  v2=digitalRead(IN2);
 
   // update messages as we update FPGA code
   Serial.print("Rx Lock AND Tx Lock ");
