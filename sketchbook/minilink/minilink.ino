@@ -4,6 +4,10 @@
 #define SROE 7 // yellow 
 
 #define IN1 6 // green
+#define VIOLET 5
+#define GREY 4
+#define WHITE 3
+
 #define DATA 11
 #define DATA_IN 12
 
@@ -32,6 +36,10 @@ void setup()
 
   //pinMode(DATA, OUTPUT);
   pinMode(LED, OUTPUT);
+
+  pinMode(VIOLET, OUTPUT);
+  pinMode(GREY, OUTPUT);
+  pinMode(WHITE, OUTPUT);
 
   digitalWrite(SRLATCH, LOW);
   digitalWrite(SROE, HIGH);
@@ -122,7 +130,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
   int v1;
-
+#if 1
   v1=digitalRead(IN1);
 
   // update messages as we update FPGA code
@@ -130,16 +138,6 @@ void loop() {
   Serial.println(v1);
 //  Serial.print("PA Alarm ");
 //  Serial.println(v2);
-
-#if 0
-  Serial.println("LOW");
-  latch(LOW);
-  delay(5000);
-
-  Serial.println("HIGH");
-  latch(HIGH);
-  delay(5000);
-#endif
 
   latchselect(TXLATCH);
   write3(0x8D, 0x80, 0x12);
@@ -152,6 +150,21 @@ void loop() {
   write3(0x04, 0xA6, 0x01);
 
   init_mesfet_dcc(DCC_DRIVER_LATCH);
+#endif
+
+  //latchselect(RXLATCH);
+  //latch(LOW);
+  //delay(10);
+  //latch(HIGH);
+  //delay(100);
+  //delay(500);
+
+#if 0
+#define TST WHITE
+  digitalWrite(TST, LOW);
+  delay(1000);
+  digitalWrite(TST, HIGH);
+#endif
 
   delay(500);
 }
