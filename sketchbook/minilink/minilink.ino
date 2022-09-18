@@ -41,19 +41,21 @@ void setup()
   pinMode(GREY, OUTPUT);
   pinMode(WHITE, OUTPUT);
 
-  digitalWrite(SRLATCH, LOW);
+  digitalWrite(SRLATCH, HIGH);
   digitalWrite(SROE, HIGH);
+
+  digitalWrite(VIOLET, HIGH); // goes through 4049 inverter directly onto top 595 RCLK
 }
 
 void latchselect(unsigned char device)
 {
   SPI.transfer(device);
 
+  digitalWrite(SRLATCH, HIGH);
+  delay(10);
   digitalWrite(SRLATCH, LOW);
   delay(10);
   digitalWrite(SRLATCH, HIGH);
-  delay(10);
-  digitalWrite(SRLATCH, LOW); 
 }
 
 void latch(int level)
