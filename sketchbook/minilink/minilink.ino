@@ -47,15 +47,15 @@ void setup()
   digitalWrite(VIOLET, HIGH); // goes through 4049 inverter directly onto top 595 RCLK
 }
 
-void latchselect(unsigned char device)
+void latchselect(unsigned char latchid, unsigned char device)
 {
   SPI.transfer(device);
 
-  digitalWrite(SRLATCH, HIGH);
+  digitalWrite(latchid, HIGH);
   delay(10);
-  digitalWrite(SRLATCH, LOW);
+  digitalWrite(latchid, LOW);
   delay(10);
-  digitalWrite(SRLATCH, HIGH);
+  digitalWrite(latchid, HIGH);
 }
 
 void latch(int level)
@@ -96,7 +96,7 @@ void init_mesfet_dcc(unsigned char dcc_latch)
   Serial.println("init_mesfet_dcc");
  
   // see MAX11014 p69
-  latchselect(dcc_latch);
+  latchselect(SRLATCH, dcc_latch);
   write3(0x64, 0x00, 0x00); // Removes the global power-down.
   write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014.
   write3(0x74, 0x00, 0x20); // Arms the full reset.
@@ -141,12 +141,12 @@ void loop() {
 //  Serial.print("PA Alarm ");
 //  Serial.println(v2);
 
-  latchselect(TXLATCH);
+  latchselect(SRLATCH, TXLATCH);
   write3(0x8D, 0x80, 0x12);
   write3(0x00, 0x01, 0xA0);
   write3(0x05, 0xD9, 0x31);
 
-  latchselect(RXLATCH);
+  latchselect(SRLATCH, RXLATCH);
   write3(0x8D, 0x80, 0x12);
   write3(0x00, 0x01, 0xA0);
   write3(0x04, 0xA6, 0x01);
@@ -154,7 +154,7 @@ void loop() {
   init_mesfet_dcc(DCC_DRIVER_LATCH);
 #endif
 
-  //latchselect(RXLATCH);
+  //latchselect(SRLATCH, RXLATCH);
   //latch(LOW);
   //delay(10);
   //latch(HIGH);
@@ -167,6 +167,8 @@ void loop() {
   delay(1000);
   digitalWrite(TST, HIGH);
 #endif
+
+  latchselect(VIOLET, RXLATCH);
 
   delay(500);
 }
