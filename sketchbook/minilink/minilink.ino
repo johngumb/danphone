@@ -58,21 +58,21 @@ void latchselect(unsigned char latchid, unsigned char device)
   digitalWrite(latchid, HIGH);
 }
 
-void latch(int level)
+void latch(unsigned char oe, int level)
 {
   if (level)
-      digitalWrite(SROE, HIGH);
+      digitalWrite(oe, HIGH);
   else
-      digitalWrite(SROE, LOW);
+      digitalWrite(oe, LOW);
 }
 
 void write3(unsigned char v1, unsigned char v2, unsigned char v3)
 {
-   latch(LOW);
+   latch(SROE, LOW);
    SPI.transfer(v1);
    SPI.transfer(v2);
    SPI.transfer(v3);
-   latch(HIGH);
+   latch(SROE, HIGH);
 
   // TODO is this delay really necessary?
   //delay(10);
@@ -81,11 +81,11 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
 void readfifo()
 {
   unsigned char val1, val2;
-  latch(LOW);
+  latch(SROE, LOW);
   SPI.transfer(0x80);
   val1=SPI.transfer(0);
   val2=SPI.transfer(0);
-  latch(HIGH);
+  latch(SROE, HIGH);
   
   Serial.println(val1,HEX);
   Serial.println(val2,HEX);
@@ -106,11 +106,11 @@ void init_mesfet_dcc(unsigned char dcc_latch)
   
   delay(1);
 
-  latch(LOW);
+  latch(SROE, LOW);
   SPI.transfer(0xF6); // Read of FLAG register to verify reset good. Code should read 0xX042 if reset good.
   val1=SPI.transfer(0);
   val2=SPI.transfer(0);
-  latch(HIGH);
+  latch(SROE, HIGH);
   
   Serial.println(val1,HEX);
   Serial.println(val2,HEX);
@@ -155,9 +155,9 @@ void loop() {
 #endif
 
   //latchselect(SRLATCH, RXLATCH);
-  //latch(LOW);
+  //latch(SROE, LOW);
   //delay(10);
-  //latch(HIGH);
+  //latch(SROE, HIGH);
   //delay(100);
   //delay(500);
 
