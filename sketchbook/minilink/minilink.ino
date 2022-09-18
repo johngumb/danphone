@@ -1,7 +1,8 @@
 #include <SPI.h>
 
 #define SRLATCH 8 // orange
-#define SROE 7 // yellow 
+#define SROE 7 // yellow
+#define TOPOE  // 
 
 #define IN1 6 // green
 #define VIOLET 5
@@ -32,7 +33,6 @@ void setup()
   pinMode(SRLATCH, OUTPUT);
   pinMode(SROE, OUTPUT);
   pinMode(IN1, INPUT);
-  //pinMode(IN2, INPUT);
 
   //pinMode(DATA, OUTPUT);
   pinMode(LED, OUTPUT);
@@ -68,11 +68,11 @@ void latch(unsigned char oe, int level)
 
 void write3(unsigned char v1, unsigned char v2, unsigned char v3)
 {
-   latch(SROE, LOW);
+   latch(SROE, HIGH);
    SPI.transfer(v1);
    SPI.transfer(v2);
    SPI.transfer(v3);
-   latch(SROE, HIGH);
+   latch(SROE, LOW);
 
   // TODO is this delay really necessary?
   //delay(10);
@@ -81,11 +81,11 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
 void readfifo()
 {
   unsigned char val1, val2;
-  latch(SROE, LOW);
+  latch(SROE, HIGH);
   SPI.transfer(0x80);
   val1=SPI.transfer(0);
   val2=SPI.transfer(0);
-  latch(SROE, HIGH);
+  latch(SROE, LOW);
   
   Serial.println(val1,HEX);
   Serial.println(val2,HEX);
@@ -106,11 +106,11 @@ void init_mesfet_dcc(unsigned char dcc_latch)
   
   delay(1);
 
-  latch(SROE, LOW);
+  latch(SROE, HIGH);
   SPI.transfer(0xF6); // Read of FLAG register to verify reset good. Code should read 0xX042 if reset good.
   val1=SPI.transfer(0);
   val2=SPI.transfer(0);
-  latch(SROE, HIGH);
+  latch(SROE, LOW);
   
   Serial.println(val1,HEX);
   Serial.println(val2,HEX);
@@ -155,9 +155,9 @@ void loop() {
 #endif
 
   //latchselect(SRLATCH, RXLATCH);
-  //latch(SROE, LOW);
-  //delay(10);
   //latch(SROE, HIGH);
+  //delay(10);
+  //latch(SROE, LOW);
   //delay(100);
   //delay(500);
 
