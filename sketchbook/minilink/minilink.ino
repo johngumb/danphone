@@ -177,7 +177,7 @@ void loop() {
 #endif
 
   //test
-  latchselect(TOPLATCH, 0x02);
+  latchselect(TOPLATCH, 0x00);
   latch(TOPOE, HIGH); // enable output
 
   delay(500);
