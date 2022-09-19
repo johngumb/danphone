@@ -1,13 +1,19 @@
 #include <SPI.h>
 
-#define SRLATCH 8 // orange
-#define SROE 7 // yellow
-#define TOPOE  // 
-
-#define IN1 6 // green
+#define ORANGE 8
+#define YELLOW 7
+#define GREEN 6
 #define VIOLET 5
 #define GREY 4
 #define WHITE 3
+
+#define IN1 GREEN
+
+#define SRLATCH ORANGE
+#define SROE YELLOW
+
+#define TOPLATCH VIOLET
+#define TOPOE GREY 
 
 #define DATA 11
 #define DATA_IN 12
@@ -30,21 +36,24 @@ void setup()
   SPI.setDataMode(SPI_MODE2); // ??? seems to work
   SPI.setClockDivider(SPI_CLOCK_DIV64);
 
+  /* mid right 74LS595 */
   pinMode(SRLATCH, OUTPUT);
   pinMode(SROE, OUTPUT);
+
+  /* top 74LS595 */
+  pinMode(TOPLATCH, OUTPUT);
+  pinMode(TOPOE, OUTPUT);
+
   pinMode(IN1, INPUT);
 
   //pinMode(DATA, OUTPUT);
-  pinMode(LED, OUTPUT);
-
-  pinMode(VIOLET, OUTPUT);
-  pinMode(GREY, OUTPUT);
-  pinMode(WHITE, OUTPUT);
+  //pinMode(LED, OUTPUT);
 
   digitalWrite(SRLATCH, HIGH);
-  digitalWrite(SROE, HIGH);
+  digitalWrite(TOPLATCH, HIGH); // goes through 4049 inverter directly onto top 74HC595 RCLK
 
-  digitalWrite(VIOLET, HIGH); // goes through 4049 inverter directly onto top 595 RCLK
+  digitalWrite(SROE, LOW);
+  digitalWrite(TOPOE, LOW); // goes through 4049 inverter directly onto top 74HC595 RCLK 
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -60,10 +69,7 @@ void latchselect(unsigned char latchid, unsigned char device)
 
 void latch(unsigned char oe, int level)
 {
-  if (level)
-      digitalWrite(oe, HIGH);
-  else
-      digitalWrite(oe, LOW);
+  digitalWrite(oe, level);
 }
 
 void write3(unsigned char v1, unsigned char v2, unsigned char v3)
@@ -168,7 +174,9 @@ void loop() {
   digitalWrite(TST, HIGH);
 #endif
 
-  latchselect(VIOLET, RXLATCH);
+  //test
+  latchselect(TOPLATCH, 0x02);
+  latch(TOPOE, HIGH); // enable output
 
   delay(500);
 }
