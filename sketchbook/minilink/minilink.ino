@@ -96,7 +96,7 @@ void readfifo()
   Serial.println(val1,HEX);
   Serial.println(val2,HEX);
 }
-void init_mesfet_dcc(unsigned char dcc_latch)
+void init_mesfet_dcc(unsigned char dcc_latch, unsigned char DAC2LSB)
 {
   unsigned char val1, val2;
   Serial.print("init_mesfet_dcc 0x0");
@@ -131,15 +131,15 @@ void init_mesfet_dcc(unsigned char dcc_latch)
   // reverse engineered from Saleae
   write3(0x38, 0x00, 0x40);
   write3(0x3C, 0x00, 0x14);
-  write3(0x4E, 0x00, 0x00);
-  write3(0x4A, 0x00, 0x00);
+
+  write3(0x4E, 0x00, DAC2LSB); // DAC2 // definitely has an effect.
+  write3(0x4A, 0x00, 0x80); // DAC1
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
   int v1;
-#if 1
   v1=digitalRead(IN1);
 
   // update messages as we update FPGA code
@@ -158,9 +158,8 @@ void loop() {
   write3(0x00, 0x01, 0xA0);
   write3(0x04, 0xA6, 0x01);
 
-  init_mesfet_dcc(DCC_DRIVER_LATCH);
-  init_mesfet_dcc(DCC_PA_LATCH);
-#endif
+  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x00);
+  init_mesfet_dcc(DCC_PA_LATCH, 0x00);
 
   //latchselect(SRLATCH, RXLATCH);
   //latch(SROE, HIGH);
