@@ -99,8 +99,9 @@ void readfifo()
 void init_mesfet_dcc(unsigned char dcc_latch)
 {
   unsigned char val1, val2;
-  Serial.println("init_mesfet_dcc");
- 
+  Serial.print("init_mesfet_dcc 0x0");
+  Serial.println((uint8_t)~dcc_latch, HEX);
+
   // see MAX11014 p69
   latchselect(SRLATCH, dcc_latch);
   write3(0x64, 0x00, 0x00); // Removes the global power-down.
@@ -158,6 +159,7 @@ void loop() {
   write3(0x04, 0xA6, 0x01);
 
   init_mesfet_dcc(DCC_DRIVER_LATCH);
+  init_mesfet_dcc(DCC_PA_LATCH);
 #endif
 
   //latchselect(SRLATCH, RXLATCH);
