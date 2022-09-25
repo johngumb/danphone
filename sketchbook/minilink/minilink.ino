@@ -87,8 +87,23 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
 void readfifo()
 {
   unsigned char val1, val2;
+  Serial.println("fifo");
   latch(SROE, HIGH);
   SPI.transfer(0x80);
+  val1=SPI.transfer(0);
+  val2=SPI.transfer(0);
+  latch(SROE, LOW);
+  
+  Serial.println(val1,HEX);
+  Serial.println(val2,HEX);
+}
+
+void readalmflag()
+{
+  unsigned char val1, val2;
+  Serial.println("almflag");
+  latch(SROE, HIGH);
+  SPI.transfer(0xF8);
   val1=SPI.transfer(0);
   val2=SPI.transfer(0);
   latch(SROE, LOW);
@@ -124,6 +139,7 @@ void init_mesfet_dcc(unsigned char dcc_latch, unsigned char DAC2LSB)
 
   readfifo();
   readfifo();
+  readalmflag();
 
   write3(0x64, 0x00, 0x00); // Removes the global power-down.
   write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014.
@@ -133,13 +149,14 @@ void init_mesfet_dcc(unsigned char dcc_latch, unsigned char DAC2LSB)
   write3(0x3C, 0x00, 0x14);
 
   write3(0x4E, 0x00, DAC2LSB); // DAC2 // definitely has an effect.
-  write3(0x4A, 0x00, 0x80); // DAC1
+  write3(0x4A, 0x00, 0x00); // DAC1
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
   int v1;
+#if 1
   v1=digitalRead(IN1);
 
   // update messages as we update FPGA code
@@ -174,10 +191,27 @@ void loop() {
   delay(1000);
   digitalWrite(TST, HIGH);
 #endif
+#endif
+
+  // ADF4360
+  latchselect(SRLATCH, 0xFF);
+  latch(SROE, HIGH);
+  write3(0x81, 0xF1, 0x28);
+  write3(0x00, 0x08, 0x21);
+  write3(0x07, 0x40, 0x22);
+  latch(SROE, LOW);
+
+  delay(500);
+  latch(SROE, HIGH);
+  write3(0x00, 0x00, 0x00);
+  write3(0x00, 0x00, 0x00);
+  write3(0x00, 0x00, 0x00);
+  latch(SROE, LOW);
 
   //test
   latchselect(TOPLATCH, 0x00);
   latch(TOPOE, HIGH); // enable output
+
 
   delay(500);
 }
