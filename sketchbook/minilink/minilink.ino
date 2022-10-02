@@ -6,6 +6,7 @@
 #define VIOLET 5
 #define GREY 4
 #define WHITE 3
+#define GREENWHITE 2
 
 #define IN1 GREEN
 
@@ -20,11 +21,16 @@
 
 #define LED 13
 
+#define ADF4360STAT GREENWHITE
+
 #define TXLATCH (~(1<<0))
 #define RXLATCH (~(1<<1))
 #define DCC_DRIVER_LATCH (~(1<<2))
 #define DCC_PA_LATCH (~(1<<3))
 
+void adf4360stat();
+void adf4360();
+void adfunlock();
 void setup()
 {
   // put your setup code here, to run once:
@@ -46,6 +52,8 @@ void setup()
 
   pinMode(IN1, INPUT);
 
+  pinMode(ADF4360STAT, INPUT);
+
   //pinMode(DATA, OUTPUT);
   //pinMode(LED, OUTPUT);
 
@@ -54,6 +62,8 @@ void setup()
 
   digitalWrite(SROE, LOW);
   digitalWrite(TOPOE, LOW); // goes through 4049 inverter directly onto top 74HC595 RCLK 
+
+  //adfunlock();
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -152,11 +162,43 @@ void init_mesfet_dcc(unsigned char dcc_latch, unsigned char DAC2LSB)
   write3(0x4A, 0x00, 0x00); // DAC1
 }
 
+void adf4360stat()
+{
+  int v1;
+
+  v1=digitalRead(ADF4360STAT);
+  Serial.print("ADF4360 Lock ");
+  Serial.println(v1);  
+}
+
+void adf4360()
+{
+  Serial.println("lock");
+  // ADF4360
+  latchselect(SRLATCH, 0xFF);
+  latch(SROE, HIGH);
+  delay(1);
+  write3(0x81, 0xF1, 0x28);
+  write3(0x00, 0x08, 0x21);
+  write3(0x07, 0x40, 0x22);
+  delay(1);
+  latch(SROE, LOW);
+}
+
+void adfunlock()
+{
+  Serial.println("unlock");
+  latch(SROE, HIGH);
+  write3(0x81, 0x00, 0x00);
+  write3(0x00, 0x00, 0x00);
+  write3(0x00, 0x00, 0x00);
+  latch(SROE, LOW);
+}
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
   int v1;
-#if 1
+
   v1=digitalRead(IN1);
 
   // update messages as we update FPGA code
@@ -165,6 +207,7 @@ void loop() {
 //  Serial.print("PA Alarm ");
 //  Serial.println(v2);
 
+#if 1
   latchselect(SRLATCH, TXLATCH);
   write3(0x8D, 0x80, 0x12);
   write3(0x00, 0x01, 0xA0);
@@ -193,25 +236,42 @@ void loop() {
 #endif
 #endif
 
-  // ADF4360
-  latchselect(SRLATCH, 0xFF);
-  latch(SROE, HIGH);
-  write3(0x81, 0xF1, 0x28);
-  write3(0x00, 0x08, 0x21);
-  write3(0x07, 0x40, 0x22);
-  latch(SROE, LOW);
+  adf4360();
 
-  delay(500);
+  delay(1000);
+  adf4360stat();
+
+  v1=digitalRead(IN1);
+
+  // update messages as we update FPGA code
+  Serial.print("Rx Lock AND Tx Lock ");
+  Serial.println(v1);
+
+#if 1
+  Serial.println("unlock");
   latch(SROE, HIGH);
-  write3(0x00, 0x00, 0x00);
+  write3(0x81, 0x00, 0x00);
   write3(0x00, 0x00, 0x00);
   write3(0x00, 0x00, 0x00);
   latch(SROE, LOW);
-
+  Serial.println("unlock");
+  latch(SROE, HIGH);
+  write3(0x81, 0x00, 0x00);
+  write3(0x00, 0x00, 0x00);
+  write3(0x00, 0x00, 0x00);
+  latch(SROE, LOW);
+   Serial.println("unlock");
+  latch(SROE, HIGH);
+  write3(0x81, 0x00, 0x00);
+  write3(0x00, 0x00, 0x00);
+  write3(0x00, 0x00, 0x00);
+  latch(SROE, LOW);
+#endif
   //test
   latchselect(TOPLATCH, 0x00);
   latch(TOPOE, HIGH); // enable output
 
 
-  delay(500);
+  delay(1000);
+  adf4360stat();
 }
