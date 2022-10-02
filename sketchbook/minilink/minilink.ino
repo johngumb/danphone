@@ -30,7 +30,7 @@
 
 void adf4360stat();
 void adf4360();
-void adfunlock();
+
 void setup()
 {
   // put your setup code here, to run once:
@@ -62,8 +62,6 @@ void setup()
 
   digitalWrite(SROE, LOW);
   digitalWrite(TOPOE, LOW); // goes through 4049 inverter directly onto top 74HC595 RCLK 
-
-  //adfunlock();
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -185,15 +183,6 @@ void adf4360()
   latch(SROE, LOW);
 }
 
-void adfunlock()
-{
-  Serial.println("unlock");
-  latch(SROE, HIGH);
-  write3(0x81, 0x00, 0x00);
-  write3(0x00, 0x00, 0x00);
-  write3(0x00, 0x00, 0x00);
-  latch(SROE, LOW);
-}
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
@@ -247,30 +236,9 @@ void loop() {
   Serial.print("Rx Lock AND Tx Lock ");
   Serial.println(v1);
 
-#if 1
-  Serial.println("unlock");
-  latch(SROE, HIGH);
-  write3(0x81, 0x00, 0x00);
-  write3(0x00, 0x00, 0x00);
-  write3(0x00, 0x00, 0x00);
-  latch(SROE, LOW);
-  Serial.println("unlock");
-  latch(SROE, HIGH);
-  write3(0x81, 0x00, 0x00);
-  write3(0x00, 0x00, 0x00);
-  write3(0x00, 0x00, 0x00);
-  latch(SROE, LOW);
-   Serial.println("unlock");
-  latch(SROE, HIGH);
-  write3(0x81, 0x00, 0x00);
-  write3(0x00, 0x00, 0x00);
-  write3(0x00, 0x00, 0x00);
-  latch(SROE, LOW);
-#endif
   //test
   latchselect(TOPLATCH, 0x00);
   latch(TOPOE, HIGH); // enable output
-
 
   delay(1000);
   adf4360stat();
