@@ -89,7 +89,7 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
    latch(SROE, LOW);
 
   // TODO is this delay really necessary?
-  //delay(10);
+  delay(10);
 }
 
 void readfifo()
@@ -177,8 +177,9 @@ void adf4360()
   latch(SROE, HIGH);
   delay(1);
   write3(0x81, 0xF1, 0x28);
-  write3(0x00, 0x08, 0x21);
-  write3(0x07, 0x40, 0x22);
+  write3(0x00, 0x08, 0x21); // stock R value
+  //write3(0x08, 0xCA, 0x02); // 1.8GHz 1048.4
+  write3(0x07, 0x40, 0x22); // stock A B N // 643.483
   delay(1);
   latch(SROE, LOW);
 }
@@ -196,16 +197,26 @@ void loop() {
 //  Serial.print("PA Alarm ");
 //  Serial.println(v2);
 
-#if 1
+
   latchselect(SRLATCH, TXLATCH);
   write3(0x8D, 0x80, 0x12);
   write3(0x00, 0x01, 0xA0);
-  write3(0x05, 0xD9, 0x31);
+  write3(0x05, 0xD9, 0x31); // 5.9895e9Hz
+  //write3(0x05, 0xDC, 0x01); // 6.0GHz
 
+
+  // transmit on 10.0GHz
+  
+
+  // Rx IF = 140MHz. Possible range 115 - 170 MHz; 949 MHz to 1004MHz
   latchselect(SRLATCH, RXLATCH);
   write3(0x8D, 0x80, 0x12);
   write3(0x00, 0x01, 0xA0);
-  write3(0x04, 0xA6, 0x01);
+  write3(0x04, 0xA6, 0x01); // 4.76e9Hz
+  //write3(0x04, 0x8B, 0x21); // 4.653GHz *2 = 9.306GHz -0.14 = 9.166GHz + 0.834 = 10.0GHz
+
+#if 1
+  // IF = 140MHz.
 
   init_mesfet_dcc(DCC_DRIVER_LATCH, 0x00);
   init_mesfet_dcc(DCC_PA_LATCH, 0x00);
@@ -237,9 +248,9 @@ void loop() {
   Serial.println(v1);
 
   //test
-  latchselect(TOPLATCH, 0x00);
-  latch(TOPOE, HIGH); // enable output
+  //latchselect(TOPLATCH, 0x00);
+  //latch(TOPOE, HIGH); // enable output
 
   delay(1000);
-  adf4360stat();
+  //adf4360stat();
 }
