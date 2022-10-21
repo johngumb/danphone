@@ -27,9 +27,12 @@
 #define RXLATCH (~(1<<1))
 #define DCC_DRIVER_LATCH (~(1<<2))
 #define DCC_PA_LATCH (~(1<<3))
+#define AD5318_DAC_LATCH (~(1<<5))
 
 void adf4360stat();
 void adf4360();
+void ad5318_dac_init();
+void ad5318_dac_write(uint8_t dacno, uint16_t val);
 
 void setup()
 {
@@ -61,7 +64,9 @@ void setup()
   digitalWrite(TOPLATCH, HIGH); // goes through 4049 inverter directly onto top 74HC595 RCLK
 
   digitalWrite(SROE, LOW);
-  digitalWrite(TOPOE, LOW); // goes through 4049 inverter directly onto top 74HC595 RCLK 
+  digitalWrite(TOPOE, LOW); // goes through 4049 inverter directly onto top 74HC595 RCLK
+
+  ad5318_dac_init();
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -171,15 +176,39 @@ void adf4360stat()
 
 void adf4360()
 {
-  Serial.println("lock");
+  Serial.println("adf4360");
   // ADF4360
   latchselect(SRLATCH, 0xFF);
   latch(SROE, HIGH);
   delay(1);
   write3(0x81, 0xF1, 0x28);
   write3(0x00, 0x08, 0x21); // stock R value
-  //write3(0x08, 0xCA, 0x02); // 1.8GHz 1048.4
-  write3(0x07, 0x40, 0x22); // stock A B N // 643.483
+  write3(0x08, 0xCA, 0x02); // 1.8GHz 1048.4
+  //write3(0x07, 0x40, 0x22); // stock A B N // 643.483
+  delay(1);
+  latch(SROE, LOW);
+}
+
+void ad5318_dac_init(void)
+{
+  latchselect(SRLATCH, AD5318_DAC_LATCH);
+  latch(SROE, HIGH);
+  delay(1);
+  SPI.transfer(0x80);
+  SPI.transfer(0x00);
+  delay(1);
+  latch(SROE, LOW);
+}
+
+void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
+{
+  uint16_t dacword=0;
+  dacword = (dacno << 11) + (dacval << 2);
+  latchselect(SRLATCH, AD5318_DAC_LATCH);
+  latch(SROE, HIGH);
+  delay(1);
+  SPI.transfer16(dacword);
+  //SPI.transfer(0x00);
   delay(1);
   latch(SROE, LOW);
 }
@@ -187,8 +216,10 @@ void adf4360()
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
-  int v1;
+  int v1,j;
 
+  latch(TOPOE, LOW); // disable output
+ 
   v1=digitalRead(IN1);
 
   // update messages as we update FPGA code
@@ -201,25 +232,29 @@ void loop() {
   latchselect(SRLATCH, TXLATCH);
   write3(0x8D, 0x80, 0x12);
   write3(0x00, 0x01, 0xA0);
-  write3(0x05, 0xD9, 0x31); // 5.9895e9Hz
-  //write3(0x05, 0xDC, 0x01); // 6.0GHz
+  //write3(0x05, 0xD9, 0x31); // 5.9895e9Hz
+  write3(0x05, 0xDC, 0x01); // 6.0GHz
 
 
   // transmit on 10.0GHz
   
 
+#if 1
   // Rx IF = 140MHz. Possible range 115 - 170 MHz; 949 MHz to 1004MHz
   latchselect(SRLATCH, RXLATCH);
   write3(0x8D, 0x80, 0x12);
   write3(0x00, 0x01, 0xA0);
-  write3(0x04, 0xA6, 0x01); // 4.76e9Hz
+  //write3(0x04, 0xA6, 0x01); // 4.76e9Hz
   //write3(0x04, 0x8B, 0x21); // 4.653GHz *2 = 9.306GHz -0.14 = 9.166GHz + 0.834 = 10.0GHz
+ write3(0x04, 0x68, 0x11); // 4.5125e9Hz
+ //write3(0x05, 0xD9, 0x31); // won't lock
+#endif
 
 #if 1
   // IF = 140MHz.
 
-  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x00);
-  init_mesfet_dcc(DCC_PA_LATCH, 0x00);
+  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x10);
+  init_mesfet_dcc(DCC_PA_LATCH, 0x60);
 
   //latchselect(SRLATCH, RXLATCH);
   //latch(SROE, HIGH);
@@ -248,9 +283,22 @@ void loop() {
   Serial.println(v1);
 
   //test
-  //latchselect(TOPLATCH, 0x00);
-  //latch(TOPOE, HIGH); // enable output
 
+#if 0
+  latch(TOPOE, HIGH); // enable output
+  for (j=0;j<255;j++)
+  {
+    Serial.println(j);
+    latchselect(TOPLATCH, j);
+    delay(100);
+  }
+#endif
+
+  ad5318_dac_write(3,30);
+
+  delay(500);
+  ad5318_dac_write(3,0);
+  
   delay(1000);
   //adf4360stat();
 }
