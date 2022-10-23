@@ -232,8 +232,7 @@ void loop() {
   //write3(0x05, 0xD9, 0x31); // 5.9895e9Hz
   write3(0x05, 0xDC, 0x01); // 6,0GHz
 
-
-  // transmit on 10.2GHz
+  // transmit on 10.2GHz (12000-1800)
   // appears at 447.5MHz on spec an
 
   // Rx IF = 140MHz. Possible range 115 - 170 MHz; 949 MHz to 1004MHz
