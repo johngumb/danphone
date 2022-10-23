@@ -245,7 +245,6 @@ void loop() {
  write3(0x04, 0x81, 0x21); //4613MHz receives 10.2GHz at 140MHz down
  //write3(0x04, 0x68, 0x21); //4.609GHz
  //write3(0x05, 0xD9, 0x31); // won't lock
-#endif
 
 #if 1
   // IF = 140MHz.
