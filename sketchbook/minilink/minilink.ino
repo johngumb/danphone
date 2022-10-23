@@ -38,7 +38,7 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  Serial.println("Minilink");
+  Serial.println("Minilink jag");
 
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
@@ -282,17 +282,17 @@ void loop() {
 
 #define DACDEF 100
 #if 0
-  ad5318_dac_write(2,DACDEF);
+  //ad5318_dac_write(2,DACDEF);
 
-  ad5318_dac_write(3,DACDEF);
+  //ad5318_dac_write(3,DACDEF);
 
-  ad5318_dac_write(4,DACDEF);
+  //ad5318_dac_write(4,DACDEF);
 
-  ad5318_dac_write(5,DACDEF);
+  //ad5318_dac_write(5,DACDEF);
 
-  ad5318_dac_write(6,DACDEF);
+  //ad5318_dac_write(6,DACDEF);
 
-  ad5318_dac_write(7,DACDEF);
+  //ad5318_dac_write(7,DACDEF);
 #endif
 
   adf4360();
@@ -307,11 +307,13 @@ void loop() {
 
 #define DACDEF2 1
 #if 0
-  ad5318_dac_write(3,DACDEF2);
+  //ad5318_dac_write(2,DACDEF2);
 
-  ad5318_dac_write(4,DACDEF2);
+  //ad5318_dac_write(3,DACDEF2);
 
-  ad5318_dac_write(5,DACDEF2);
+  //ad5318_dac_write(4,DACDEF2);
+
+  //ad5318_dac_write(5,DACDEF2);
 
   ad5318_dac_write(6,DACDEF2);
 
