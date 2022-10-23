@@ -42,7 +42,7 @@ void setup()
 
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
-  SPI.setDataMode(SPI_MODE2); // ??? seems to work
+  SPI.setDataMode(SPI_MODE2); // ??? MODE2 seems to work
   SPI.setClockDivider(SPI_CLOCK_DIV64);
 
   /* mid right 74LS595 */
@@ -74,9 +74,9 @@ void latchselect(unsigned char latchid, unsigned char device)
   SPI.transfer(device);
 
   digitalWrite(latchid, HIGH);
-  delay(10);
+  delay(1);
   digitalWrite(latchid, LOW);
-  delay(10);
+  delay(1);
   digitalWrite(latchid, HIGH);
 }
 
@@ -92,9 +92,6 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
    SPI.transfer(v2);
    SPI.transfer(v3);
    latch(SROE, LOW);
-
-  // TODO is this delay really necessary?
-  delay(10);
 }
 
 void readfifo()
@@ -161,8 +158,8 @@ void init_mesfet_dcc(unsigned char dcc_latch, unsigned char DAC2LSB)
   write3(0x38, 0x00, 0x40);
   write3(0x3C, 0x00, 0x14);
 
-  write3(0x4E, 0x00, DAC2LSB); // DAC2 // definitely has an effect.
-  write3(0x4A, 0x00, 0x00); // DAC1
+  write3(0x4E, 0x03, DAC2LSB); // DAC2 // definitely has an effect.
+  write3(0x4A, 0x00, DAC2LSB); // DAC1
 }
 
 void adf4360stat()
@@ -180,37 +177,36 @@ void adf4360()
   // ADF4360
   latchselect(SRLATCH, 0xFF);
   latch(SROE, HIGH);
-  delay(1);
   write3(0x81, 0xF1, 0x28);
   write3(0x00, 0x08, 0x21); // stock R value
   write3(0x08, 0xCA, 0x02); // 1.8GHz 1048.4
   //write3(0x07, 0x40, 0x22); // stock A B N // 643.483
-  delay(1);
   latch(SROE, LOW);
 }
 
 void ad5318_dac_init(void)
 {
   latchselect(SRLATCH, AD5318_DAC_LATCH);
+  SPI.setDataMode(SPI_MODE3);
   latch(SROE, HIGH);
-  delay(1);
-  SPI.transfer(0x80);
-  SPI.transfer(0x00);
-  delay(1);
+  SPI.transfer16(0xF000);
   latch(SROE, LOW);
+  SPI.setDataMode(SPI_MODE2);
 }
 
 void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
 {
   uint16_t dacword=0;
-  dacword = (dacno << 11) + (dacval << 2);
+  dacword = (dacno << 12) + (dacval << 2);
+  Serial.println(dacword,HEX);
   latchselect(SRLATCH, AD5318_DAC_LATCH);
+
+  SPI.setDataMode(SPI_MODE3);
   latch(SROE, HIGH);
-  delay(1);
   SPI.transfer16(dacword);
-  //SPI.transfer(0x00);
-  delay(1);
   latch(SROE, LOW);
+  
+  SPI.setDataMode(SPI_MODE2); 
 }
 
 void loop() {
@@ -233,10 +229,10 @@ void loop() {
   write3(0x8D, 0x80, 0x12);
   write3(0x00, 0x01, 0xA0);
   //write3(0x05, 0xD9, 0x31); // 5.9895e9Hz
-  write3(0x05, 0xDC, 0x01); // 6.0GHz
+  write3(0x05, 0xDC, 0x01); // 6,0GHz
 
 
-  // transmit on 10.0GHz
+  // transmit on 10.2GHz
   
 
 #if 1
@@ -245,16 +241,19 @@ void loop() {
   write3(0x8D, 0x80, 0x12);
   write3(0x00, 0x01, 0xA0);
   //write3(0x04, 0xA6, 0x01); // 4.76e9Hz
-  //write3(0x04, 0x8B, 0x21); // 4.653GHz *2 = 9.306GHz -0.14 = 9.166GHz + 0.834 = 10.0GHz
- write3(0x04, 0x68, 0x11); // 4.5125e9Hz
+ //write3(0x04, 0x8B, 0x21); // 4.653GHz *2 = 9.306GHz -0.14 = 9.166GHz + 0.834 = 10.0GHz
+ write3(0x04, 0x71, 0x01);
+ delay(2000);
+ write3(0x04, 0x81, 0x21); //4613MHz receives 10.2GHz
+ //write3(0x04, 0x68, 0x21); //4.609GHz
  //write3(0x05, 0xD9, 0x31); // won't lock
 #endif
 
 #if 1
   // IF = 140MHz.
 
-  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x10);
-  init_mesfet_dcc(DCC_PA_LATCH, 0x60);
+  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x90);
+  init_mesfet_dcc(DCC_PA_LATCH, 0x90);
 
   //latchselect(SRLATCH, RXLATCH);
   //latch(SROE, HIGH);
@@ -269,6 +268,60 @@ void loop() {
   delay(1000);
   digitalWrite(TST, HIGH);
 #endif
+#endif
+
+  // 30 -0.1
+  // 60 -0.2
+  // 90 -0.4
+  // 120 -0.55
+  // 300 -1.42
+  
+#if 1
+// 300 is good
+  ad5318_dac_write(0,300); 
+
+  // ch 0 inner atten
+  // ch1 1 outer atten
+  ad5318_dac_write(1,300);
+
+#define DACDEF 100
+#if 0
+  ad5318_dac_write(2,DACDEF);
+
+  ad5318_dac_write(3,DACDEF);
+
+  ad5318_dac_write(4,DACDEF);
+
+  ad5318_dac_write(5,DACDEF);
+
+  ad5318_dac_write(6,DACDEF);
+
+  ad5318_dac_write(7,DACDEF);
+#endif
+
+  adf4360();
+
+  delay(2000);
+
+  ad5318_dac_write(0,100); 
+
+  // ch 0 inner atten
+  // ch1 1 outer atten
+  ad5318_dac_write(1,100);
+
+#define DACDEF2 1
+#if 0
+  ad5318_dac_write(3,DACDEF2);
+
+  ad5318_dac_write(4,DACDEF2);
+
+  ad5318_dac_write(5,DACDEF2);
+
+  ad5318_dac_write(6,DACDEF2);
+
+  ad5318_dac_write(7,DACDEF2);
+#endif
+  
 #endif
 
   adf4360();
@@ -294,11 +347,7 @@ void loop() {
   }
 #endif
 
-  ad5318_dac_write(3,30);
-
-  delay(500);
-  ad5318_dac_write(3,0);
-  
-  delay(1000);
+ 
+  delay(3000);
   //adf4360stat();
 }
