@@ -180,7 +180,8 @@ void adf4360()
   write3(0x81, 0xF1, 0x28);
   write3(0x00, 0x08, 0x21); // stock R value
   write3(0x08, 0xCA, 0x02); // 1.8GHz 1048.4
-  //write3(0x07, 0x40, 0x22); // stock A B N // 643.483
+  //write3(0x07, 0x40, 0x22); // stock A B N // 643.483, 1485MHz
+
   latch(SROE, LOW);
 }
 
@@ -233,18 +234,15 @@ void loop() {
 
 
   // transmit on 10.2GHz
-  
+  // appears at 447.5MHz on spec an
 
-#if 1
   // Rx IF = 140MHz. Possible range 115 - 170 MHz; 949 MHz to 1004MHz
   latchselect(SRLATCH, RXLATCH);
   write3(0x8D, 0x80, 0x12);
   write3(0x00, 0x01, 0xA0);
   //write3(0x04, 0xA6, 0x01); // 4.76e9Hz
- //write3(0x04, 0x8B, 0x21); // 4.653GHz *2 = 9.306GHz -0.14 = 9.166GHz + 0.834 = 10.0GHz
- write3(0x04, 0x71, 0x01);
- delay(2000);
- write3(0x04, 0x81, 0x21); //4613MHz receives 10.2GHz
+
+ write3(0x04, 0x81, 0x21); //4613MHz receives 10.2GHz at 140MHz down
  //write3(0x04, 0x68, 0x21); //4.609GHz
  //write3(0x05, 0xD9, 0x31); // won't lock
 #endif
@@ -277,7 +275,7 @@ void loop() {
   // 300 -1.42
   
 #if 1
-// 300 is good
+// 300 is good - 10dB between 300 and 100.
   ad5318_dac_write(0,300); 
 
   // ch 0 inner atten
