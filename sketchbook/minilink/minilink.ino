@@ -96,14 +96,72 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
 
 void readfifo()
 {
-  unsigned char val1, val2;
+  unsigned char val1, val2, chan;
+  int result,offset=0;
   Serial.println("fifo");
   latch(SROE, HIGH);
   SPI.transfer(0x80);
   val1=SPI.transfer(0);
   val2=SPI.transfer(0);
   latch(SROE, LOW);
-  
+
+  chan=(val1&0xF0)>>4;
+
+  switch(chan)
+  {
+    case 0:
+      Serial.print("Internal temp ");
+      offset=-273;
+      break;
+    case 1:
+      Serial.print("CH1 ext temp ");
+      offset=-273;
+      break;
+    case 2:
+      Serial.print("CH1 sense voltage ");
+      break;
+    case 3:
+      Serial.print("CH1 DAC input voltage ");
+      break;
+    case 4:
+      Serial.print("CH1 gate voltage ");
+      break;
+    case 5:
+      Serial.print("ADCIN1 voltage ");
+      break;
+    case 6:
+      Serial.print("CH2 ext temp ");
+      offset=-273;
+      break;
+    case 7:
+      Serial.print("CH2 sense voltage ");
+      break;
+    case 8:
+      Serial.print("CH2 DAC input voltage ");
+      break;
+    case 9:
+      Serial.print("CH2 gate voltage ");
+      break;
+    case 10:
+      Serial.print("ADCIN2 voltage ");
+      break;
+    case 11:
+      Serial.print("Reserved ");
+      break;
+    case 12:
+      Serial.print("LUT Data ");
+      break;
+    case 14:
+      Serial.print("Corrupt ");
+      break;
+    case 15:
+      Serial.print("Empty FIFO ");
+      break;
+  }
+
+  result=((val1&0x0F)<<8)+val2;
+  Serial.println(result+offset);
+
   Serial.println(val1,HEX);
   Serial.println(val2,HEX);
 }
@@ -147,8 +205,7 @@ void init_mesfet_dcc(unsigned char dcc_latch, unsigned char DAC2LSB)
   Serial.println(val1,HEX);
   Serial.println(val2,HEX);
 
-  readfifo();
-  readfifo();
+
   readalmflag();
 
   write3(0x64, 0x00, 0x00); // Removes the global power-down.
@@ -160,6 +217,16 @@ void init_mesfet_dcc(unsigned char dcc_latch, unsigned char DAC2LSB)
 
   write3(0x4E, 0x03, DAC2LSB); // DAC2 // definitely has an effect.
   write3(0x4A, 0x00, DAC2LSB); // DAC1
+
+#define ADCCON 0x62
+  write3(ADCCON, 0xFF, 0xFF);
+
+  delay(1000);
+  readfifo();
+  delay(1000);
+  readfifo();
+  delay(1000);
+  readfifo();
 }
 
 void adf4360stat()
@@ -281,7 +348,7 @@ void loop() {
   ad5318_dac_write(1,300);
 
 #define DACDEF 100
-#if 0
+#if 1
   //ad5318_dac_write(2,DACDEF);
 
   //ad5318_dac_write(3,DACDEF);
@@ -306,7 +373,7 @@ void loop() {
   ad5318_dac_write(1,100);
 
 #define DACDEF2 1
-#if 0
+#if 1
   //ad5318_dac_write(2,DACDEF2);
 
   //ad5318_dac_write(3,DACDEF2);
@@ -315,9 +382,9 @@ void loop() {
 
   //ad5318_dac_write(5,DACDEF2);
 
-  ad5318_dac_write(6,DACDEF2);
+  //ad5318_dac_write(6,DACDEF2);
 
-  ad5318_dac_write(7,DACDEF2);
+  //ad5318_dac_write(7,DACDEF2);
 #endif
   
 #endif
