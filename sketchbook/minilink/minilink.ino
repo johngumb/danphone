@@ -257,11 +257,25 @@ void adf4360()
 
 void ad5318_dac_init(void)
 {
+  uint16_t ldac_mode=0;
   latchselect(SRLATCH, AD5318_DAC_LATCH);
   SPI.setDataMode(SPI_MODE3);
+
+  // reset
   latch(SROE, HIGH);
   SPI.transfer16(0xF000);
   latch(SROE, LOW);
+
+  // LDAC mode: continuous update ad5308_5318_5328.pdf Table 8.
+  ldac_mode = (0x05 << 13) + (0x3FF << 2);
+
+  Serial.print("LDAC mode ");
+  Serial.println(ldac_mode, HEX);
+
+  latch(SROE, HIGH);
+  SPI.transfer16(ldac_mode);
+  latch(SROE, LOW);
+
   SPI.setDataMode(SPI_MODE2);
 }
 
