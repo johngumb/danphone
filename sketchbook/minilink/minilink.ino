@@ -74,9 +74,7 @@ void latchselect(unsigned char latchid, unsigned char device)
   SPI.transfer(device);
 
   digitalWrite(latchid, HIGH);
-  delay(1);
   digitalWrite(latchid, LOW);
-  delay(1);
   digitalWrite(latchid, HIGH);
 }
 
@@ -242,7 +240,10 @@ void adf4360()
 {
   Serial.println("adf4360");
   // ADF4360
-  latchselect(SRLATCH, 0xFF);
+  latchselect(SRLATCH, 0xFF); // when SROE goes high below, ensure no latches are visible
+
+  // HACK re-use SROE as latch for ADF4360. Avoid unwanted transitions by teaming this signal with SRLATCH
+  digitalWrite(SRLATCH, LOW);  // SRLATCH must be high in FPGA for SROE to act as adf4360 LE signal
   latch(SROE, HIGH);
   write3(0x81, 0xF1, 0x28);
   write3(0x00, 0x08, 0x21); // stock R value
@@ -250,6 +251,8 @@ void adf4360()
   //write3(0x07, 0x40, 0x22); // stock A B N // 643.483, 1485MHz
 
   latch(SROE, LOW);
+
+  latchselect(SRLATCH, 0xFF);
 }
 
 void ad5318_dac_init(void)
@@ -361,8 +364,6 @@ void loop() {
 
   //ad5318_dac_write(7,DACDEF);
 #endif
-
-  adf4360();
 
   delay(2000);
 
