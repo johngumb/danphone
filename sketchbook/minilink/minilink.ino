@@ -28,9 +28,11 @@
 #define DCC_DRIVER_LATCH (~(1<<2))
 #define DCC_PA_LATCH (~(1<<3))
 #define AD5318_DAC_LATCH (~(1<<5))
+#define MAX147LATCH (~(1<<7))
 
 void adf4360stat();
 void adf4360();
+void max147_read();
 void ad5318_dac_init();
 void ad5318_dac_write(uint8_t dacno, uint16_t val);
 
@@ -294,6 +296,30 @@ void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
   SPI.setDataMode(SPI_MODE2); 
 }
 
+void max147_read(void)
+{
+  uint8_t tb1=0;
+  uint16_t result;
+  uint8_t chan;
+
+  latchselect(SRLATCH, MAX147LATCH);
+
+  for (chan=0; (chan<8); chan++)
+  {
+  tb1 = 0x80 + (chan << 4) + 0x0F; 
+  latch(SROE, HIGH);
+  SPI.transfer(tb1);
+  result=SPI.transfer16(0);
+  result>>=3;
+
+  latch(SROE, LOW);
+
+  Serial.print("max147 chan ");
+  Serial.print(chan);
+  Serial.print(" ");
+  Serial.println(result);
+  }
+}
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
@@ -364,6 +390,7 @@ void loop() {
   // ch1 1 outer atten
   ad5318_dac_write(1,300);
 
+  max147_read();
 #define DACDEF 100
 #if 1
   //ad5318_dac_write(2,DACDEF);
@@ -386,6 +413,8 @@ void loop() {
   // ch 0 inner atten
   // ch1 1 outer atten
   ad5318_dac_write(1,100);
+
+  max147_read();
 
 #define DACDEF2 1
 #if 1
@@ -426,7 +455,6 @@ void loop() {
     delay(100);
   }
 #endif
-
  
   delay(3000);
   //adf4360stat();
