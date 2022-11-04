@@ -30,6 +30,16 @@
 #define AD5318_DAC_LATCH (~(1<<5))
 #define MAX147LATCH (~(1<<7))
 
+/* MAX11014 registers */
+#define HCFG 0x38
+#define ALMHCFG 0x3C
+#define THRUDAC1 0x4A
+#define THRUDAC2 0x4E
+#define ADCCON 0x62
+#define SHUT 0x64
+#define SCLR 0x74
+#define FLAG 0xF6
+
 void adf4360stat();
 void adf4360();
 void max147_read();
@@ -69,6 +79,9 @@ void setup()
   digitalWrite(TOPOE, LOW); // goes through 4049 inverter directly onto top 74HC595 RCLK
 
   ad5318_dac_init();
+
+  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x90);
+  init_mesfet_dcc(DCC_PA_LATCH, 0x90);
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -94,16 +107,31 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
    latch(SROE, LOW);
 }
 
-void readfifo()
+char *dcc_latch_tostr(unsigned char dcc_latch)
+{
+  static char driver[]="driver ";
+  static char pa[]="pa ";
+  static char unknown[]="unknown ";
+
+  if  (dcc_latch == (DCC_DRIVER_LATCH&0xFF))
+    return driver;
+
+  if  (dcc_latch == (DCC_PA_LATCH&0xFF))
+    return pa;
+
+  return unknown;
+}
+int readfifo(unsigned char dcc_latch)
 {
   unsigned char val1, val2, chan;
   int result,offset=0;
-  Serial.println("fifo");
   latch(SROE, HIGH);
   SPI.transfer(0x80);
   val1=SPI.transfer(0);
   val2=SPI.transfer(0);
   latch(SROE, LOW);
+
+  Serial.print(dcc_latch_tostr(dcc_latch));
 
   chan=(val1&0xF0)>>4;
 
@@ -162,71 +190,82 @@ void readfifo()
   result=((val1&0x0F)<<8)+val2;
   Serial.println(result+offset);
 
-  Serial.println(val1,HEX);
-  Serial.println(val2,HEX);
+  return chan;
+}
+
+void decode_almflag(uint16_t almflag)
+{
+  
 }
 
 void readalmflag()
 {
-  unsigned char val1, val2;
+  uint16_t val;
   Serial.println("almflag");
   latch(SROE, HIGH);
   SPI.transfer(0xF8);
-  val1=SPI.transfer(0);
-  val2=SPI.transfer(0);
+  val=SPI.transfer16(0);
   latch(SROE, LOW);
-  
-  Serial.println(val1,HEX);
-  Serial.println(val2,HEX);
+  Serial.println(val,HEX);
 }
+
+void drain_mesfet_fifo(unsigned char dcc_latch)
+{
+  int chan;
+
+  latchselect(SRLATCH, dcc_latch);
+  
+  chan = readfifo(dcc_latch);
+
+  while (!((chan==15) || (chan==14)))
+  {
+    chan=readfifo(dcc_latch);
+  }
+}
+
 void init_mesfet_dcc(unsigned char dcc_latch, unsigned char DAC2LSB)
 {
   unsigned char val1, val2;
-  Serial.print("init_mesfet_dcc 0x0");
-  Serial.println((uint8_t)~dcc_latch, HEX);
+  Serial.print("init_mesfet_dcc ");
+  Serial.println(dcc_latch_tostr(dcc_latch));
 
   // see MAX11014 p69
   latchselect(SRLATCH, dcc_latch);
-  write3(0x64, 0x00, 0x00); // Removes the global power-down.
-  write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014.
-  write3(0x74, 0x00, 0x20); // Arms the full reset.
-  write3(0x74, 0x00, 0x40); // Completes the full reset.
-  write3(0x74, 0x00, 0x20); // Arms the full reset.
-  write3(0x74, 0x00, 0x40); // Completes the full reset.
-  
-  delay(1);
+  write3(SHUT, 0x00, 0x00); // Removes the global power-down.
+  write3(SHUT, 0x00, 0x00); // Powers up all parts of the MAX11014.
+  write3(SCLR, 0x00, 0x20); // Arms the full reset.
+  write3(SCLR, 0x00, 0x40); // Completes the full reset.
+  write3(SCLR, 0x00, 0x20); // Arms the full reset.
+  write3(SCLR, 0x00, 0x40); // Completes the full reset.
+
+  delay(1); // necessary
 
   latch(SROE, HIGH);
-  SPI.transfer(0xF6); // Read of FLAG register to verify reset good. Code should read 0xX042 if reset good.
+  SPI.transfer(FLAG); // Read of FLAG register to verify reset good. Code should read 0x42 if reset good.
   val1=SPI.transfer(0);
   val2=SPI.transfer(0);
   latch(SROE, LOW);
-  
-  Serial.println(val1,HEX);
-  Serial.println(val2,HEX);
 
+  if (val2 != 0x42)
+  {
+    Serial.print(dcc_latch_tostr(dcc_latch));
+    Serial.println("MAX11014 Reset failed");
+    Serial.println(val1,HEX);
+    Serial.println(val2,HEX);
+    return;
+  }
 
-  readalmflag();
-
-  write3(0x64, 0x00, 0x00); // Removes the global power-down.
-  write3(0x64, 0x00, 0x00); // Powers up all parts of the MAX11014.
+  write3(SHUT, 0x00, 0x00); // Removes the global power-down.
+  write3(SHUT, 0x00, 0x00); // Powers up all parts of the MAX11014.
 
   // reverse engineered from Saleae
-  write3(0x38, 0x00, 0x40);
-  write3(0x3C, 0x00, 0x14);
+  write3(HCFG, 0x00, 0x40);
+  write3(ALMHCFG, 0x00, 0x14);
 
-  write3(0x4E, 0x03, DAC2LSB); // DAC2 // definitely has an effect.
-  write3(0x4A, 0x00, DAC2LSB); // DAC1
+  write3(THRUDAC2, 0x03, DAC2LSB); // DAC2 // definitely has an effect.
+  write3(THRUDAC1, 0x00, DAC2LSB); // DAC1
 
-#define ADCCON 0x62
-  write3(ADCCON, 0xFF, 0xFF);
-
-  delay(1000);
-  readfifo();
-  delay(1000);
-  readfifo();
-  delay(1000);
-  readfifo();
+  write3(ADCCON, 0x07, 0xFF);
 }
 
 void adf4360stat()
@@ -320,6 +359,7 @@ void max147_read(void)
   Serial.println(result);
   }
 }
+
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
@@ -358,8 +398,6 @@ void loop() {
 #if 1
   // IF = 140MHz.
 
-  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x90);
-  init_mesfet_dcc(DCC_PA_LATCH, 0x90);
 
   //latchselect(SRLATCH, RXLATCH);
   //latch(SROE, HIGH);
@@ -390,7 +428,7 @@ void loop() {
   // ch1 1 outer atten
   ad5318_dac_write(1,300);
 
-  max147_read();
+  //max147_read();
 #define DACDEF 100
 #if 1
   //ad5318_dac_write(2,DACDEF);
@@ -414,7 +452,7 @@ void loop() {
   // ch1 1 outer atten
   ad5318_dac_write(1,100);
 
-  max147_read();
+  //max147_read();
 
 #define DACDEF2 1
 #if 1
@@ -455,7 +493,16 @@ void loop() {
     delay(100);
   }
 #endif
+
  
+  drain_mesfet_fifo(DCC_DRIVER_LATCH);
+  init_mesfet_dcc(DCC_PA_LATCH, 0x90);
+  drain_mesfet_fifo(DCC_PA_LATCH);
+  delay(1000);
+  //init_mesfet_dcc(DCC_PA_LATCH, 0xC0);
+  drain_mesfet_fifo(DCC_PA_LATCH);
+
+  readalmflag();
   delay(3000);
   //adf4360stat();
 }
