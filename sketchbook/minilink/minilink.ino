@@ -31,6 +31,13 @@
 #define MAX147LATCH (~(1<<7))
 
 /* MAX11014 registers */
+#define TH1 0x20
+#define TH2 0x2C
+#define IH1 0x24
+#define IH2 0x30
+#define VH1 0x28
+#define VH2 0x34
+
 #define HCFG 0x38
 #define ALMHCFG 0x3C
 #define THRUDAC1 0x4A
@@ -38,13 +45,47 @@
 #define ADCCON 0x62
 #define SHUT 0x64
 #define SCLR 0x74
+#define FIFO 0x80
 #define FLAG 0xF6
+#define ALMFLAG 0xF8
+#define ALMHCFG 0x3C
+#define ALMSCFG 0x3E
+
+/* MAX11014 ALMFLAGs */
+#define HIGH_V2 (1<<11)
+#define LOW_V2  (1<<10)
+#define HIGH_I2 (1<<9)
+#define LOW_I2  (1<<8)
+#define HIGH_T2 (1<<7)
+#define LOW_T2  (1<<6)
+#define HIGH_V1 (1<<5)
+#define LOW_V1  (1<<4)
+#define HIGH_I1 (1<<3)
+#define LOW_I1  (1<<2)
+#define HIGH_T1 (1<<1)
+#define LOW_T1  (1<<0)
+
+/* MAX11014 FLAGs */
+#define RESTART (1<<6)
+#define ALUBUSY (1<<5)
+#define PGABUSY (1<<4)
+#define ADCBUSY (1<<3)
+#define VGBUSY  (1<<2)
+#define FIFOEMP (1<<1)
+#define FIFOOVR (1<<0)
+
+// about 700mA for now for PA current
+#define IMAX 2010
+#define VMAX 3900
 
 void adf4360stat();
 void adf4360();
 void max147_read();
 void ad5318_dac_init();
 void ad5318_dac_write(uint8_t dacno, uint16_t val);
+
+void decode_flags(uint16_t flags);
+void decode_almflags(uint16_t almflags);
 
 void setup()
 {
@@ -80,8 +121,8 @@ void setup()
 
   ad5318_dac_init();
 
-  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x90);
-  init_mesfet_dcc(DCC_PA_LATCH, 0x90);
+  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x000, 0x000);
+  init_mesfet_dcc(DCC_PA_LATCH, 0x100, 0x200);
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -107,6 +148,14 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
    latch(SROE, LOW);
 }
 
+void write_byte_then_short(unsigned char byteval, uint16_t val)
+{
+   latch(SROE, HIGH);
+   SPI.transfer(byteval);
+   SPI.transfer16(val);
+   latch(SROE, LOW);
+}
+
 char *dcc_latch_tostr(unsigned char dcc_latch)
 {
   static char driver[]="driver ";
@@ -121,29 +170,34 @@ char *dcc_latch_tostr(unsigned char dcc_latch)
 
   return unknown;
 }
+
 int readfifo(unsigned char dcc_latch)
 {
-  unsigned char val1, val2, chan;
+  unsigned char chan;
+  uint16_t val;
   int result,offset=0;
+
+  latchselect(SRLATCH, dcc_latch);
+  
   latch(SROE, HIGH);
-  SPI.transfer(0x80);
-  val1=SPI.transfer(0);
-  val2=SPI.transfer(0);
+  SPI.transfer(FIFO);
+  val=SPI.transfer16(0);
   latch(SROE, LOW);
 
-  Serial.print(dcc_latch_tostr(dcc_latch));
+  chan=(val&0xF000)>>12;
 
-  chan=(val1&0xF0)>>4;
-
+  if (chan != 15)
+    Serial.print(dcc_latch_tostr(dcc_latch));
+    
   switch(chan)
   {
     case 0:
       Serial.print("Internal temp ");
-      offset=-273;
+      offset=0;
       break;
     case 1:
       Serial.print("CH1 ext temp ");
-      offset=-273;
+      offset=0;
       break;
     case 2:
       Serial.print("CH1 sense voltage ");
@@ -159,7 +213,7 @@ int readfifo(unsigned char dcc_latch)
       break;
     case 6:
       Serial.print("CH2 ext temp ");
-      offset=-273;
+      offset=0;
       break;
     case 7:
       Serial.print("CH2 sense voltage ");
@@ -183,38 +237,91 @@ int readfifo(unsigned char dcc_latch)
       Serial.print("Corrupt ");
       break;
     case 15:
-      Serial.print("Empty FIFO ");
       break;
   }
 
-  result=((val1&0x0F)<<8)+val2;
-  Serial.println(result+offset);
+  val&=0xFFF;
+  if (chan == 15)
+  {
+    //decode_flags(val);
+    //Serial.println();
+  }
+  else
+  {
+    Serial.println(val+offset);
+  }
 
   return chan;
 }
 
-void decode_almflag(uint16_t almflag)
+void decode_almflags(uint16_t almflags)
 {
-  
+  if (almflags & HIGH_V2)
+      Serial.print("HIGH_V2 ");
+  if (almflags & LOW_V2 )
+      Serial.print("LOW_V2  ");
+  if (almflags & HIGH_I2)
+      Serial.print("HIGH_I2 ");
+  if (almflags & LOW_I2)
+      Serial.print("LOW_I2 ");
+  if (almflags & HIGH_T2)
+      Serial.print("HIGH_T2 ");
+  if (almflags & LOW_T2)
+      Serial.print("LOW_T2 ");
+  if (almflags & HIGH_V1)
+      Serial.print("HIGH_V1 ");
+  if (almflags & LOW_V1)
+      Serial.print("LOW_V1 ");
+  if (almflags & HIGH_I1)
+      Serial.print("HIGH_I1 ");
+  if (almflags & LOW_I1)
+      Serial.print("LOW_I1 ");
+  if (almflags & HIGH_T1)
+      Serial.print("HIGH_T1 ");
+  if (almflags & LOW_T1)
+      Serial.print("LOW_T1 ");
+  if (almflags)
+    Serial.println();
 }
 
-void readalmflag()
+void decode_flags(uint16_t flags)
+{
+  if (flags & RESTART)
+      Serial.print("RESTART ");
+  if (flags & ALUBUSY)
+      Serial.print("ALUBUSY ");
+  if (flags & PGABUSY)
+      Serial.print("PGABUSY ");
+  if (flags & ADCBUSY)
+      Serial.print("ADCBUSY ");
+  if (flags & VGBUSY)
+      Serial.print("VGBUSY ");
+  if (flags & FIFOEMP)
+      Serial.print("FIFOEMP ");
+  if (flags & FIFOOVR)
+      Serial.print("FIFOOVR ");
+  if (flags)
+    Serial.println();
+}
+
+uint16_t read_flag_reg(unsigned char dcc_latch, uint8_t reg)
 {
   uint16_t val;
-  Serial.println("almflag");
+
+  latchselect(SRLATCH, dcc_latch);
+
   latch(SROE, HIGH);
-  SPI.transfer(0xF8);
+  SPI.transfer(reg);
   val=SPI.transfer16(0);
   latch(SROE, LOW);
-  Serial.println(val,HEX);
+
+  return (val&0xFFF);
 }
 
 void drain_mesfet_fifo(unsigned char dcc_latch)
 {
   int chan;
 
-  latchselect(SRLATCH, dcc_latch);
-  
   chan = readfifo(dcc_latch);
 
   while (!((chan==15) || (chan==14)))
@@ -223,7 +330,14 @@ void drain_mesfet_fifo(unsigned char dcc_latch)
   }
 }
 
-void init_mesfet_dcc(unsigned char dcc_latch, unsigned char DAC2LSB)
+void write_mesfet_dcc(uint8_t dcc_latch, uint8_t reg, uint16_t data)
+{
+  latchselect(SRLATCH, dcc_latch);
+
+  write_byte_then_short(reg, data);
+}
+
+void init_mesfet_dcc(unsigned char dcc_latch, uint16_t chan1dacval, uint16_t chan2dacval)
 {
   unsigned char val1, val2;
   Serial.print("init_mesfet_dcc ");
@@ -259,13 +373,20 @@ void init_mesfet_dcc(unsigned char dcc_latch, unsigned char DAC2LSB)
   write3(SHUT, 0x00, 0x00); // Powers up all parts of the MAX11014.
 
   // reverse engineered from Saleae
-  write3(HCFG, 0x00, 0x40);
-  write3(ALMHCFG, 0x00, 0x14);
+  write3(HCFG, 0x00, 0x40); // 0x40 means load ADC results into FIF0
 
-  write3(THRUDAC2, 0x03, DAC2LSB); // DAC2 // definitely has an effect.
-  write3(THRUDAC1, 0x00, DAC2LSB); // DAC1
-
+  write_byte_then_short(THRUDAC1, chan1dacval);
+  write_byte_then_short(THRUDAC2, chan2dacval);
+  
+  // request a conversion
   write3(ADCCON, 0x07, 0xFF);
+
+  write_byte_then_short(ALMHCFG, 0xFFF);
+  write_byte_then_short(ALMSCFG, 0xAAA);
+
+  write_byte_then_short(TH1, 100);
+  write_byte_then_short(IH2, IMAX);
+  write_byte_then_short(VH2, VMAX);
 }
 
 void adf4360stat()
@@ -364,6 +485,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
   int v1,j;
+
 
   latch(TOPOE, LOW); // disable output
  
@@ -494,15 +616,21 @@ void loop() {
   }
 #endif
 
+  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
+  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
  
   drain_mesfet_fifo(DCC_DRIVER_LATCH);
-  init_mesfet_dcc(DCC_PA_LATCH, 0x90);
+  decode_almflags(read_flag_reg(DCC_DRIVER_LATCH, ALMFLAG));
   drain_mesfet_fifo(DCC_PA_LATCH);
-  delay(1000);
-  //init_mesfet_dcc(DCC_PA_LATCH, 0xC0);
-  drain_mesfet_fifo(DCC_PA_LATCH);
+  decode_almflags(read_flag_reg(DCC_PA_LATCH, ALMFLAG));
 
-  readalmflag();
+  write_mesfet_dcc(DCC_DRIVER_LATCH, SCLR, (1<<4));
+  write_mesfet_dcc(DCC_PA_LATCH, SCLR, (1<<4));
+
+  write_mesfet_dcc(DCC_DRIVER_LATCH, TH1, 100);
+  write_mesfet_dcc(DCC_PA_LATCH, TH1, 100);
+  write_mesfet_dcc(DCC_PA_LATCH, IH2, IMAX);
+  write_mesfet_dcc(DCC_PA_LATCH, VH2, VMAX);
   delay(3000);
   //adf4360stat();
 }
