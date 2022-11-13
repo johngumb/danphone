@@ -1,3 +1,5 @@
+export PATH=/home/john/bin:$PATH
+
 if [ -z "$1" ]; then
    for i in 1 2; do
    dab

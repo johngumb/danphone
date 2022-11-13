@@ -23,7 +23,6 @@ import time
 import threading
 
 import radiosim
-import ctcss_helper
 
 import ft232r
 import ShiftReg
@@ -170,9 +169,7 @@ class McMicro:
 
         self.m_shiftreg.latch()
 
-        if enable_tx_audio:
-            ctcss = ctcss_helper.get_ctcss(self.m_tx_freq)
-
+        if enable_tx_audio and ctcss:
             self.set_ctcss(ctcss)
 
         self.m_tx_on = True

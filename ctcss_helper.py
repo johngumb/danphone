@@ -1,21 +1,25 @@
 import os
 
 def get_ctcss(tx_freq):
+        ctcss_in_hw = True
+
         if (tx_freq >= 145.6E6) and (tx_freq <= 145.8E6) and os.path.exists("/tmp/noshift"):
-                return 0
+                return (0, True)
 
         # use ctcss if specified
         ctcss="/tmp/ctcss"
         if os.path.exists(ctcss):
             with open(ctcss) as f:
-                return float(f.read())
+                return (float(f.read()), False) ## maybe better in  hw
 
         if tx_freq in [51.34E6, 51.35E6, 51.3E6, 50.52E6, 70.4375E6]: # GB3AM, GB3CT, GB3ZY, GB3WX, MB7FM
             result = 77.0
+            ctcss_in_hw = False
         elif tx_freq in [51.32E6]: # GB3XD
             result = 71.9
         elif tx_freq in [51.31E6]: # GB3FX
             result = 82.5
+            ctcss_in_hw = False
         elif tx_freq==51.27E6: # GB3DB
             result = 110.9
         elif tx_freq in [145.0125E6]: # TE
@@ -39,6 +43,7 @@ def get_ctcss(tx_freq):
 #            result = 110.9           #DA
         elif tx_freq in [145.1375E6]: # AL
             result = 77.0
+            ctcss_in_hw = False
         elif tx_freq in [145.1875E6]: # JB, BF, EB
             result = 77.0 # BF
             #result = 88.5 # EB
@@ -54,4 +59,4 @@ def get_ctcss(tx_freq):
         else:
             result = 0
 
-        return result
+        return (result, ctcss_in_hw)
