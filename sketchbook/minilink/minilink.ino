@@ -122,7 +122,7 @@ void setup()
   ad5318_dac_init();
 
   init_mesfet_dcc(DCC_DRIVER_LATCH, 0x000, 0x000);
-  init_mesfet_dcc(DCC_PA_LATCH, 0x100, 0x200);
+  init_mesfet_dcc(DCC_PA_LATCH, 0x000, 0x100);
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -445,14 +445,15 @@ void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
 {
   uint16_t dacword=0;
   dacword = (dacno << 12) + (dacval << 2);
-  Serial.println(dacword,HEX);
+  //Serial.println(dacword,HEX);
   latchselect(SRLATCH, AD5318_DAC_LATCH);
 
   SPI.setDataMode(SPI_MODE3);
   latch(SROE, HIGH);
+
   SPI.transfer16(dacword);
-  latch(SROE, LOW);
   
+  latch(SROE, LOW);
   SPI.setDataMode(SPI_MODE2); 
 }
 
@@ -544,27 +545,29 @@ void loop() {
   
 #if 1
 // 300 is good - 10dB between 300 and 100.
-  ad5318_dac_write(0,300); 
+  //ad5318_dac_write(0,300);
 
   // ch 0 inner atten
   // ch1 1 outer atten
-  ad5318_dac_write(1,300);
+  //ad5318_dac_write(1,300);
 
-  //max147_read();
-#define DACDEF 100
-#if 1
-  //ad5318_dac_write(2,DACDEF);
+  Serial.println("hipwr");
+  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
+  drain_mesfet_fifo(DCC_PA_LATCH);
+  max147_read();
+#define DACDEF 500
 
-  //ad5318_dac_write(3,DACDEF);
+  ad5318_dac_write(2,DACDEF);
 
-  //ad5318_dac_write(4,DACDEF);
+  ad5318_dac_write(3,DACDEF);
 
-  //ad5318_dac_write(5,DACDEF);
+  ad5318_dac_write(4,DACDEF);
 
-  //ad5318_dac_write(6,DACDEF);
+  ad5318_dac_write(5,DACDEF);
 
-  //ad5318_dac_write(7,DACDEF);
-#endif
+  //ad5318_dac_write(6,DACDEF);  // increasing value causes signal drop?
+
+  ad5318_dac_write(7,DACDEF);
 
   delay(2000);
 
@@ -574,22 +577,23 @@ void loop() {
   // ch1 1 outer atten
   ad5318_dac_write(1,100);
 
-  //max147_read();
+  Serial.println("lopwr");
+
+  max147_read();
 
 #define DACDEF2 1
-#if 1
-  //ad5318_dac_write(2,DACDEF2);
 
-  //ad5318_dac_write(3,DACDEF2);
+  ad5318_dac_write(2,DACDEF2);
 
-  //ad5318_dac_write(4,DACDEF2);
+  ad5318_dac_write(3,DACDEF2);
 
-  //ad5318_dac_write(5,DACDEF2);
+  ad5318_dac_write(4,DACDEF2);
 
-  //ad5318_dac_write(6,DACDEF2);
+  ad5318_dac_write(5,DACDEF2);
 
-  //ad5318_dac_write(7,DACDEF2);
-#endif
+  //ad5318_dac_write(6,DACDEF2); // increasing value causes signal drop?
+
+  ad5318_dac_write(7,DACDEF2);
   
 #endif
 
@@ -620,7 +624,8 @@ void loop() {
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
  
   drain_mesfet_fifo(DCC_DRIVER_LATCH);
-  decode_almflags(read_flag_reg(DCC_DRIVER_LATCH, ALMFLAG));
+  //decode_almflags(read_flag_reg(DCC_DRIVER_LATCH, ALMFLAG));
+
   drain_mesfet_fifo(DCC_PA_LATCH);
   decode_almflags(read_flag_reg(DCC_PA_LATCH, ALMFLAG));
 
