@@ -23,12 +23,13 @@
 
 #define ADF4360STAT GREENWHITE
 
-#define TXLATCH (~(1<<0))
-#define RXLATCH (~(1<<1))
-#define DCC_DRIVER_LATCH (~(1<<2))
-#define DCC_PA_LATCH (~(1<<3))
-#define AD5318_DAC_LATCH (~(1<<5))
-#define MAX147LATCH (~(1<<7))
+#define LATCHDEF(_x) ((uint8_t)(~(1<<_x)))
+#define TXLATCH          LATCHDEF(0)
+#define RXLATCH          LATCHDEF(1)
+#define DCC_DRIVER_LATCH LATCHDEF(2)
+#define DCC_PA_LATCH     LATCHDEF(3)
+#define AD5318_DAC_LATCH LATCHDEF(5)
+#define MAX147LATCH      LATCHDEF(7)
 
 /* MAX11014 registers */
 #define TH1 0x20
@@ -121,7 +122,8 @@ void setup()
 
   ad5318_dac_init();
 
-  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x000, 0x000);
+  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x000, 0x000); // CH2 0x300 does make a difference
+                                                   // CH1 0x300 noisier?
   init_mesfet_dcc(DCC_PA_LATCH, 0x000, 0x100);
 }
 
@@ -549,12 +551,12 @@ void loop() {
 
   // ch 0 inner atten
   // ch1 1 outer atten
-  //ad5318_dac_write(1,300);
+  ad5318_dac_write(1,300);
 
   Serial.println("hipwr");
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
   drain_mesfet_fifo(DCC_PA_LATCH);
-  max147_read();
+  //max147_read();
 #define DACDEF 500
 
   ad5318_dac_write(2,DACDEF);
