@@ -122,9 +122,9 @@ void setup()
 
   ad5318_dac_init();
 
-  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x000, 0x000); // CH2 0x300 does make a difference
+  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x000, 0x300); // CH2 0x300 does make a difference
                                                    // CH1 0x300 noisier?
-  init_mesfet_dcc(DCC_PA_LATCH, 0x000, 0x100);
+  init_mesfet_dcc(DCC_PA_LATCH, 0x000, 0x300);
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -383,7 +383,7 @@ void init_mesfet_dcc(unsigned char dcc_latch, uint16_t chan1dacval, uint16_t cha
   // request a conversion
   write3(ADCCON, 0x07, 0xFF);
 
-  write_byte_then_short(ALMHCFG, 0xFFF);
+  write_byte_then_short(ALMHCFG, 0xFFF); // FIXME clamping bits
   write_byte_then_short(ALMSCFG, 0xAAA);
 
   write_byte_then_short(TH1, 100);
@@ -469,7 +469,7 @@ void max147_read(void)
 
   for (chan=0; (chan<8); chan++)
   {
-  tb1 = 0x80 + (chan << 4) + 0x0F; 
+  tb1 = 0x80 + (chan << 4) + 0x0B;
   latch(SROE, HIGH);
   SPI.transfer(tb1);
   result=SPI.transfer16(0);
@@ -547,7 +547,7 @@ void loop() {
   
 #if 1
 // 300 is good - 10dB between 300 and 100.
-  //ad5318_dac_write(0,300);
+  ad5318_dac_write(0,300);
 
   // ch 0 inner atten
   // ch1 1 outer atten
@@ -581,7 +581,7 @@ void loop() {
 
   Serial.println("lopwr");
 
-  max147_read();
+  //max147_read();
 
 #define DACDEF2 1
 
@@ -622,10 +622,10 @@ void loop() {
   }
 #endif
 
-  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
+  //write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
  
-  drain_mesfet_fifo(DCC_DRIVER_LATCH);
+  //drain_mesfet_fifo(DCC_DRIVER_LATCH);
   //decode_almflags(read_flag_reg(DCC_DRIVER_LATCH, ALMFLAG));
 
   drain_mesfet_fifo(DCC_PA_LATCH);
