@@ -520,9 +520,11 @@ void loop() {
  //write3(0x04, 0x68, 0x21); //4.609GHz
  //write3(0x05, 0xD9, 0x31); // won't lock
 
-#if 1
   // IF = 140MHz.
 
+
+  // tx input upconverter
+  adf4360();
 
   //latchselect(SRLATCH, RXLATCH);
   //latch(SROE, HIGH);
@@ -530,14 +532,6 @@ void loop() {
   //latch(SROE, LOW);
   //delay(100);
   //delay(500);
-
-#if 0
-#define TST WHITE
-  digitalWrite(TST, LOW);
-  delay(1000);
-  digitalWrite(TST, HIGH);
-#endif
-#endif
 
   // 30 -0.1
   // 60 -0.2
@@ -556,22 +550,23 @@ void loop() {
   Serial.println("hipwr");
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
   drain_mesfet_fifo(DCC_PA_LATCH);
+
   //max147_read();
-#define DACDEF 500
+#define DACDEF 0
 
-  ad5318_dac_write(2,DACDEF);
+  //ad5318_dac_write(2,DACDEF);
 
-  ad5318_dac_write(3,DACDEF);
+  //ad5318_dac_write(3,DACDEF);
 
-  ad5318_dac_write(4,DACDEF);
+  //ad5318_dac_write(4,DACDEF);
 
-  ad5318_dac_write(5,DACDEF);
+  //ad5318_dac_write(5,DACDEF);
 
-  //ad5318_dac_write(6,DACDEF);  // increasing value causes signal drop?
+  ad5318_dac_write(6,DACDEF);  // increasing value causes signal drop?
 
-  ad5318_dac_write(7,DACDEF);
+  //ad5318_dac_write(7,DACDEF);
 
-  delay(2000);
+  delay(4000);
 
   ad5318_dac_write(0,100); 
 
@@ -585,24 +580,22 @@ void loop() {
 
 #define DACDEF2 1
 
-  ad5318_dac_write(2,DACDEF2);
+  //ad5318_dac_write(2,DACDEF2);
 
-  ad5318_dac_write(3,DACDEF2);
+  //ad5318_dac_write(3,DACDEF2);
 
-  ad5318_dac_write(4,DACDEF2);
+  //ad5318_dac_write(4,DACDEF2);
 
-  ad5318_dac_write(5,DACDEF2);
+  //ad5318_dac_write(5,DACDEF2);
 
-  //ad5318_dac_write(6,DACDEF2); // increasing value causes signal drop?
+  ad5318_dac_write(6,DACDEF2); // increasing value causes signal drop?
 
-  ad5318_dac_write(7,DACDEF2);
+  //ad5318_dac_write(7,DACDEF2);
   
 #endif
 
-  adf4360();
-
-  delay(1000);
-  adf4360stat();
+  delay(5000);
+  //adf4360stat();
 
   v1=digitalRead(IN1);
 
@@ -622,6 +615,7 @@ void loop() {
   }
 #endif
 
+#if 0
   //write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
  
@@ -638,6 +632,7 @@ void loop() {
   write_mesfet_dcc(DCC_PA_LATCH, TH1, 100);
   write_mesfet_dcc(DCC_PA_LATCH, IH2, IMAX);
   write_mesfet_dcc(DCC_PA_LATCH, VH2, VMAX);
+#endif
   delay(3000);
   //adf4360stat();
 }
