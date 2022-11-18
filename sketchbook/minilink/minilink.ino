@@ -595,13 +595,6 @@ void loop() {
 #endif
 
   delay(5000);
-  //adf4360stat();
-
-  v1=digitalRead(IN1);
-
-  // update messages as we update FPGA code
-  Serial.print("Rx Lock AND Tx Lock ");
-  Serial.println(v1);
 
   //test
 
