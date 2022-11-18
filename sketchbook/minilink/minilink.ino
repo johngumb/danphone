@@ -124,7 +124,7 @@ void setup()
 
   init_mesfet_dcc(DCC_DRIVER_LATCH, 0x000, 0x300); // CH2 0x300 does make a difference
                                                    // CH1 0x300 noisier?
-  init_mesfet_dcc(DCC_PA_LATCH, 0x000, 0x300);
+  init_mesfet_dcc(DCC_PA_LATCH, 0, 0x300);
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -239,6 +239,7 @@ int readfifo(unsigned char dcc_latch)
       Serial.print("Corrupt ");
       break;
     case 15:
+      //Serial.println("Empty");
       break;
   }
 
@@ -489,7 +490,6 @@ void loop() {
   // pin 11 red wire; data
   int v1,j;
 
-
   latch(TOPOE, LOW); // disable output
  
   v1=digitalRead(IN1);
@@ -550,6 +550,7 @@ void loop() {
   Serial.println("hipwr");
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
   drain_mesfet_fifo(DCC_PA_LATCH);
+  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
 
   //max147_read();
 #define DACDEF 0
@@ -562,7 +563,7 @@ void loop() {
 
   //ad5318_dac_write(5,DACDEF);
 
-  ad5318_dac_write(6,DACDEF);  // increasing value causes signal drop?
+  //ad5318_dac_write(6,DACDEF);  // increasing value causes signal drop?
 
   //ad5318_dac_write(7,DACDEF);
 
@@ -588,12 +589,12 @@ void loop() {
 
   //ad5318_dac_write(5,DACDEF2);
 
-  ad5318_dac_write(6,DACDEF2); // increasing value causes signal drop?
+  //ad5318_dac_write(6,DACDEF2); // increasing value causes signal drop?
 
   //ad5318_dac_write(7,DACDEF2);
   
 #endif
-
+  drain_mesfet_fifo(DCC_PA_LATCH);
   delay(5000);
 
   //test
@@ -610,7 +611,7 @@ void loop() {
 
 #if 0
   //write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
-  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
+  //write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
  
   //drain_mesfet_fifo(DCC_DRIVER_LATCH);
   //decode_almflags(read_flag_reg(DCC_DRIVER_LATCH, ALMFLAG));
