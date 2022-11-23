@@ -79,6 +79,9 @@
 #define IMAX 2010
 #define VMAX 3900
 
+// 40C (40*8==320)
+#define T1LIMIT 320
+
 void adf4360stat();
 void adf4360();
 void max147_read();
@@ -87,6 +90,8 @@ void ad5318_dac_write(uint8_t dacno, uint16_t val);
 
 void decode_flags(uint16_t flags);
 void decode_almflags(uint16_t almflags);
+
+static uint8_t counter=0;
 
 void setup()
 {
@@ -122,9 +127,13 @@ void setup()
 
   ad5318_dac_init();
 
-  init_mesfet_dcc(DCC_DRIVER_LATCH, 0x000, 0x300); // CH2 0x300 does make a difference
+  init_mesfet_dcc(DCC_DRIVER_LATCH, 0, 0x200); // CH2 0x300 does make a difference
                                                    // CH1 0x300 noisier?
-  init_mesfet_dcc(DCC_PA_LATCH, 0, 0x300);
+
+  init_mesfet_dcc(DCC_PA_LATCH, 0, 0x200);
+
+  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
+  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -178,6 +187,7 @@ int readfifo(unsigned char dcc_latch)
   unsigned char chan;
   uint16_t val;
   int result,offset=0;
+  int div=1;
 
   latchselect(SRLATCH, dcc_latch);
   
@@ -196,6 +206,7 @@ int readfifo(unsigned char dcc_latch)
     case 0:
       Serial.print("Internal temp ");
       offset=0;
+      div=8;
       break;
     case 1:
       Serial.print("CH1 ext temp ");
@@ -251,7 +262,7 @@ int readfifo(unsigned char dcc_latch)
   }
   else
   {
-    Serial.println(val+offset);
+    Serial.println((val+offset)/div);
   }
 
   return chan;
@@ -387,7 +398,7 @@ void init_mesfet_dcc(unsigned char dcc_latch, uint16_t chan1dacval, uint16_t cha
   write_byte_then_short(ALMHCFG, 0xFFF); // FIXME clamping bits
   write_byte_then_short(ALMSCFG, 0xAAA);
 
-  write_byte_then_short(TH1, 100);
+  write_byte_then_short(TH1, T1LIMIT); //40C
   write_byte_then_short(IH2, IMAX);
   write_byte_then_short(VH2, VMAX);
 }
@@ -397,6 +408,8 @@ void adf4360stat()
   int v1;
 
   v1=digitalRead(ADF4360STAT);
+  if (v1)
+    Serial.println("ADF4360 UNLOCKED!!");
   Serial.print("ADF4360 Lock ");
   Serial.println(v1);  
 }
@@ -407,8 +420,10 @@ void adf4360()
   // ADF4360
   latchselect(SRLATCH, 0xFF); // when SROE goes high below, ensure no latches are visible
 
-  // HACK re-use SROE as latch for ADF4360. Avoid unwanted transitions by teaming this signal with SRLATCH
+  // HACK re-use SROE as latch for ADF4360. Avoid unwanted transitions by teaming
+  // this signal with SRLATCH
   digitalWrite(SRLATCH, LOW);  // SRLATCH must be high in FPGA for SROE to act as adf4360 LE signal
+
   latch(SROE, HIGH);
   write3(0x81, 0xF1, 0x28);
   write3(0x00, 0x08, 0x21); // stock R value
@@ -488,7 +503,8 @@ void max147_read(void)
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
-  int v1,j;
+  int v1;
+  uint8_t j=0;
 
   latch(TOPOE, LOW); // disable output
  
@@ -525,6 +541,8 @@ void loop() {
 
   // tx input upconverter
   adf4360();
+  delay(10);
+  adf4360stat();
 
   //latchselect(SRLATCH, RXLATCH);
   //latch(SROE, HIGH);
@@ -548,11 +566,13 @@ void loop() {
   ad5318_dac_write(1,300);
 
   Serial.println("hipwr");
+  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
   drain_mesfet_fifo(DCC_PA_LATCH);
+  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
 
-  //max147_read();
+  max147_read();
 #define DACDEF 0
 
   //ad5318_dac_write(2,DACDEF);
@@ -576,8 +596,7 @@ void loop() {
   ad5318_dac_write(1,100);
 
   Serial.println("lopwr");
-
-  //max147_read();
+  max147_read();
 
 #define DACDEF2 1
 
@@ -599,6 +618,10 @@ void loop() {
 
   //test
 
+  //latch(TOPOE, HIGH); // enable output
+  //Serial.println(counter);
+  //latchselect(TOPLATCH, counter++);
+
 #if 0
   latch(TOPOE, HIGH); // enable output
   for (j=0;j<255;j++)
@@ -609,24 +632,27 @@ void loop() {
   }
 #endif
 
-#if 0
+#if 1
   //write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
   //write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
- 
-  //drain_mesfet_fifo(DCC_DRIVER_LATCH);
-  //decode_almflags(read_flag_reg(DCC_DRIVER_LATCH, ALMFLAG));
 
+  Serial.println("driverflags");
+  drain_mesfet_fifo(DCC_DRIVER_LATCH);
+  decode_almflags(read_flag_reg(DCC_DRIVER_LATCH, ALMFLAG));
+
+  Serial.println("paflags");
   drain_mesfet_fifo(DCC_PA_LATCH);
   decode_almflags(read_flag_reg(DCC_PA_LATCH, ALMFLAG));
 
-  write_mesfet_dcc(DCC_DRIVER_LATCH, SCLR, (1<<4));
-  write_mesfet_dcc(DCC_PA_LATCH, SCLR, (1<<4));
+  //write_mesfet_dcc(DCC_DRIVER_LATCH, SCLR, (1<<4));
+  //write_mesfet_dcc(DCC_PA_LATCH, SCLR, (1<<4));
 
-  write_mesfet_dcc(DCC_DRIVER_LATCH, TH1, 100);
-  write_mesfet_dcc(DCC_PA_LATCH, TH1, 100);
+  write_mesfet_dcc(DCC_DRIVER_LATCH, TH1, T1LIMIT);
+  write_mesfet_dcc(DCC_PA_LATCH, TH1, T1LIMIT);
+
   write_mesfet_dcc(DCC_PA_LATCH, IH2, IMAX);
   write_mesfet_dcc(DCC_PA_LATCH, VH2, VMAX);
 #endif
+  adf4360stat();
   delay(3000);
-  //adf4360stat();
 }
