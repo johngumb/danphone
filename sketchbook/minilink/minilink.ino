@@ -155,7 +155,7 @@ void latch(unsigned char oe, int level)
   digitalWrite(oe, level);
 }
 
-void write3(unsigned char v1, unsigned char v2, unsigned char v3)
+void write3rfboard(unsigned char v1, unsigned char v2, unsigned char v3)
 {
    latch(SROE, HIGH);
    SPI.transfer(v1);
@@ -164,7 +164,7 @@ void write3(unsigned char v1, unsigned char v2, unsigned char v3)
    latch(SROE, LOW);
 }
 
-void write_byte_then_short(unsigned char byteval, uint16_t val)
+void write_byte_then_short_rfboard(unsigned char byteval, uint16_t val)
 {
    latch(SROE, HIGH);
    SPI.transfer(byteval);
@@ -353,7 +353,7 @@ void write_mesfet_dcc(uint8_t dcc_latch, uint8_t reg, uint16_t data)
 {
   latchselect(SRLATCH, dcc_latch);
 
-  write_byte_then_short(reg, data);
+  write_byte_then_short_rfboard(reg, data);
 }
 
 void init_mesfet_dcc(unsigned char dcc_latch, uint16_t chan1dacval, uint16_t chan2dacval)
@@ -364,12 +364,12 @@ void init_mesfet_dcc(unsigned char dcc_latch, uint16_t chan1dacval, uint16_t cha
 
   // see MAX11014 p69
   latchselect(SRLATCH, dcc_latch);
-  write3(SHUT, 0x00, 0x00); // Removes the global power-down.
-  write3(SHUT, 0x00, 0x00); // Powers up all parts of the MAX11014.
-  write3(SCLR, 0x00, 0x20); // Arms the full reset.
-  write3(SCLR, 0x00, 0x40); // Completes the full reset.
-  write3(SCLR, 0x00, 0x20); // Arms the full reset.
-  write3(SCLR, 0x00, 0x40); // Completes the full reset.
+  write3rfboard(SHUT, 0x00, 0x00); // Removes the global power-down.
+  write3rfboard(SHUT, 0x00, 0x00); // Powers up all parts of the MAX11014.
+  write3rfboard(SCLR, 0x00, 0x20); // Arms the full reset.
+  write3rfboard(SCLR, 0x00, 0x40); // Completes the full reset.
+  write3rfboard(SCLR, 0x00, 0x20); // Arms the full reset.
+  write3rfboard(SCLR, 0x00, 0x40); // Completes the full reset.
 
   delay(1); // necessary
 
@@ -388,24 +388,24 @@ void init_mesfet_dcc(unsigned char dcc_latch, uint16_t chan1dacval, uint16_t cha
     return;
   }
 
-  write3(SHUT, 0x00, 0x00); // Removes the global power-down.
-  write3(SHUT, 0x00, 0x00); // Powers up all parts of the MAX11014.
+  write3rfboard(SHUT, 0x00, 0x00); // Removes the global power-down.
+  write3rfboard(SHUT, 0x00, 0x00); // Powers up all parts of the MAX11014.
 
   // reverse engineered from Saleae
-  write3(HCFG, 0x00, 0x40); // 0x40 means load ADC results into FIF0
+  write3rfboard(HCFG, 0x00, 0x40); // 0x40 means load ADC results into FIF0
 
-  write_byte_then_short(THRUDAC1, chan1dacval);
-  write_byte_then_short(THRUDAC2, chan2dacval);
+  write_byte_then_short_rfboard(THRUDAC1, chan1dacval);
+  write_byte_then_short_rfboard(THRUDAC2, chan2dacval);
   
   // request a conversion
-  write3(ADCCON, 0x07, 0xFF);
+  write3rfboard(ADCCON, 0x07, 0xFF);
 
-  write_byte_then_short(ALMHCFG, 0xFFF); // FIXME clamping bits
-  write_byte_then_short(ALMSCFG, 0xAAA);
+  write_byte_then_short_rfboard(ALMHCFG, 0xFFF); // FIXME clamping bits
+  write_byte_then_short_rfboard(ALMSCFG, 0xAAA);
 
-  write_byte_then_short(TH1, T1LIMIT); //40C
-  write_byte_then_short(IH2, IMAX);
-  write_byte_then_short(VH2, VMAX);
+  write_byte_then_short_rfboard(TH1, T1LIMIT); //40C
+  write_byte_then_short_rfboard(IH2, IMAX);
+  write_byte_then_short_rfboard(VH2, VMAX);
 }
 
 void adf4360stat()
@@ -429,14 +429,14 @@ void adf4360()
   latch(ADF4360LATCH, LOW);
 
   delay(1);
-  write3(0x81, 0xF1, 0x28);
+  write3rfboard(0x81, 0xF1, 0x28);
   latch(ADF4360LATCH, HIGH);
   latch(ADF4360LATCH, LOW);
-  write3(0x00, 0x08, 0x21); // stock R value
+  write3rfboard(0x00, 0x08, 0x21); // stock R value
   latch(ADF4360LATCH, HIGH);
   latch(ADF4360LATCH, LOW);
-  write3(0x08, 0xCA, 0x02); // 1.8GHz 1048.4
-  //write3(0x07, 0x40, 0x22); // stock A B N // 643.483, 1485MHz
+  write3rfboard(0x08, 0xCA, 0x02); // 1.8GHz 1048.4
+  //write3rfboard(0x07, 0x40, 0x22); // stock A B N // 643.483, 1485MHz
 
   delay(1);
 
@@ -554,23 +554,23 @@ void loop() {
 
 
   latchselect(SRLATCH, TXLATCH);
-  write3(0x8D, 0x80, 0x12);
-  write3(0x00, 0x01, 0xA0);
-  //write3(0x05, 0xD9, 0x31); // 5.9895e9Hz
-  write3(0x05, 0xDC, 0x01); // 6,0GHz
+  write3rfboard(0x8D, 0x80, 0x12);
+  write3rfboard(0x00, 0x01, 0xA0);
+  //write3rfboard(0x05, 0xD9, 0x31); // 5.9895e9Hz
+  write3rfboard(0x05, 0xDC, 0x01); // 6,0GHz
 
   // transmit on 10.2GHz (12000-1800)
   // appears at 447.5MHz on spec an
 
   // Rx IF = 140MHz. Possible range 115 - 170 MHz; 949 MHz to 1004MHz
   latchselect(SRLATCH, RXLATCH);
-  write3(0x8D, 0x80, 0x12);
-  write3(0x00, 0x01, 0xA0);
-  //write3(0x04, 0xA6, 0x01); // 4.76e9Hz
+  write3rfboard(0x8D, 0x80, 0x12);
+  write3rfboard(0x00, 0x01, 0xA0);
+  //write3rfboard(0x04, 0xA6, 0x01); // 4.76e9Hz
 
- write3(0x04, 0x81, 0x21); //4613MHz receives 10.2GHz at 140MHz down
- //write3(0x04, 0x68, 0x21); //4.609GHz
- //write3(0x05, 0xD9, 0x31); // won't lock
+ write3rfboard(0x04, 0x81, 0x21); //4613MHz receives 10.2GHz at 140MHz down
+ //write3rfboard(0x04, 0x68, 0x21); //4.609GHz
+ //write3rfboard(0x05, 0xD9, 0x31); // won't lock
 
   // IF = 140MHz.
 
