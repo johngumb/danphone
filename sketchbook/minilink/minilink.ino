@@ -538,7 +538,7 @@ void max147_read_onboard(void)
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
-  int v1;
+  int rxtxlockdet;
   uint8_t j=0;
 
 #if 0
@@ -546,12 +546,12 @@ void loop() {
 #else
   latch(TOPOE, LOW); // disable output
  
-  v1=digitalRead(IN1);
+  rxtxlockdet=digitalRead(IN1);
 
   // update messages as we update FPGA code
   Serial.print("Rx Lock AND Tx Lock ");
-  Serial.println(v1);
-  if (!v1)
+  Serial.println(rxtxlockdet);
+  if (!rxtxlockdet)
     Serial.print("Rx Lock AND Tx Lock FAIL UNLOCKED!!");
 //  Serial.print("PA Alarm ");
 //  Serial.println(v2);
