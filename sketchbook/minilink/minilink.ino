@@ -92,8 +92,6 @@ void ad5318_dac_write(uint8_t dacno, uint16_t val);
 void decode_flags(uint16_t flags);
 void decode_almflags(uint16_t almflags);
 
-static uint8_t counter=0;
-
 void setup()
 {
   // put your setup code here, to run once:
@@ -153,6 +151,24 @@ void latchselect(unsigned char latchid, unsigned char device)
 void latch(unsigned char oe, int level)
 {
   digitalWrite(oe, level);
+}
+
+void pulsebithigh(uint8_t line)
+{
+  digitalWrite(line, LOW);
+  digitalWrite(line, HIGH);
+  digitalWrite(line, LOW);
+}
+
+void write3_with_cs(uint8_t v1, uint8_t v2, uint8_t v3, uint8_t chipsel)
+{
+  // assumes -ve sense latch
+   latch(chipsel, HIGH);
+   latch(chipsel, LOW);
+   SPI.transfer(v1);
+   SPI.transfer(v2);
+   SPI.transfer(v3);
+   latch(chipsel, HIGH);
 }
 
 void write3rfboard(unsigned char v1, unsigned char v2, unsigned char v3)
@@ -422,25 +438,11 @@ void adf4360stat()
 void adf4360()
 {
   Serial.println("adf4360");
-  // ADF4360
 
-  latchselect(SRLATCH, 0xFF);  // prevents rx synth getting trashed - TODO
-
-  latch(ADF4360LATCH, LOW);
-
-  delay(1);
-  write3rfboard(0x81, 0xF1, 0x28);
-  latch(ADF4360LATCH, HIGH);
-  latch(ADF4360LATCH, LOW);
-  write3rfboard(0x00, 0x08, 0x21); // stock R value
-  latch(ADF4360LATCH, HIGH);
-  latch(ADF4360LATCH, LOW);
-  write3rfboard(0x08, 0xCA, 0x02); // 1.8GHz 1048.4
-  //write3rfboard(0x07, 0x40, 0x22); // stock A B N // 643.483, 1485MHz
-
-  delay(1);
-
-  latch(ADF4360LATCH, HIGH);
+  write3_with_cs(0x81, 0xF1, 0x28, ADF4360LATCH);
+  write3_with_cs(0x00, 0x08, 0x21, ADF4360LATCH); // stock R value
+  write3_with_cs(0x08, 0xCA, 0x02, ADF4360LATCH); // 1.8GHz 1048.4
+  //write3_with_cs(0x07, 0x40, 0x22, ADF4360LATCH); // stock A B N // 643.483, 1485MHz
 }
 
 void ad5318_dac_init(void)
@@ -549,6 +551,8 @@ void loop() {
   // update messages as we update FPGA code
   Serial.print("Rx Lock AND Tx Lock ");
   Serial.println(v1);
+  if (!v1)
+    Serial.print("Rx Lock AND Tx Lock FAIL UNLOCKED!!");
 //  Serial.print("PA Alarm ");
 //  Serial.println(v2);
 
