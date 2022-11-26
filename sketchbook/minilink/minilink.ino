@@ -22,6 +22,7 @@
 #define LED 13
 
 #define ADF4360STAT GREENWHITE
+#define ADF4360LATCH WHITE
 
 #define LATCHDEF(_x) ((uint8_t)(~(1<<_x)))
 #define TXLATCH          LATCHDEF(0)
@@ -116,6 +117,8 @@ void setup()
 
   pinMode(ADF4360STAT, INPUT);
 
+  pinMode(ADF4360LATCH, OUTPUT);
+
   //pinMode(DATA, OUTPUT);
   //pinMode(LED, OUTPUT);
 
@@ -134,6 +137,8 @@ void setup()
 
   write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
+
+  digitalWrite(ADF4360LATCH, HIGH);
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -418,21 +423,24 @@ void adf4360()
 {
   Serial.println("adf4360");
   // ADF4360
-  latchselect(SRLATCH, 0xFF); // when SROE goes high below, ensure no latches are visible
 
-  // HACK re-use SROE as latch for ADF4360. Avoid unwanted transitions by teaming
-  // this signal with SRLATCH
-  digitalWrite(SRLATCH, LOW);  // SRLATCH must be high in FPGA for SROE to act as adf4360 LE signal
+  latchselect(SRLATCH, 0xFF);  // prevents rx synth getting trashed - TODO
 
-  latch(SROE, HIGH);
+  latch(ADF4360LATCH, LOW);
+
+  delay(1);
   write3(0x81, 0xF1, 0x28);
+  latch(ADF4360LATCH, HIGH);
+  latch(ADF4360LATCH, LOW);
   write3(0x00, 0x08, 0x21); // stock R value
+  latch(ADF4360LATCH, HIGH);
+  latch(ADF4360LATCH, LOW);
   write3(0x08, 0xCA, 0x02); // 1.8GHz 1048.4
   //write3(0x07, 0x40, 0x22); // stock A B N // 643.483, 1485MHz
 
-  latch(SROE, LOW);
+  delay(1);
 
-  latchselect(SRLATCH, 0xFF);
+  latch(ADF4360LATCH, HIGH);
 }
 
 void ad5318_dac_init(void)
@@ -521,7 +529,7 @@ void max147_read_onboard(void)
   Serial.print("max147 chan ");
   Serial.print(chan);
   Serial.print(" ");
-  Serial.println(result, HEX);
+  Serial.println(result);
   }
 }
 
@@ -531,8 +539,9 @@ void loop() {
   int v1;
   uint8_t j=0;
 
-  //max147_read_onboard();
-#if 1
+#if 0
+  max147_read_onboard();
+#else
   latch(TOPOE, LOW); // disable output
  
   v1=digitalRead(IN1);
