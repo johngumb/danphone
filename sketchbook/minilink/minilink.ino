@@ -101,7 +101,7 @@ void setup()
 
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
-  SPI.setDataMode(SPI_MODE2); // ??? MODE2 seems to work
+  SPI.setDataMode(SPI_MODE0);
   SPI.setClockDivider(SPI_CLOCK_DIV64);
 
   /* mid right 74LS595 */
@@ -439,7 +439,7 @@ void ad5318_dac_init(void)
 {
   uint16_t ldac_mode=0;
   latchselect(SRLATCH, AD5318_DAC_LATCH);
-  SPI.setDataMode(SPI_MODE3);
+  SPI.setDataMode(SPI_MODE1);
 
   // reset
   latch(SROE, HIGH);
@@ -456,7 +456,7 @@ void ad5318_dac_init(void)
   SPI.transfer16(ldac_mode);
   latch(SROE, LOW);
 
-  SPI.setDataMode(SPI_MODE2);
+  SPI.setDataMode(SPI_MODE0);
 }
 
 void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
@@ -466,13 +466,13 @@ void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
   //Serial.println(dacword,HEX);
   latchselect(SRLATCH, AD5318_DAC_LATCH);
 
-  SPI.setDataMode(SPI_MODE3);
+  SPI.setDataMode(SPI_MODE1);
   latch(SROE, HIGH);
 
   SPI.transfer16(dacword);
   
   latch(SROE, LOW);
-  SPI.setDataMode(SPI_MODE2); 
+  SPI.setDataMode(SPI_MODE0);
 }
 
 void max147_read(void)
@@ -506,7 +506,7 @@ void max147_read_onboard(void)
   uint16_t result;
   uint8_t chan;
 
-  SPI.setDataMode(SPI_MODE2); // ??? MODE2 seems to work
+  SPI.setDataMode(SPI_MODE0);
 
   for (chan=0; (chan<8); chan++)
   {
