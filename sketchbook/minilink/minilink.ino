@@ -500,12 +500,39 @@ void max147_read(void)
   }
 }
 
+void max147_read_onboard(void)
+{
+  uint8_t tb1=0;
+  uint16_t result;
+  uint8_t chan;
+
+  SPI.setDataMode(SPI_MODE2); // ??? MODE2 seems to work
+
+  for (chan=0; (chan<8); chan++)
+  {
+  tb1 = 0x80 + (chan << 4) + 0x0F;
+  latch(SRLATCH, HIGH);
+  SPI.transfer(tb1);
+  result=SPI.transfer16(0);
+  result>>=3;
+
+  latch(SRLATCH, LOW);
+
+  Serial.print("max147 chan ");
+  Serial.print(chan);
+  Serial.print(" ");
+  Serial.println(result, HEX);
+  }
+}
+
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
   int v1;
   uint8_t j=0;
 
+  //max147_read_onboard();
+#if 1
   latch(TOPOE, LOW); // disable output
  
   v1=digitalRead(IN1);
@@ -654,5 +681,6 @@ void loop() {
   write_mesfet_dcc(DCC_PA_LATCH, VH2, VMAX);
 #endif
   adf4360stat();
+#endif
   delay(3000);
 }
