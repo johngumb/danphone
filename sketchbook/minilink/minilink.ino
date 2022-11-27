@@ -77,6 +77,26 @@
 #define HIGH_T1 (1<<1)
 #define LOW_T1  (1<<0)
 
+#define CH0_INTTEMP   (1<<0)
+#define CH1_EXTTEMP1  (1<<1)
+#define CH2_SENS1     (1<<2)
+#define CH3_DACCODE1  (1<<3)
+#define CH4_GATE1     (1<<4)
+#define CH5_ADCIN1    (1<<5)
+#define CH6_EXTTEMP2  (1<<6)
+#define CH7_SENS2     (1<<7)
+#define CH8_DACCODE2  (1<<8)
+#define CH9_GATE2     (1<<9)
+#define CH10_ADCIN2   (1<<10)
+
+#define PA_ADCCON1_VAL (CH2_SENS1|CH3_DACCODE1|CH4_GATE1|CH5_ADCIN1)
+#define PA_ADCCON2_VAL (CH7_SENS2|CH8_DACCODE2|CH9_GATE2|CH10_ADCIN2)
+#define PA_ADCCON_VAL (CH0_INTTEMP|PA_ADCCON1_VAL|PA_ADCCON2_VAL)
+
+#define DRV_ADCCON1_VAL (CH2_SENS1|CH3_DACCODE1|CH4_GATE1|CH5_ADCIN1)
+#define DRV_ADCCON2_VAL (CH7_SENS2|CH8_DACCODE2|CH9_GATE2|CH10_ADCIN2)
+#define DRV_ADCCON_VAL (CH0_INTTEMP|DRV_ADCCON1_VAL|DRV_ADCCON2_VAL)
+
 /* MAX11014 FLAGs */
 #define RESTART (1<<6)
 #define ALUBUSY (1<<5)
@@ -175,7 +195,7 @@ void Multiplexer::synchronise()
   while(!do_synchronise())
   {
     Serial.println("FAILED TO SYNC");
-    delay(1000);
+    delay(10000);
   }
 
   m_synchronised=true;
@@ -249,8 +269,8 @@ void setup()
 
   init_mesfet_dcc(DCC_PA_LATCH, 0, 0x200);
 
-  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
-  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
+  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, DRV_ADCCON_VAL);
+  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, PA_ADCCON_VAL);
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -748,7 +768,7 @@ void loop() {
   ad5318_onboard_dac_write(0, 2113);
   ad5318_onboard_dac_write(1, 2425);
   ad5318_onboard_dac_write(2, 0);
-  ad5318_onboard_dac_write(3, 280); // 0.696V
+  ad5318_onboard_dac_write(3, 280); // 0.696V == 280
   ad5318_onboard_dac_write(4, 2000);
   ad5318_onboard_dac_write(5, 58); // 0.151V
   ad5318_onboard_dac_write(6, 2048);
@@ -819,11 +839,11 @@ void loop() {
   ad5318_dac_write(1,300);
 
   Serial.println("hipwr");
-  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
-  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
+  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, DRV_ADCCON_VAL);
+  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, PA_ADCCON_VAL);
   drain_mesfet_fifo(DCC_PA_LATCH);
-  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
-  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
+  write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, DRV_ADCCON_VAL);
+  write_mesfet_dcc(DCC_PA_LATCH, ADCCON, PA_ADCCON_VAL);
 
   max147_read();
   max147_read_onboard();
@@ -887,8 +907,8 @@ void loop() {
   }
 #endif
 
-  //write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
-  //write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
+  //write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, DRV_ADCCON_VAL);
+  //write_mesfet_dcc(DCC_PA_LATCH, ADCCON, DRV_ADCCON_VAL);
 
   Serial.println("driverflags");
   drain_mesfet_fifo(DCC_DRIVER_LATCH);
