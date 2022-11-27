@@ -113,10 +113,10 @@ typedef enum
   SS_AD5318,
   SS_LOOPBACK=255} ssentry_t;
   
-class LineSync
+class Multiplexer
 {
 public:
-  LineSync();
+  Multiplexer();
   void synchronise();
   void select_subsystem(ssentry_t);
 private:
@@ -125,7 +125,7 @@ private:
   uint8_t m_state=0;
 };   
 
-LineSync::LineSync()
+Multiplexer::Multiplexer()
 {
   m_lines[0]=SS_RFBOARD;
   m_lines[1]=SS_MAX147;
@@ -134,7 +134,7 @@ LineSync::LineSync()
   m_lines[MAX_SUBSYSTEMS-1]=SS_LOOPBACK;
 }
 
-uint8_t LineSync::find_subsystem_idx(ssentry_t ss)
+uint8_t Multiplexer::find_subsystem_idx(ssentry_t ss)
 {
   for (uint8_t i=0; (i<MAX_SUBSYSTEMS); i++)
     if (m_lines[i]==ss)
@@ -142,7 +142,7 @@ uint8_t LineSync::find_subsystem_idx(ssentry_t ss)
   return MAX_SUBSYSTEMS; // failure
 }
 
-void LineSync::select_subsystem(ssentry_t ss)
+void Multiplexer::select_subsystem(ssentry_t ss)
 {
   uint8_t entry=find_subsystem_idx(ss);
   uint8_t clicks;
@@ -168,7 +168,7 @@ void LineSync::select_subsystem(ssentry_t ss)
   }
 }
 
-void LineSync::synchronise()
+void Multiplexer::synchronise()
 {
   int j;
   uint16_t readback=0;
@@ -196,7 +196,7 @@ void LineSync::synchronise()
   }
 }
 
-LineSync g_line_sync;
+Multiplexer g_multiplexer;
 
 void setup()
 {
@@ -234,7 +234,7 @@ void setup()
   digitalWrite(SROE, LOW);
   digitalWrite(TOPOE, LOW); // goes through 4049 inverter directly onto top 74HC595 RCLK
 
-  g_line_sync.synchronise();
+  g_multiplexer.synchronise();
 
   ad5318_dac_init();
 
@@ -547,7 +547,7 @@ void adf4360stat()
 void adf4360()
 {
   Serial.println("adf4360");
-  g_line_sync.select_subsystem(SS_ADF4360);
+  g_multiplexer.select_subsystem(SS_ADF4360);
   
   write3_with_cs(0x81, 0xF1, 0x28, ADF4360LATCH);
   write3_with_cs(0x00, 0x08, 0x21, ADF4360LATCH); // stock R value
@@ -652,12 +652,12 @@ void loop() {
   int rxtxlockdet;
   uint8_t j=0;
 
-  g_line_sync.synchronise();
-  g_line_sync.select_subsystem(SS_MAX147);
+  g_multiplexer.synchronise();
+  g_multiplexer.select_subsystem(SS_MAX147);
 
   max147_read_onboard();
 
-  g_line_sync.select_subsystem(SS_RFBOARD);
+  g_multiplexer.select_subsystem(SS_RFBOARD);
 
   latch(TOPOE, LOW); // disable output
  
@@ -696,7 +696,7 @@ void loop() {
 
   // tx input upconverter
   adf4360();
-  g_line_sync.select_subsystem(SS_RFBOARD);
+  g_multiplexer.select_subsystem(SS_RFBOARD);
   delay(10);
   adf4360stat();
 
