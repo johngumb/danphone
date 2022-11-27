@@ -22,7 +22,7 @@
 #define LED 13
 
 #define ADF4360STAT GREENWHITE
-#define ADF4360LATCH WHITE
+#define ADF4360LATCH SRLATCH
 
 #define LATCHDEF(_x) ((uint8_t)(~(1<<_x)))
 #define TXLATCH          LATCHDEF(0)
@@ -92,6 +92,107 @@ void ad5318_dac_write(uint8_t dacno, uint16_t val);
 void decode_flags(uint16_t flags);
 void decode_almflags(uint16_t almflags);
 
+void pulsebithigh(uint8_t signal, int delay);
+
+#define MAX_SUBSYSTEMS 4
+#define LOOPBACK 0xFF
+typedef enum
+{ SS_RFBOARD=1,
+  SS_MAX147,
+  SS_ADF4360,
+  SS_AD5318,
+  SS_LOOPBACK=255} ssentry_t;
+  
+class LineSync
+{
+public:
+  LineSync();
+  void synchronise();
+  uint8_t state() const;
+  void select_subsystem(ssentry_t);
+private:
+  uint8_t find_subsystem_idx(ssentry_t);
+  ssentry_t m_lines[MAX_SUBSYSTEMS];
+  uint8_t m_state=0;
+};   
+
+LineSync::LineSync()
+{
+  m_lines[0]=SS_RFBOARD;
+  m_lines[1]=SS_MAX147;
+  m_lines[2]=SS_ADF4360;
+  m_lines[3]=SS_LOOPBACK;
+}
+
+uint8_t LineSync::find_subsystem_idx(ssentry_t ss)
+{
+  for (uint8_t i=0; (i<MAX_SUBSYSTEMS); i++)
+    if (m_lines[i]==ss)
+      return i;
+  return MAX_SUBSYSTEMS; // failure
+}
+
+#define ssdiff(_x,_y) (((_x-_y) + MAX_SUBSYSTEMS) % MAX_SUBSYSTEMS)
+void LineSync::select_subsystem(ssentry_t ss)
+{
+  uint8_t entry=find_subsystem_idx(ss);
+  uint8_t clicks;
+
+  if (entry==MAX_SUBSYSTEMS)
+  {
+    Serial.println("NOT FOUND");
+    return;
+  }
+
+  Serial.print("entry ");
+  Serial.println(entry);
+  Serial.print("state ");
+  Serial.println(m_state);
+  clicks=ssdiff(entry, m_state);
+  if (clicks==0)
+    return;
+  Serial.print("clicks ");
+  Serial.println(clicks);
+
+  for (int i=0; (i<clicks); i++)
+  {
+    pulsebithigh(WHITE,0);
+    m_state += 1;
+  }
+
+  m_state %= MAX_SUBSYSTEMS;
+}
+
+void LineSync::synchronise()
+{
+  int j;
+  uint16_t readback=0;
+  const uint8_t maxloop=(MAX_SUBSYSTEMS*2);
+  
+#define TESTPATTERN 0xBBBB
+
+  for (j=0; (j<maxloop); j++)
+  {
+    pulsebithigh(WHITE, 0);
+
+    if (readback==TESTPATTERN)
+      break;
+
+    readback=SPI.transfer16(TESTPATTERN);
+  }
+
+  if (j==maxloop)
+  {
+    while(1)
+    {
+      Serial.println("FAILED TO SYNC");
+      delay(1000);
+    }
+  }
+}
+
+LineSync g_line_sync;
+
 void setup()
 {
   // put your setup code here, to run once:
@@ -117,6 +218,8 @@ void setup()
 
   pinMode(ADF4360LATCH, OUTPUT);
 
+  pinMode(WHITE, OUTPUT);
+
   //pinMode(DATA, OUTPUT);
   //pinMode(LED, OUTPUT);
 
@@ -125,6 +228,8 @@ void setup()
 
   digitalWrite(SROE, LOW);
   digitalWrite(TOPOE, LOW); // goes through 4049 inverter directly onto top 74HC595 RCLK
+
+  g_line_sync.synchronise();
 
   ad5318_dac_init();
 
@@ -135,8 +240,6 @@ void setup()
 
   write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
-
-  digitalWrite(ADF4360LATCH, HIGH);
 }
 
 void latchselect(unsigned char latchid, unsigned char device)
@@ -153,11 +256,12 @@ void latch(unsigned char oe, int level)
   digitalWrite(oe, level);
 }
 
-void pulsebithigh(uint8_t line)
+void pulsebithigh(uint8_t line, int del)
 {
   digitalWrite(line, LOW);
   digitalWrite(line, HIGH);
   digitalWrite(line, LOW);
+  delay(del);
 }
 
 void write3_with_cs(uint8_t v1, uint8_t v2, uint8_t v3, uint8_t chipsel)
@@ -438,7 +542,8 @@ void adf4360stat()
 void adf4360()
 {
   Serial.println("adf4360");
-
+  g_line_sync.select_subsystem(SS_ADF4360);
+  
   write3_with_cs(0x81, 0xF1, 0x28, ADF4360LATCH);
   write3_with_cs(0x00, 0x08, 0x21, ADF4360LATCH); // stock R value
   write3_with_cs(0x08, 0xCA, 0x02, ADF4360LATCH); // 1.8GHz 1048.4
@@ -516,6 +621,7 @@ void max147_read_onboard(void)
   uint16_t result;
   uint8_t chan;
 
+  Serial.println("max147_read_onboard");
   SPI.setDataMode(SPI_MODE0);
 
   for (chan=0; (chan<8); chan++)
@@ -541,9 +647,13 @@ void loop() {
   int rxtxlockdet;
   uint8_t j=0;
 
-#if 0
+  g_line_sync.synchronise();
+  g_line_sync.select_subsystem(SS_MAX147);
+
   max147_read_onboard();
-#else
+
+  g_line_sync.select_subsystem(SS_RFBOARD);
+
   latch(TOPOE, LOW); // disable output
  
   rxtxlockdet=digitalRead(IN1);
@@ -581,6 +691,7 @@ void loop() {
 
   // tx input upconverter
   adf4360();
+  g_line_sync.select_subsystem(SS_RFBOARD);
   delay(10);
   adf4360stat();
 
@@ -693,7 +804,8 @@ void loop() {
   write_mesfet_dcc(DCC_PA_LATCH, IH2, IMAX);
   write_mesfet_dcc(DCC_PA_LATCH, VH2, VMAX);
 #endif
+
   adf4360stat();
-#endif
+
   delay(3000);
 }
