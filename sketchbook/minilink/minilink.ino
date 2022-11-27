@@ -553,6 +553,8 @@ void adf4360()
   write3_with_cs(0x00, 0x08, 0x21, ADF4360LATCH); // stock R value
   write3_with_cs(0x08, 0xCA, 0x02, ADF4360LATCH); // 1.8GHz 1048.4
   //write3_with_cs(0x07, 0x40, 0x22, ADF4360LATCH); // stock A B N // 643.483, 1485MHz
+
+  g_multiplexer.select_subsystem(SS_RFBOARD);
 }
 
 void ad5318_dac_init(void)
@@ -626,8 +628,9 @@ void max147_read_onboard(void)
   uint16_t result;
   uint8_t chan;
 
+  g_multiplexer.select_subsystem(SS_MAX147);
+
   Serial.println("max147_read_onboard");
-  SPI.setDataMode(SPI_MODE0);
 
   for (chan=0; (chan<8); chan++)
   {
@@ -644,6 +647,9 @@ void max147_read_onboard(void)
   Serial.print(" ");
   Serial.println(result);
   }
+
+  g_multiplexer.select_subsystem(SS_RFBOARD);
+
 }
 
 void loop() {
@@ -653,7 +659,6 @@ void loop() {
   uint8_t j=0;
 
   g_multiplexer.synchronise();
-  g_multiplexer.select_subsystem(SS_MAX147);
 
   max147_read_onboard();
 
@@ -696,7 +701,6 @@ void loop() {
 
   // tx input upconverter
   adf4360();
-  g_multiplexer.select_subsystem(SS_RFBOARD);
   delay(10);
   adf4360stat();
 
@@ -713,7 +717,6 @@ void loop() {
   // 120 -0.55
   // 300 -1.42
   
-#if 1
 // 300 is good - 10dB between 300 and 100.
   ad5318_dac_write(0,300);
 
@@ -729,6 +732,8 @@ void loop() {
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
 
   max147_read();
+  max147_read_onboard();
+
 #define DACDEF 0
 
   //ad5318_dac_write(2,DACDEF);
@@ -753,6 +758,7 @@ void loop() {
 
   Serial.println("lopwr");
   max147_read();
+  max147_read_onboard();
 
 #define DACDEF2 1
 
@@ -767,8 +773,7 @@ void loop() {
   //ad5318_dac_write(6,DACDEF2); // increasing value causes signal drop?
 
   //ad5318_dac_write(7,DACDEF2);
-  
-#endif
+
   drain_mesfet_fifo(DCC_PA_LATCH);
   delay(5000);
 
@@ -788,7 +793,6 @@ void loop() {
   }
 #endif
 
-#if 1
   //write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, 0x7FF);
   //write_mesfet_dcc(DCC_PA_LATCH, ADCCON, 0x7FF);
 
@@ -808,7 +812,6 @@ void loop() {
 
   write_mesfet_dcc(DCC_PA_LATCH, IH2, IMAX);
   write_mesfet_dcc(DCC_PA_LATCH, VH2, VMAX);
-#endif
 
   adf4360stat();
 
