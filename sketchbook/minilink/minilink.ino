@@ -603,6 +603,31 @@ void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
   SPI.setDataMode(SPI_MODE0);
 }
 
+void ad5318_onboard_dac_reset()
+{
+  g_multiplexer.select_subsystem(SS_AD5318);
+
+  SPI.setDataMode(SPI_MODE1);
+
+#if 1
+  latch(SRLATCH, LOW);
+  SPI.transfer16(0xF000);
+  latch(SRLATCH, HIGH);
+  delay(1);
+#endif
+
+  latch(SRLATCH, LOW);
+  SPI.transfer16(0xA000);
+  latch(SRLATCH, HIGH);
+
+  latch(SRLATCH, LOW);
+  SPI.transfer16(0x8003);
+  latch(SRLATCH, HIGH);
+
+  SPI.setDataMode(SPI_MODE0);
+
+  g_multiplexer.select_subsystem(SS_RFBOARD);
+}
 
 void ad5318_onboard_dac_write(uint8_t dacno, uint16_t dacval)
 {
@@ -613,11 +638,12 @@ void ad5318_onboard_dac_write(uint8_t dacno, uint16_t dacval)
   g_multiplexer.select_subsystem(SS_AD5318);
 
   SPI.setDataMode(SPI_MODE1);
+
   latch(SRLATCH, LOW);
-
+  //SPI.transfer16(0x8000);
   SPI.transfer16(dacword);
-
   latch(SRLATCH, HIGH);
+
   SPI.setDataMode(SPI_MODE0);
 
   g_multiplexer.select_subsystem(SS_RFBOARD);
@@ -677,22 +703,57 @@ void max147_read_onboard(void)
   g_multiplexer.select_subsystem(SS_RFBOARD);
 }
 
+int counter;
+
 void loop() {
   // put your main code here, to run repeatedly:
   // pin 11 red wire; data
   int rxtxlockdet;
   uint8_t j=0;
+  int dv;
+
+  counter++;
+  dv=counter*10;
+
+  dbgprint(dv);
 
   g_multiplexer.synchronise();
 
-  //ad5318_onboard_dac_write(0, 1);
-  //ad5318_onboard_dac_write(1, 1);
-  //ad5318_onboard_dac_write(2, 1);
-  //ad5318_onboard_dac_write(3, 1);
-  //ad5318_onboard_dac_write(4, 1);
-  //ad5318_onboard_dac_write(5, 100);
-  //ad5318_onboard_dac_write(6, 100);
-  //ad5318_onboard_dac_write(7, 1);
+  ad5318_onboard_dac_reset();
+
+  // onboard AD5318
+  // ch 0 1.29V (?)
+  // ch 1 1.48V (?)
+  // ch 2 0.01V
+  // ch 3 0.696V rx gain?
+  // VREF ABCD 2.5V
+  // VREF EFGH 2.5V
+  // ch 4 0
+  // ch 5 0.151
+  // ch 6 0
+  // ch 7 0
+#if 0
+  // ch3 is crucial. gain??
+  ad5318_onboard_dac_write(0, 2113);
+  ad5318_onboard_dac_write(1, 2425);
+  ad5318_onboard_dac_write(2, 0);
+  ad5318_onboard_dac_write(3, 280);
+  ad5318_onboard_dac_write(4, 0);
+  ad5318_onboard_dac_write(5, 247);
+  ad5318_onboard_dac_write(6, 0);
+  ad5318_onboard_dac_write(7, 0);
+#endif
+#if 1
+  // ch3 is crucial. rx gain?? set at 280 to get 0.696V
+  ad5318_onboard_dac_write(0, 2113);
+  ad5318_onboard_dac_write(1, 2425);
+  ad5318_onboard_dac_write(2, 0);
+  ad5318_onboard_dac_write(3, 280); // 0.696V
+  ad5318_onboard_dac_write(4, 2000);
+  ad5318_onboard_dac_write(5, 58); // 0.151V
+  ad5318_onboard_dac_write(6, 2048);
+  ad5318_onboard_dac_write(7, 1024);
+#endif
   max147_read_onboard();
 
   g_multiplexer.select_subsystem(SS_RFBOARD);
