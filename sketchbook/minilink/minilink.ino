@@ -1,5 +1,13 @@
 #include <SPI.h>
 
+#define DBG
+
+#ifdef DBG
+#define dbgprint(_x) {Serial.print(#_x); Serial.print(" "); Serial.println(_x);}
+#else
+#define dbgprint(_x)
+#endif
+
 #define ORANGE 8
 #define YELLOW 7
 #define GREEN 6
@@ -9,6 +17,8 @@
 #define GREENWHITE 2
 
 #define IN1 GREEN
+
+#define MULTIPLEXER WHITE
 
 #define SRLATCH ORANGE
 #define SROE YELLOW
@@ -108,7 +118,6 @@ class LineSync
 public:
   LineSync();
   void synchronise();
-  uint8_t state() const;
   void select_subsystem(ssentry_t);
 private:
   uint8_t find_subsystem_idx(ssentry_t);
@@ -132,7 +141,6 @@ uint8_t LineSync::find_subsystem_idx(ssentry_t ss)
   return MAX_SUBSYSTEMS; // failure
 }
 
-#define ssdiff(_x,_y) (((_x-_y) + MAX_SUBSYSTEMS) % MAX_SUBSYSTEMS)
 void LineSync::select_subsystem(ssentry_t ss)
 {
   uint8_t entry=find_subsystem_idx(ss);
@@ -144,23 +152,19 @@ void LineSync::select_subsystem(ssentry_t ss)
     return;
   }
 
-  Serial.print("entry ");
-  Serial.println(entry);
-  Serial.print("state ");
-  Serial.println(m_state);
-  clicks=ssdiff(entry, m_state);
-  if (clicks==0)
-    return;
-  Serial.print("clicks ");
-  Serial.println(clicks);
+  dbgprint(entry);
+  dbgprint(m_state);
+
+  clicks =  ((entry - m_state) + MAX_SUBSYSTEMS) % MAX_SUBSYSTEMS;
+
+  dbgprint(clicks);
 
   for (int i=0; (i<clicks); i++)
   {
-    pulsebithigh(WHITE,0);
+    pulsebithigh(MULTIPLEXER,0);
     m_state += 1;
+    m_state %= MAX_SUBSYSTEMS;
   }
-
-  m_state %= MAX_SUBSYSTEMS;
 }
 
 void LineSync::synchronise()
@@ -173,7 +177,7 @@ void LineSync::synchronise()
 
   for (j=0; (j<maxloop); j++)
   {
-    pulsebithigh(WHITE, 0);
+    pulsebithigh(MULTIPLEXER, 0);
 
     if (readback==TESTPATTERN)
       break;
@@ -218,7 +222,7 @@ void setup()
 
   pinMode(ADF4360LATCH, OUTPUT);
 
-  pinMode(WHITE, OUTPUT);
+  pinMode(MULTIPLEXER, OUTPUT);
 
   //pinMode(DATA, OUTPUT);
   //pinMode(LED, OUTPUT);
