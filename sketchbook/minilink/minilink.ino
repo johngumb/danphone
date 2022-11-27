@@ -120,9 +120,11 @@ public:
   void synchronise();
   void select_subsystem(ssentry_t);
 private:
+  bool do_synchronise() const;
   uint8_t find_subsystem_idx(ssentry_t);
   ssentry_t m_lines[MAX_SUBSYSTEMS];
   uint8_t m_state=0;
+  bool m_synchronised=false;
 };   
 
 Multiplexer::Multiplexer()
@@ -170,11 +172,22 @@ void Multiplexer::select_subsystem(ssentry_t ss)
 
 void Multiplexer::synchronise()
 {
+  while(!do_synchronise())
+  {
+    Serial.println("FAILED TO SYNC");
+    delay(1000);
+  }
+
+  m_synchronised=true;
+}
+
+bool Multiplexer::do_synchronise() const
+{
   int j;
   uint16_t readback=0;
   const uint8_t maxloop=(MAX_SUBSYSTEMS*2);
   
-#define TESTPATTERN 0xBBBB
+#define TESTPATTERN 0xBAAD
 
   for (j=0; (j<maxloop); j++)
   {
@@ -186,14 +199,7 @@ void Multiplexer::synchronise()
     readback=SPI.transfer16(TESTPATTERN);
   }
 
-  if (j==maxloop)
-  {
-    while(1)
-    {
-      Serial.println("FAILED TO SYNC");
-      delay(1000);
-    }
-  }
+  return not (j==maxloop);
 }
 
 Multiplexer g_multiplexer;
@@ -597,6 +603,26 @@ void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
   SPI.setDataMode(SPI_MODE0);
 }
 
+
+void ad5318_onboard_dac_write(uint8_t dacno, uint16_t dacval)
+{
+  uint16_t dacword;
+  dacword = (dacno << 12) + (dacval << 2);
+  //Serial.println(dacword,HEX);
+
+  g_multiplexer.select_subsystem(SS_AD5318);
+
+  SPI.setDataMode(SPI_MODE1);
+  latch(SRLATCH, LOW);
+
+  SPI.transfer16(dacword);
+
+  latch(SRLATCH, HIGH);
+  SPI.setDataMode(SPI_MODE0);
+
+  g_multiplexer.select_subsystem(SS_RFBOARD);
+}
+
 void max147_read(void)
 {
   uint8_t tb1=0;
@@ -649,7 +675,6 @@ void max147_read_onboard(void)
   }
 
   g_multiplexer.select_subsystem(SS_RFBOARD);
-
 }
 
 void loop() {
@@ -660,6 +685,14 @@ void loop() {
 
   g_multiplexer.synchronise();
 
+  //ad5318_onboard_dac_write(0, 1);
+  //ad5318_onboard_dac_write(1, 1);
+  //ad5318_onboard_dac_write(2, 1);
+  //ad5318_onboard_dac_write(3, 1);
+  //ad5318_onboard_dac_write(4, 1);
+  //ad5318_onboard_dac_write(5, 100);
+  //ad5318_onboard_dac_write(6, 100);
+  //ad5318_onboard_dac_write(7, 1);
   max147_read_onboard();
 
   g_multiplexer.select_subsystem(SS_RFBOARD);
