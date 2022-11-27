@@ -1,6 +1,6 @@
 #include <SPI.h>
 
-#define DBG
+//#define DBG
 
 #ifdef DBG
 #define dbgprint(_x) {Serial.print(#_x); Serial.print(" "); Serial.println(_x);}
@@ -104,7 +104,7 @@ void decode_almflags(uint16_t almflags);
 
 void pulsebithigh(uint8_t signal, int delay);
 
-#define MAX_SUBSYSTEMS 4
+#define MAX_SUBSYSTEMS 8
 #define LOOPBACK 0xFF
 typedef enum
 { SS_RFBOARD=1,
@@ -130,7 +130,8 @@ LineSync::LineSync()
   m_lines[0]=SS_RFBOARD;
   m_lines[1]=SS_MAX147;
   m_lines[2]=SS_ADF4360;
-  m_lines[3]=SS_LOOPBACK;
+  m_lines[3]=SS_AD5318;
+  m_lines[MAX_SUBSYSTEMS-1]=SS_LOOPBACK;
 }
 
 uint8_t LineSync::find_subsystem_idx(ssentry_t ss)
