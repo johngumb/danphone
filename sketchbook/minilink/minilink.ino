@@ -854,12 +854,7 @@ void loop() {
   int dv;
   DCC pa_dcc(DCC_PA_LATCH, PA_ADCCON_VAL);
 
-
   g_multiplexer.synchronise();
-
-  Serial.println(pa_dcc.get(0));
-  Serial.println(pa_dcc.get(0));
-  Serial.println(pa_dcc.get(0));
 
   counter++;
   dv=counter*10;
@@ -879,18 +874,7 @@ void loop() {
   // ch 5 0.151
   // ch 6 0
   // ch 7 0
-#if 0
-  // ch3 is crucial. gain??
-  ad5318_onboard_dac_write(0, 531);
-  ad5318_onboard_dac_write(1, 609);
-  ad5318_onboard_dac_write(2, 0);
-  ad5318_onboard_dac_write(3, 285);
-  ad5318_onboard_dac_write(4, 0);
-  ad5318_onboard_dac_write(5, 247);
-  ad5318_onboard_dac_write(6, 0);
-  ad5318_onboard_dac_write(7, 0);
-#endif
-#if 1
+
   // ch3 is crucial. rx gain?? set at 280 to get 0.696V
   ad5318_onboard_dac_write(0, 531);
   ad5318_onboard_dac_write(1, 609);
@@ -900,7 +884,7 @@ void loop() {
   ad5318_onboard_dac_write(5, 55); // 0.151V
   ad5318_onboard_dac_write(6, 0);
   ad5318_onboard_dac_write(7, 0);
-#endif
+
   max147_read_onboard();
 
   g_multiplexer.select_subsystem(SS_RFBOARD);
