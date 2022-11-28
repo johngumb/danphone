@@ -222,6 +222,8 @@ void Multiplexer::synchronise()
     delay(10000);
   }
 
+  m_previous_subsystem=SS_RFBOARD;
+  m_current_subsystem=SS_RFBOARD;
   m_synchronised=true;
 }
 
