@@ -479,8 +479,9 @@ int readfifo(unsigned char dcc_latch)
 {
   unsigned char chan;
   uint16_t val;
-  int result,offset=0;
+  int result;
   int div=1;
+  bool skip=false;
 
   latchselect(SRLATCH, dcc_latch);
   
@@ -491,20 +492,25 @@ int readfifo(unsigned char dcc_latch)
 
   chan=(val&0xF000)>>12;
 
-  if (chan != 15)
+  switch(chan)
+  {
+    case 1:
+    case 6:
+      skip=true;
+  }
+
+  if ((chan != 15) && (!skip))
     Serial.print(dcc_latch_tostr(dcc_latch));
     
   switch(chan)
   {
     case 0:
       Serial.print("Internal temp ");
-      offset=0;
       div=8;
       break;
-//    case 1:
-//      Serial.print("CH1 ext temp ");
-//      offset=0;
-//      break;
+    case 1:
+      //Serial.print("CH1 ext temp ");
+      break;
     case 2:
       Serial.print("CH1 sense voltage ");
       break;
@@ -517,10 +523,9 @@ int readfifo(unsigned char dcc_latch)
     case 5:
       Serial.print("ADCIN1 voltage ");
       break;
-//    case 6:
+    case 6:
 //      Serial.print("CH2 ext temp ");
-//      offset=0;
-//      break;
+      break;
     case 7:
       Serial.print("CH2 sense voltage ");
       break;
@@ -555,7 +560,8 @@ int readfifo(unsigned char dcc_latch)
   }
   else
   {
-    Serial.println((val+offset)/div);
+    if (!skip)
+      Serial.println(val/div);
   }
 
   return chan;
