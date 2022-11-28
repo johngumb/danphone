@@ -89,6 +89,8 @@
 #define CH9_GATE2     9
 #define CH10_ADCIN2   10
 
+#define ADCCON_ITEMS 11
+
 #define P(_x) (1<<_x)
 
 #define PA_ADCCON1_VAL (P(CH1_EXTTEMP1)|P(CH2_SENS1)|P(CH3_DACCODE1)|P(CH4_GATE1)|P(CH5_ADCIN1))
@@ -251,12 +253,13 @@ public:
 private:
   uint8_t processitem();
   void processitems();
+  bool all_valid() const;
   void invalidate();
   void load();
   uint8_t m_latch;
   uint8_t m_adccon;
-  uint16_t m_items[10];
-  bool m_items_valid[10];
+  uint16_t m_items[ADCCON_ITEMS];
+  bool m_items_valid[ADCCON_ITEMS];
 };
 
 DCC::DCC(uint8_t latch, uint8_t adccon)
@@ -286,7 +289,7 @@ uint8_t DCC::processitem()
 
   chan=(val&0xF000)>>12;
 
-  if (chan < 10)
+  if (chan < ADCCON_ITEMS)
   {
     m_items[chan]=val&0xFFF;
     m_items_valid[chan]=true;
@@ -311,13 +314,31 @@ void DCC::processitems()
   g_multiplexer.restoreprev();
 }
 
+bool DCC::all_valid() const
+{
+  for (int i=0; (i<ADCCON_ITEMS); i++)
+  {
+    if (not m_items_valid[i])
+    {
+      Serial.print("INVITEM: ");
+      Serial.println(i);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void DCC::load()
 {
   g_multiplexer.select_subsystem(SS_RFBOARD);
-  invalidate();
+  //invalidate();
   write_mesfet_dcc(m_latch, ADCCON, m_adccon);
   delay(10);
   processitems();
+
+  all_valid();
+
   g_multiplexer.restoreprev();
 }
 
