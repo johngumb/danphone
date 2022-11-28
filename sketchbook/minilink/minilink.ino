@@ -154,8 +154,8 @@ private:
   uint8_t find_subsystem_idx(ssentry_t);
   ssentry_t m_lines[MAX_SUBSYSTEMS];
   uint8_t m_state=0;
-  ssentry_t m_previous_subsystem=0;
-  ssentry_t m_current_subsystem=0;
+  ssentry_t m_previous_subsystem=SS_RFBOARD;
+  ssentry_t m_current_subsystem=SS_RFBOARD;
   bool m_synchronised=false;
 };   
 
@@ -191,6 +191,9 @@ void Multiplexer::select_subsystem(ssentry_t ss)
   dbgprint(m_state);
 
   clicks =  ((entry - m_state) + MAX_SUBSYSTEMS) % MAX_SUBSYSTEMS;
+
+  if (clicks==0)
+    return;
 
   dbgprint(clicks);
 
@@ -712,12 +715,11 @@ void adf4360()
   write3_with_cs(0x08, 0xCA, 0x02, ADF4360LATCH); // 1.8GHz 1048.4
   //write3_with_cs(0x07, 0x40, 0x22, ADF4360LATCH); // stock A B N // 643.483, 1485MHz
 
-  g_multiplexer.select_subsystem(SS_RFBOARD);
+  g_multiplexer.restoreprev();
 }
 
 void ad5318_dac_init(void)
 {
-  uint16_t ldac_mode=0;
   latchselect(SRLATCH, AD5318_DAC_LATCH);
   SPI.setDataMode(SPI_MODE1);
 
@@ -725,15 +727,12 @@ void ad5318_dac_init(void)
   latch(SROE, HIGH);
   SPI.transfer16(0xF000);
   latch(SROE, LOW);
+  delay(1);
 
   // LDAC mode: continuous update ad5308_5318_5328.pdf Table 8.
-  ldac_mode = (0x05 << 13);
-
-  Serial.print("LDAC mode ");
-  Serial.println(ldac_mode, HEX);
 
   latch(SROE, HIGH);
-  SPI.transfer16(ldac_mode);
+  SPI.transfer16(0xA000);
   latch(SROE, LOW);
 
   SPI.setDataMode(SPI_MODE0);
@@ -772,7 +771,7 @@ void ad5318_onboard_dac_reset()
 
   SPI.setDataMode(SPI_MODE0);
 
-  g_multiplexer.select_subsystem(SS_RFBOARD);
+  g_multiplexer.restoreprev();
 }
 
 void ad5318_onboard_dac_write(uint8_t dacno, uint16_t dacval)
@@ -786,13 +785,12 @@ void ad5318_onboard_dac_write(uint8_t dacno, uint16_t dacval)
   SPI.setDataMode(SPI_MODE1);
 
   latch(SRLATCH, LOW);
-  //SPI.transfer16(0x8000);
   SPI.transfer16(dacword);
   latch(SRLATCH, HIGH);
 
   SPI.setDataMode(SPI_MODE0);
 
-  g_multiplexer.select_subsystem(SS_RFBOARD);
+  g_multiplexer.restoreprev();
 }
 
 void max147_read(void)
@@ -861,8 +859,6 @@ void max147_read_onboard(void)
   Serial.print(" ");
   Serial.println(result);
   }
-
-  g_multiplexer.select_subsystem(SS_RFBOARD);
 }
 
 int counter;
@@ -907,8 +903,6 @@ void loop() {
   ad5318_onboard_dac_write(7, 0);
 
   max147_read_onboard();
-
-  g_multiplexer.select_subsystem(SS_RFBOARD);
 
   latch(TOPOE, LOW); // disable output
  
