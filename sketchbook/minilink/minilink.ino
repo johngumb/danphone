@@ -77,25 +77,27 @@
 #define HIGH_T1 (1<<1)
 #define LOW_T1  (1<<0)
 
-#define CH0_INTTEMP   (1<<0)
-#define CH1_EXTTEMP1  (1<<1)
-#define CH2_SENS1     (1<<2)
-#define CH3_DACCODE1  (1<<3)
-#define CH4_GATE1     (1<<4)
-#define CH5_ADCIN1    (1<<5)
-#define CH6_EXTTEMP2  (1<<6)
-#define CH7_SENS2     (1<<7)
-#define CH8_DACCODE2  (1<<8)
-#define CH9_GATE2     (1<<9)
-#define CH10_ADCIN2   (1<<10)
+#define CH0_INTTEMP   0
+#define CH1_EXTTEMP1  1
+#define CH2_SENS1     2
+#define CH3_DACCODE1  3
+#define CH4_GATE1     4
+#define CH5_ADCIN1    5
+#define CH6_EXTTEMP2  6
+#define CH7_SENS2     7
+#define CH8_DACCODE2  8
+#define CH9_GATE2     9
+#define CH10_ADCIN2   10
 
-#define PA_ADCCON1_VAL (CH1_EXTTEMP1|CH2_SENS1|CH3_DACCODE1|CH4_GATE1|CH5_ADCIN1)
-#define PA_ADCCON2_VAL (CH6_EXTTEMP2|CH7_SENS2|CH8_DACCODE2|CH9_GATE2|CH10_ADCIN2)
-#define PA_ADCCON_VAL (CH0_INTTEMP|PA_ADCCON1_VAL|PA_ADCCON2_VAL)
+#define P(_x) (1<<_x)
 
-#define DRV_ADCCON1_VAL (CH1_EXTTEMP1|CH2_SENS1|CH3_DACCODE1|CH4_GATE1|CH5_ADCIN1)
-#define DRV_ADCCON2_VAL (CH6_EXTTEMP2|CH7_SENS2|CH8_DACCODE2|CH9_GATE2|CH10_ADCIN2)
-#define DRV_ADCCON_VAL (CH0_INTTEMP|DRV_ADCCON1_VAL|DRV_ADCCON2_VAL)
+#define PA_ADCCON1_VAL (P(CH1_EXTTEMP1)|P(CH2_SENS1)|P(CH3_DACCODE1)|P(CH4_GATE1)|P(CH5_ADCIN1))
+#define PA_ADCCON2_VAL (P(CH6_EXTTEMP2)|P(CH7_SENS2)|P(CH8_DACCODE2)|P(CH9_GATE2)|P(CH10_ADCIN2))
+#define PA_ADCCON_VAL  (P(CH0_INTTEMP)|PA_ADCCON1_VAL|PA_ADCCON2_VAL)
+
+#define DRV_ADCCON1_VAL (P(CH1_EXTTEMP1)|P(CH2_SENS1)|P(CH3_DACCODE1)|P(CH4_GATE1)|P(CH5_ADCIN1))
+#define DRV_ADCCON2_VAL (P(CH6_EXTTEMP2)|P(CH7_SENS2)|P(CH8_DACCODE2)|P(CH9_GATE2)|P(CH10_ADCIN2))
+#define DRV_ADCCON_VAL  (P(CH0_INTTEMP)|DRV_ADCCON1_VAL|DRV_ADCCON2_VAL)
 
 /* MAX11014 FLAGs */
 #define RESTART (1<<6)
@@ -121,8 +123,13 @@ void ad5318_dac_write(uint8_t dacno, uint16_t val);
 
 void decode_flags(uint16_t flags);
 void decode_almflags(uint16_t almflags);
+void write_mesfet_dcc(uint8_t dcc_latch, uint8_t reg, uint16_t data);
+void drain_mesfet_fifo(uint8_t dcc_latch);
 
 void pulsebithigh(uint8_t signal, int delay);
+
+void latch(uint8_t oe, int level);
+void latchselect(uint8_t latchid, uint8_t device);
 
 #define MAX_SUBSYSTEMS 8
 #define LOOPBACK 0xFF
@@ -139,11 +146,14 @@ public:
   Multiplexer();
   void synchronise();
   void select_subsystem(ssentry_t);
+  void restoreprev();
 private:
   bool do_synchronise() const;
   uint8_t find_subsystem_idx(ssentry_t);
   ssentry_t m_lines[MAX_SUBSYSTEMS];
   uint8_t m_state=0;
+  ssentry_t m_previous_subsystem=0;
+  ssentry_t m_current_subsystem=0;
   bool m_synchronised=false;
 };   
 
@@ -188,6 +198,15 @@ void Multiplexer::select_subsystem(ssentry_t ss)
     m_state += 1;
     m_state %= MAX_SUBSYSTEMS;
   }
+
+  m_previous_subsystem=m_current_subsystem;
+  m_current_subsystem=ss;
+}
+
+void Multiplexer::restoreprev()
+{
+  if (m_previous_subsystem)
+    select_subsystem(m_previous_subsystem);
 }
 
 void Multiplexer::synchronise()
@@ -224,6 +243,78 @@ bool Multiplexer::do_synchronise() const
 
 Multiplexer g_multiplexer;
 
+class DCC
+{
+public:
+  DCC(uint8_t latch, uint8_t adccon);
+  uint8_t loaditem();
+  void load();
+  uint16_t get(uint8_t);
+private:
+  uint8_t m_latch;
+  uint8_t m_adccon;
+  uint16_t m_items[10];
+  bool m_items_valid[10];
+};
+
+DCC::DCC(uint8_t latch, uint8_t adccon)
+{
+  m_latch=latch;
+  m_adccon=adccon;
+  memset(m_items, 0, sizeof(m_items) );
+  memset(m_items_valid, 0, sizeof(m_items_valid));
+}
+
+uint8_t DCC::loaditem()
+{
+  uint8_t chan;
+  uint16_t val;
+
+  latchselect(SRLATCH, m_latch);
+
+  latch(SROE, HIGH);
+  SPI.transfer(FIFO);
+  val=SPI.transfer16(0);
+  latch(SROE, LOW);
+
+  chan=(val&0xF000)>>12;
+
+  if (chan < 10)
+  {
+    m_items[chan]=val&0xFFF;
+    m_items_valid[chan]=true;
+  }
+
+  return chan;
+}
+
+void DCC::load()
+{
+  uint8_t chan;
+
+  g_multiplexer.select_subsystem(SS_RFBOARD);
+
+  chan = loaditem();
+
+  while (!((chan==15) || (chan==14)))
+  {
+    chan=loaditem();
+  }
+
+  g_multiplexer.restoreprev();
+}
+
+uint16_t DCC::get(uint8_t val)
+{
+  g_multiplexer.select_subsystem(SS_RFBOARD);
+  write_mesfet_dcc(m_latch, ADCCON, m_adccon);
+  delay(10);
+  load();
+  g_multiplexer.restoreprev();
+
+  return m_items[val];
+}
+
 void setup()
 {
   // put your setup code here, to run once:
@@ -252,7 +343,7 @@ void setup()
   pinMode(MULTIPLEXER, OUTPUT);
 
   //pinMode(DATA, OUTPUT);
-  //pinMode(LED, OUTPUT);
+  //pinMode(LED, OUTPUT);re
 
   digitalWrite(SRLATCH, HIGH);
   digitalWrite(TOPLATCH, HIGH); // goes through 4049 inverter directly onto top 74HC595 RCLK
@@ -273,7 +364,7 @@ void setup()
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, PA_ADCCON_VAL);
 }
 
-void latchselect(unsigned char latchid, unsigned char device)
+void latchselect(uint8_t latchid, uint8_t device)
 {
   SPI.transfer(device);
 
@@ -282,7 +373,7 @@ void latchselect(unsigned char latchid, unsigned char device)
   digitalWrite(latchid, HIGH);
 }
 
-void latch(unsigned char oe, int level)
+void latch(uint8_t oe, int level)
 {
   digitalWrite(oe, level);
 }
@@ -364,10 +455,10 @@ int readfifo(unsigned char dcc_latch)
       offset=0;
       div=8;
       break;
-    case 1:
-      Serial.print("CH1 ext temp ");
-      offset=0;
-      break;
+//    case 1:
+//      Serial.print("CH1 ext temp ");
+//      offset=0;
+//      break;
     case 2:
       Serial.print("CH1 sense voltage ");
       break;
@@ -380,10 +471,10 @@ int readfifo(unsigned char dcc_latch)
     case 5:
       Serial.print("ADCIN1 voltage ");
       break;
-    case 6:
-      Serial.print("CH2 ext temp ");
-      offset=0;
-      break;
+//    case 6:
+//      Serial.print("CH2 ext temp ");
+//      offset=0;
+//      break;
     case 7:
       Serial.print("CH2 sense voltage ");
       break;
@@ -488,7 +579,7 @@ uint16_t read_flag_reg(unsigned char dcc_latch, uint8_t reg)
   return (val&0xFFF);
 }
 
-void drain_mesfet_fifo(unsigned char dcc_latch)
+void drain_mesfet_fifo(uint8_t dcc_latch)
 {
   int chan;
 
@@ -694,18 +785,18 @@ void max147_read(void)
   }
 }
 
-void max147_read_onboard(void)
+uint16_t rssi()
 {
-  uint8_t tb1=0;
+  return max147_read_onboard_chan(0);
+}
+
+uint16_t max147_read_onboard_chan(uint8_t chan)
+{
   uint16_t result;
-  uint8_t chan;
+  uint8_t tb1=0;
 
   g_multiplexer.select_subsystem(SS_MAX147);
 
-  Serial.println("max147_read_onboard");
-
-  for (chan=0; (chan<8); chan++)
-  {
   tb1 = 0x80 + (chan << 4) + 0x0F;
   latch(SRLATCH, HIGH);
   SPI.transfer(tb1);
@@ -714,6 +805,24 @@ void max147_read_onboard(void)
 
   latch(SRLATCH, LOW);
 
+  g_multiplexer.restoreprev();
+
+  return result;
+}
+
+void max147_read_onboard(void)
+{
+  uint16_t result;
+  uint8_t chan;
+
+
+
+  Serial.println("max147_read_onboard");
+
+  for (chan=0; (chan<8); chan++)
+  {
+
+  result=max147_read_onboard_chan(chan);
   Serial.print("max147 chan ");
   Serial.print(chan);
   Serial.print(" ");
@@ -731,13 +840,19 @@ void loop() {
   int rxtxlockdet;
   uint8_t j=0;
   int dv;
+  DCC pa_dcc(DCC_PA_LATCH, PA_ADCCON_VAL);
+
+
+  g_multiplexer.synchronise();
+
+  Serial.println(pa_dcc.get(0));
+  Serial.println(pa_dcc.get(0));
+  Serial.println(pa_dcc.get(0));
 
   counter++;
   dv=counter*10;
 
   dbgprint(dv);
-
-  g_multiplexer.synchronise();
 
   ad5318_onboard_dac_reset();
 
@@ -818,13 +933,6 @@ void loop() {
   delay(10);
   adf4360stat();
 
-  //latchselect(SRLATCH, RXLATCH);
-  //latch(SROE, HIGH);
-  //delay(10);
-  //latch(SROE, LOW);
-  //delay(100);
-  //delay(500);
-
   // 30 -0.1
   // 60 -0.2
   // 90 -0.4
@@ -842,25 +950,31 @@ void loop() {
   write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, DRV_ADCCON_VAL);
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, PA_ADCCON_VAL);
   drain_mesfet_fifo(DCC_PA_LATCH);
+  drain_mesfet_fifo(DCC_DRIVER_LATCH);
   write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, DRV_ADCCON_VAL);
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, PA_ADCCON_VAL);
 
   max147_read();
   max147_read_onboard();
 
+  Serial.print("RSSI HI ");
+  Serial.println(rssi());
+  Serial.print("ADCIN1 HI ");
+  Serial.println(pa_dcc.get(CH5_ADCIN1));
+
 #define DACDEF 0
 
-  //ad5318_dac_write(2,DACDEF);
+  ad5318_dac_write(2,DACDEF);
 
-  //ad5318_dac_write(3,DACDEF);
+  ad5318_dac_write(3,DACDEF);
 
-  //ad5318_dac_write(4,DACDEF);
+  ad5318_dac_write(4,DACDEF);
 
-  //ad5318_dac_write(5,DACDEF);
+  ad5318_dac_write(5,DACDEF);
 
-  //ad5318_dac_write(6,DACDEF);  // increasing value causes signal drop?
+  ad5318_dac_write(6,DACDEF);  // increasing value causes signal drop?
 
-  //ad5318_dac_write(7,DACDEF);
+  ad5318_dac_write(7,DACDEF);
 
   delay(4000);
 
@@ -874,21 +988,27 @@ void loop() {
   max147_read();
   max147_read_onboard();
 
-#define DACDEF2 1
+#define DACDEF2 100
 
-  //ad5318_dac_write(2,DACDEF2);
+  ad5318_dac_write(2,DACDEF2);
 
-  //ad5318_dac_write(3,DACDEF2);
+  ad5318_dac_write(3,DACDEF2);
 
-  //ad5318_dac_write(4,DACDEF2);
+  ad5318_dac_write(4,DACDEF2);
 
-  //ad5318_dac_write(5,DACDEF2);
+  ad5318_dac_write(5,DACDEF2);
 
-  //ad5318_dac_write(6,DACDEF2); // increasing value causes signal drop?
+  ad5318_dac_write(6,DACDEF2); // increasing value causes signal drop?
 
-  //ad5318_dac_write(7,DACDEF2);
+  ad5318_dac_write(7,DACDEF2);
 
   drain_mesfet_fifo(DCC_PA_LATCH);
+
+  Serial.print("RSSI LO ");
+  Serial.println(rssi());
+  Serial.print("ADCIN1 LO ");
+  Serial.println(pa_dcc.get(CH5_ADCIN1));
+
   delay(5000);
 
   //test
