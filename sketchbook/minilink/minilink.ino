@@ -595,7 +595,7 @@ void ad5318_dac_init(void)
   latch(SROE, LOW);
 
   // LDAC mode: continuous update ad5308_5318_5328.pdf Table 8.
-  ldac_mode = (0x05 << 13) + (0x3FF << 2);
+  ldac_mode = (0x05 << 13);
 
   Serial.print("LDAC mode ");
   Serial.println(ldac_mode, HEX);
