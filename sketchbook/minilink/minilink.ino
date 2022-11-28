@@ -247,10 +247,12 @@ class DCC
 {
 public:
   DCC(uint8_t latch, uint8_t adccon);
-  uint8_t loaditem();
-  void load();
   uint16_t get(uint8_t);
 private:
+  uint8_t processitem();
+  void processitems();
+  void invalidate();
+  void load();
   uint8_t m_latch;
   uint8_t m_adccon;
   uint16_t m_items[10];
@@ -261,11 +263,16 @@ DCC::DCC(uint8_t latch, uint8_t adccon)
 {
   m_latch=latch;
   m_adccon=adccon;
+  invalidate();
+}
+
+void DCC::invalidate()
+{
   memset(m_items, 0, sizeof(m_items) );
   memset(m_items_valid, 0, sizeof(m_items_valid));
 }
 
-uint8_t DCC::loaditem()
+uint8_t DCC::processitem()
 {
   uint8_t chan;
   uint16_t val;
@@ -288,29 +295,42 @@ uint8_t DCC::loaditem()
   return chan;
 }
 
-void DCC::load()
+void DCC::processitems()
 {
   uint8_t chan;
 
   g_multiplexer.select_subsystem(SS_RFBOARD);
 
-  chan = loaditem();
+  chan = processitem();
 
   while (!((chan==15) || (chan==14)))
   {
-    chan=loaditem();
+    chan=processitem();
   }
 
   g_multiplexer.restoreprev();
 }
 
-uint16_t DCC::get(uint8_t val)
+void DCC::load()
 {
   g_multiplexer.select_subsystem(SS_RFBOARD);
+  invalidate();
   write_mesfet_dcc(m_latch, ADCCON, m_adccon);
   delay(10);
-  load();
+  processitems();
   g_multiplexer.restoreprev();
+}
+
+uint16_t DCC::get(uint8_t val)
+{
+  load();
+
+  if (!m_items_valid[val])
+  {
+    Serial.print("INVALID ITEM ");
+    Serial.println(val);
+    return 0;
+  }
 
   return m_items[val];
 }
@@ -720,19 +740,13 @@ void ad5318_onboard_dac_reset()
 
   SPI.setDataMode(SPI_MODE1);
 
-#if 1
   latch(SRLATCH, LOW);
   SPI.transfer16(0xF000);
   latch(SRLATCH, HIGH);
   delay(1);
-#endif
 
   latch(SRLATCH, LOW);
   SPI.transfer16(0xA000);
-  latch(SRLATCH, HIGH);
-
-  latch(SRLATCH, LOW);
-  SPI.transfer16(0x8003);
   latch(SRLATCH, HIGH);
 
   SPI.setDataMode(SPI_MODE0);
@@ -815,8 +829,6 @@ void max147_read_onboard(void)
   uint16_t result;
   uint8_t chan;
 
-
-
   Serial.println("max147_read_onboard");
 
   for (chan=0; (chan<8); chan++)
@@ -857,8 +869,8 @@ void loop() {
   ad5318_onboard_dac_reset();
 
   // onboard AD5318
-  // ch 0 1.29V (?)
-  // ch 1 1.48V (?)
+  // ch 0 1.295V (?)
+  // ch 1 1.486V (?)
   // ch 2 0.01V
   // ch 3 0.696V rx gain?
   // VREF ABCD 2.5V
@@ -869,10 +881,10 @@ void loop() {
   // ch 7 0
 #if 0
   // ch3 is crucial. gain??
-  ad5318_onboard_dac_write(0, 2113);
-  ad5318_onboard_dac_write(1, 2425);
+  ad5318_onboard_dac_write(0, 531);
+  ad5318_onboard_dac_write(1, 609);
   ad5318_onboard_dac_write(2, 0);
-  ad5318_onboard_dac_write(3, 280);
+  ad5318_onboard_dac_write(3, 285);
   ad5318_onboard_dac_write(4, 0);
   ad5318_onboard_dac_write(5, 247);
   ad5318_onboard_dac_write(6, 0);
@@ -880,14 +892,14 @@ void loop() {
 #endif
 #if 1
   // ch3 is crucial. rx gain?? set at 280 to get 0.696V
-  ad5318_onboard_dac_write(0, 2113);
-  ad5318_onboard_dac_write(1, 2425);
+  ad5318_onboard_dac_write(0, 531);
+  ad5318_onboard_dac_write(1, 609);
   ad5318_onboard_dac_write(2, 0);
   ad5318_onboard_dac_write(3, 280); // 0.696V == 280
-  ad5318_onboard_dac_write(4, 2000);
-  ad5318_onboard_dac_write(5, 58); // 0.151V
-  ad5318_onboard_dac_write(6, 2048);
-  ad5318_onboard_dac_write(7, 1024);
+  ad5318_onboard_dac_write(4, 0);
+  ad5318_onboard_dac_write(5, 55); // 0.151V
+  ad5318_onboard_dac_write(6, 0);
+  ad5318_onboard_dac_write(7, 0);
 #endif
   max147_read_onboard();
 
