@@ -322,24 +322,31 @@ void DCC::processitems()
 
 bool DCC::all_valid() const
 {
+  bool result=true;
+
   for (int i=0; (i<ADCCON_ITEMS); i++)
   {
     if (not m_items_valid[i])
     {
       Serial.print("INVITEM: ");
       Serial.println(i);
-      return false;
+      result=false;
     }
   }
 
-  return true;
+  return result;
 }
 
 void DCC::load()
 {
+  int i=0;
   g_multiplexer.select_subsystem(SS_RFBOARD);
+  //invalidate();
   write_mesfet_dcc(m_latch, ADCCON, m_adccon);
-  processitems();
+  for (int i=0; (i<3); i++)
+  {
+    processitems();
+  }
 
   all_valid();
 
@@ -965,12 +972,14 @@ void loop() {
   ad5318_dac_write(1,300);
 
   Serial.println("hipwr");
+#if 1
   write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, DRV_ADCCON_VAL);
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, PA_ADCCON_VAL);
   drain_mesfet_fifo(DCC_PA_LATCH);
   drain_mesfet_fifo(DCC_DRIVER_LATCH);
   write_mesfet_dcc(DCC_DRIVER_LATCH, ADCCON, DRV_ADCCON_VAL);
   write_mesfet_dcc(DCC_PA_LATCH, ADCCON, PA_ADCCON_VAL);
+#endif
 
   max147_read();
   max147_read_onboard();
