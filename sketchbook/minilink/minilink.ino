@@ -1,4 +1,5 @@
 #include <SPI.h>
+#include <assert.h>
 
 //#define DBG
 
@@ -134,6 +135,40 @@ void latch(uint8_t oe, int level);
 void latchselect(uint8_t latchid, uint8_t device);
 void write3rfboard(uint8_t v1, uint8_t v2, uint8_t v3);
 
+
+#define MAXSTACK 10
+
+template <class _T> class Stack
+{
+  public:
+  Stack(){initialise();};
+  _T pop();
+  void push(_T);
+  void initialise();
+  uint8_t entries() const {return m_ptr;}
+
+private:
+  uint8_t m_ptr=0;
+  _T m_store[MAXSTACK];
+};
+
+template <class _T> void Stack<_T>::initialise()
+{
+  m_ptr=0;
+  memset(m_store, 0, sizeof(m_store));
+}
+
+template <class _T> _T Stack<_T>::pop()
+{
+  return m_store[--m_ptr];
+}
+
+template <class _T> void Stack<_T>::push(_T val)
+{
+  assert(m_ptr<MAXSTACK);
+  m_store[++m_ptr]=val;
+}
+
 #define MAX_SUBSYSTEMS 8
 #define LOOPBACK 0xFF
 typedef enum
@@ -142,22 +177,22 @@ typedef enum
   SS_ADF4360,
   SS_AD5318,
   SS_LOOPBACK=255} ssentry_t;
-  
+
 class Multiplexer
 {
 public:
   Multiplexer();
   void synchronise();
   void select_subsystem(ssentry_t);
+  void select_subsystem_save_current(ssentry_t);
   void restoreprev();
 private:
   bool do_synchronise() const;
   uint8_t find_subsystem_idx(ssentry_t);
   ssentry_t m_lines[MAX_SUBSYSTEMS];
   uint8_t m_state=0;
-  ssentry_t m_previous_subsystem=SS_RFBOARD;
-  ssentry_t m_current_subsystem=SS_RFBOARD;
   bool m_synchronised=false;
+  Stack<ssentry_t> m_stack;
 };   
 
 Multiplexer::Multiplexer()
@@ -204,15 +239,23 @@ void Multiplexer::select_subsystem(ssentry_t ss)
     m_state += 1;
     m_state %= MAX_SUBSYSTEMS;
   }
+}
 
-  m_previous_subsystem=m_current_subsystem;
-  m_current_subsystem=ss;
+void Multiplexer::select_subsystem_save_current(ssentry_t ss)
+{
+  select_subsystem(ss);
+  if (m_stack.entries() > 2)
+  {
+    Serial.println("STACK TOO BIG");
+    while(1);
+  }
+
+  m_stack.push(ss);
 }
 
 void Multiplexer::restoreprev()
 {
-  if (m_previous_subsystem)
-    select_subsystem(m_previous_subsystem);
+   select_subsystem(m_stack.pop());
 }
 
 void Multiplexer::synchronise()
@@ -223,8 +266,9 @@ void Multiplexer::synchronise()
     delay(10000);
   }
 
-  m_previous_subsystem=SS_RFBOARD;
-  m_current_subsystem=SS_RFBOARD;
+  m_stack.initialise();
+  select_subsystem_save_current(SS_RFBOARD);
+
   m_synchronised=true;
 }
 
@@ -308,7 +352,7 @@ void DCC::processitems()
 {
   uint8_t chan;
 
-  g_multiplexer.select_subsystem(SS_RFBOARD);
+  g_multiplexer.select_subsystem_save_current(SS_RFBOARD);
 
   chan = processitem();
 
@@ -340,7 +384,7 @@ bool DCC::all_valid() const
 void DCC::load()
 {
   int i=0;
-  g_multiplexer.select_subsystem(SS_RFBOARD);
+  g_multiplexer.select_subsystem_save_current(SS_RFBOARD);
   //invalidate();
   write_mesfet_dcc(m_latch, ADCCON, m_adccon);
   for (int i=0; (i<3); i++)
@@ -722,7 +766,7 @@ void adf4360stat()
 void adf4360()
 {
   Serial.println("adf4360");
-  g_multiplexer.select_subsystem(SS_ADF4360);
+  g_multiplexer.select_subsystem_save_current(SS_ADF4360);
   
   write3_with_cs(0x81, 0xF1, 0x28, ADF4360LATCH);
   write3_with_cs(0x00, 0x08, 0x21, ADF4360LATCH); // stock R value
@@ -770,7 +814,7 @@ void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
 
 void ad5318_onboard_dac_reset()
 {
-  g_multiplexer.select_subsystem(SS_AD5318);
+  g_multiplexer.select_subsystem_save_current(SS_AD5318);
 
   SPI.setDataMode(SPI_MODE1);
 
@@ -794,7 +838,7 @@ void ad5318_onboard_dac_write(uint8_t dacno, uint16_t dacval)
   dacword = (dacno << 12) + (dacval << 2);
   //Serial.println(dacword,HEX);
 
-  g_multiplexer.select_subsystem(SS_AD5318);
+  g_multiplexer.select_subsystem_save_current(SS_AD5318);
 
   SPI.setDataMode(SPI_MODE1);
 
@@ -842,7 +886,7 @@ uint16_t max147_read_onboard_chan(uint8_t chan)
   uint16_t result;
   uint8_t tb1=0;
 
-  g_multiplexer.select_subsystem(SS_MAX147);
+  g_multiplexer.select_subsystem_save_current(SS_MAX147);
 
   tb1 = 0x80 + (chan << 4) + 0x0F;
   latch(SRLATCH, HIGH);
