@@ -170,6 +170,7 @@ template <class _T> void Stack<_T>::push(_T val)
 }
 
 #define MAX_SUBSYSTEMS 8
+#define INVALID_SUBSYSTEM_INDEX MAX_SUBSYSTEMS
 #define LOOPBACK 0xFF
 typedef enum
 { SS_RFBOARD=1,
@@ -209,7 +210,8 @@ uint8_t Multiplexer::find_subsystem_idx(ssentry_t ss)
   for (uint8_t i=0; (i<MAX_SUBSYSTEMS); i++)
     if (m_lines[i]==ss)
       return i;
-  return MAX_SUBSYSTEMS; // failure
+
+  return INVALID_SUBSYSTEM_INDEX;
 }
 
 void Multiplexer::select_subsystem(ssentry_t ss)
@@ -217,7 +219,9 @@ void Multiplexer::select_subsystem(ssentry_t ss)
   uint8_t entry=find_subsystem_idx(ss);
   uint8_t clicks;
 
-  if (entry==MAX_SUBSYSTEMS)
+  assert(m_synchronised);
+
+  if (entry==INVALID_SUBSYSTEM_INDEX)
   {
     Serial.println("NOT FOUND");
     return;
@@ -246,7 +250,9 @@ void Multiplexer::select_subsystem_save_current(ssentry_t ss)
   select_subsystem(ss);
   if (m_stack.entries() > 2)
   {
-    Serial.println("STACK TOO BIG");
+    Serial.print("Requested subsystem ");
+    Serial.print(ss);
+    Serial.println(" STACK TOO BIG");
     while(1);
   }
 
@@ -266,10 +272,10 @@ void Multiplexer::synchronise()
     delay(10000);
   }
 
+  m_synchronised=true;
+
   m_stack.initialise();
   select_subsystem_save_current(SS_RFBOARD);
-
-  m_synchronised=true;
 }
 
 bool Multiplexer::do_synchronise() const
