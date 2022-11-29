@@ -132,6 +132,7 @@ void pulsebithigh(uint8_t signal, int delay);
 
 void latch(uint8_t oe, int level);
 void latchselect(uint8_t latchid, uint8_t device);
+void write3rfboard(uint8_t v1, uint8_t v2, uint8_t v3);
 
 #define MAX_SUBSYSTEMS 8
 #define LOOPBACK 0xFF
@@ -337,9 +338,7 @@ bool DCC::all_valid() const
 void DCC::load()
 {
   g_multiplexer.select_subsystem(SS_RFBOARD);
-  //invalidate();
   write_mesfet_dcc(m_latch, ADCCON, m_adccon);
-  delay(10);
   processitems();
 
   all_valid();
@@ -443,7 +442,7 @@ void write3_with_cs(uint8_t v1, uint8_t v2, uint8_t v3, uint8_t chipsel)
    latch(chipsel, HIGH);
 }
 
-void write3rfboard(unsigned char v1, unsigned char v2, unsigned char v3)
+void write3rfboard(uint8_t v1, uint8_t v2, uint8_t v3)
 {
    latch(SROE, HIGH);
    SPI.transfer(v1);
@@ -452,7 +451,7 @@ void write3rfboard(unsigned char v1, unsigned char v2, unsigned char v3)
    latch(SROE, LOW);
 }
 
-void write_byte_then_short_rfboard(unsigned char byteval, uint16_t val)
+void write_byte_then_short_rfboard(uint8_t byteval, uint16_t val)
 {
    latch(SROE, HIGH);
    SPI.transfer(byteval);
@@ -460,7 +459,7 @@ void write_byte_then_short_rfboard(unsigned char byteval, uint16_t val)
    latch(SROE, LOW);
 }
 
-char *dcc_latch_tostr(unsigned char dcc_latch)
+char *dcc_latch_tostr(uint8_t dcc_latch)
 {
   static char driver[]="driver ";
   static char pa[]="pa ";
@@ -475,9 +474,9 @@ char *dcc_latch_tostr(unsigned char dcc_latch)
   return unknown;
 }
 
-int readfifo(unsigned char dcc_latch)
+int readfifo(uint8_t dcc_latch)
 {
-  unsigned char chan;
+  uint8_t chan;
   uint16_t val;
   int result;
   int div=1;
@@ -617,7 +616,7 @@ void decode_flags(uint16_t flags)
     Serial.println();
 }
 
-uint16_t read_flag_reg(unsigned char dcc_latch, uint8_t reg)
+uint16_t read_flag_reg(uint8_t dcc_latch, uint8_t reg)
 {
   uint16_t val;
 
@@ -650,9 +649,9 @@ void write_mesfet_dcc(uint8_t dcc_latch, uint8_t reg, uint16_t data)
   write_byte_then_short_rfboard(reg, data);
 }
 
-void init_mesfet_dcc(unsigned char dcc_latch, uint16_t chan1dacval, uint16_t chan2dacval)
+void init_mesfet_dcc(uint8_t dcc_latch, uint16_t chan1dacval, uint16_t chan2dacval)
 {
-  unsigned char val1, val2;
+  uint8_t val1, val2;
   Serial.print("init_mesfet_dcc ");
   Serial.println(dcc_latch_tostr(dcc_latch));
 
@@ -870,6 +869,7 @@ void max147_read_onboard(void)
 }
 
 int counter;
+DCC pa_dcc(DCC_PA_LATCH, PA_ADCCON_VAL);
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -877,7 +877,6 @@ void loop() {
   int rxtxlockdet;
   uint8_t j=0;
   int dv;
-  DCC pa_dcc(DCC_PA_LATCH, PA_ADCCON_VAL);
 
   g_multiplexer.synchronise();
 
