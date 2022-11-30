@@ -889,12 +889,12 @@ uint16_t max147_read_onboard_chan(uint8_t chan)
   g_multiplexer.select_subsystem_save_current(SS_MAX147);
 
   tb1 = 0x80 + (chan << 4) + 0x0F;
-  latch(SRLATCH, HIGH);
+  latch(SROE, HIGH);
   SPI.transfer(tb1);
   result=SPI.transfer16(0);
   result>>=3;
 
-  latch(SRLATCH, LOW);
+  latch(SROE, LOW);
 
   g_multiplexer.restoreprev();
 
