@@ -187,6 +187,7 @@ public:
   void select_subsystem(ssentry_t);
   void select_subsystem_save_current(ssentry_t);
   void restoreprev();
+  ssentry_t current_subsystem() const {return m_lines[m_state];};
 private:
   bool do_synchronise() const;
   uint8_t find_subsystem_idx(ssentry_t);
@@ -355,7 +356,7 @@ void DCC::processitems()
 {
   uint8_t chan;
 
-  g_multiplexer.select_subsystem_save_current(SS_RFBOARD);
+  assert(g_multiplexer.current_subsystem()==SS_RFBOARD);
 
   chan = processitem();
 
@@ -363,8 +364,6 @@ void DCC::processitems()
   {
     chan=processitem();
   }
-
-  g_multiplexer.restoreprev();
 }
 
 bool DCC::all_valid() const
@@ -507,6 +506,7 @@ void write3rfboard(uint8_t v1, uint8_t v2, uint8_t v3)
 
 void write_byte_then_short_rfboard(uint8_t byteval, uint16_t val)
 {
+   assert(g_multiplexer.current_subsystem()==SS_RFBOARD);
    latch(SROE, HIGH);
    SPI.transfer(byteval);
    SPI.transfer16(val);
