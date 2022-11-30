@@ -120,7 +120,8 @@
 void adf4360stat();
 void adf4360();
 void max147_read();
-void ad5318_dac_init();
+
+void ad5318_dac_reset(bool);
 void ad5318_dac_write(uint8_t dacno, uint16_t val);
 
 void decode_flags(uint16_t flags);
@@ -451,7 +452,7 @@ void setup()
 
   g_multiplexer.synchronise();
 
-  ad5318_dac_init();
+  ad5318_dac_reset(false);
 
   init_mesfet_dcc(DCC_DRIVER_LATCH, 0, 0x200); // CH2 0x300 does make a difference
                                                    // CH1 0x300 noisier?
@@ -778,31 +779,24 @@ void adf4360()
   g_multiplexer.restoreprev();
 }
 
-void ad5318_dac_init(void)
-{
-  latchselect(SRLATCH, AD5318_DAC_LATCH);
-  SPI.setDataMode(SPI_MODE1);
+#define ad5318_dac_write(_dacno,_dacval) ad5318_dac_write_impl(_dacno,_dacval,false)
+#define ad5318_onboard_dac_write(_dacno,_dacval) ad5318_dac_write_impl(_dacno,_dacval,true)
 
-  // reset
-  latch(SROE, HIGH);
-  SPI.transfer16(0xF000);
-  latch(SROE, LOW);
-
-  // LDAC mode: continuous update ad5308_5318_5328.pdf Table 8.
-
-  latch(SROE, HIGH);
-  SPI.transfer16(0xA000);
-  latch(SROE, LOW);
-
-  SPI.setDataMode(SPI_MODE0);
-}
-
-void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
+void ad5318_dac_write_impl(uint8_t dacno, uint16_t dacval, bool onboard)
 {
   uint16_t dacword=0;
   dacword = (dacno << 12) + (dacval << 2);
   //Serial.println(dacword,HEX);
-  latchselect(SRLATCH, AD5318_DAC_LATCH);
+
+  if (onboard)
+  {
+    g_multiplexer.select_subsystem_save_current(SS_AD5318);
+  }
+  else
+  {
+    g_multiplexer.select_subsystem_save_current(SS_RFBOARD);
+    latchselect(SRLATCH, AD5318_DAC_LATCH);
+  }
 
   SPI.setDataMode(SPI_MODE1);
   latch(SROE, HIGH);
@@ -811,11 +805,21 @@ void ad5318_dac_write(uint8_t dacno, uint16_t dacval)
   
   latch(SROE, LOW);
   SPI.setDataMode(SPI_MODE0);
+
+  g_multiplexer.restoreprev();
 }
 
-void ad5318_onboard_dac_reset()
+void ad5318_dac_reset(bool onboard=false)
 {
-  g_multiplexer.select_subsystem_save_current(SS_AD5318);
+  if (onboard)
+  {
+    g_multiplexer.select_subsystem_save_current(SS_AD5318);
+  }
+  else
+  {
+    g_multiplexer.select_subsystem_save_current(SS_RFBOARD);
+    latchselect(SRLATCH, AD5318_DAC_LATCH);
+  }
 
   SPI.setDataMode(SPI_MODE1);
 
@@ -825,25 +829,6 @@ void ad5318_onboard_dac_reset()
 
   latch(SROE, HIGH);
   SPI.transfer16(0xA000); // LDAC continuous update
-  latch(SROE, LOW);
-
-  SPI.setDataMode(SPI_MODE0);
-
-  g_multiplexer.restoreprev();
-}
-
-void ad5318_onboard_dac_write(uint8_t dacno, uint16_t dacval)
-{
-  uint16_t dacword;
-  dacword = (dacno << 12) + (dacval << 2);
-  //Serial.println(dacword,HEX);
-
-  g_multiplexer.select_subsystem_save_current(SS_AD5318);
-
-  SPI.setDataMode(SPI_MODE1);
-
-  latch(SROE, HIGH);
-  SPI.transfer16(dacword);
   latch(SROE, LOW);
 
   SPI.setDataMode(SPI_MODE0);
@@ -935,7 +920,7 @@ void loop() {
 
   dbgprint(dv);
 
-  ad5318_onboard_dac_reset();
+  ad5318_dac_reset(true);
 
   // onboard AD5318
   // ch 0 1.295V (?)
