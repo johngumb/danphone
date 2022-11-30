@@ -52,7 +52,6 @@
 #define VH2 0x34
 
 #define HCFG 0x38
-#define ALMHCFG 0x3C
 #define THRUDAC1 0x4A
 #define THRUDAC2 0x4E
 #define ADCCON 0x62
@@ -820,13 +819,13 @@ void ad5318_onboard_dac_reset()
 
   SPI.setDataMode(SPI_MODE1);
 
-  latch(SRLATCH, LOW);
+  latch(SROE, HIGH);
   SPI.transfer16(0xF000);  // reset
-  latch(SRLATCH, HIGH);
+  latch(SROE, LOW);
 
-  latch(SRLATCH, LOW);
+  latch(SROE, HIGH);
   SPI.transfer16(0xA000); // LDAC continuous update
-  latch(SRLATCH, HIGH);
+  latch(SROE, LOW);
 
   SPI.setDataMode(SPI_MODE0);
 
@@ -843,9 +842,9 @@ void ad5318_onboard_dac_write(uint8_t dacno, uint16_t dacval)
 
   SPI.setDataMode(SPI_MODE1);
 
-  latch(SRLATCH, LOW);
+  latch(SROE, HIGH);
   SPI.transfer16(dacword);
-  latch(SRLATCH, HIGH);
+  latch(SROE, LOW);
 
   SPI.setDataMode(SPI_MODE0);
 
