@@ -788,7 +788,6 @@ void ad5318_dac_init(void)
   latch(SROE, HIGH);
   SPI.transfer16(0xF000);
   latch(SROE, LOW);
-  delay(1);
 
   // LDAC mode: continuous update ad5308_5318_5328.pdf Table 8.
 
@@ -822,12 +821,11 @@ void ad5318_onboard_dac_reset()
   SPI.setDataMode(SPI_MODE1);
 
   latch(SRLATCH, LOW);
-  SPI.transfer16(0xF000);
+  SPI.transfer16(0xF000);  // reset
   latch(SRLATCH, HIGH);
-  delay(1);
 
   latch(SRLATCH, LOW);
-  SPI.transfer16(0xA000);
+  SPI.transfer16(0xA000); // LDAC continuous update
   latch(SRLATCH, HIGH);
 
   SPI.setDataMode(SPI_MODE0);
@@ -887,7 +885,7 @@ uint16_t rssi()
 uint16_t max147_read_onboard_chan(uint8_t chan)
 {
   uint16_t result;
-  uint8_t tb1=0;
+  uint8_t tb1;
 
   g_multiplexer.select_subsystem_save_current(SS_MAX147);
 
@@ -926,7 +924,6 @@ int counter;
 DCC pa_dcc(DCC_PA_LATCH, PA_ADCCON_VAL);
 
 void loop() {
-  // put your main code here, to run repeatedly:
   // pin 11 red wire; data
   int rxtxlockdet;
   uint8_t j=0;
@@ -1112,6 +1109,7 @@ void loop() {
   drain_mesfet_fifo(DCC_PA_LATCH);
   decode_almflags(read_flag_reg(DCC_PA_LATCH, ALMFLAG));
 
+  // TODO sort this
   //write_mesfet_dcc(DCC_DRIVER_LATCH, SCLR, (1<<4));
   //write_mesfet_dcc(DCC_PA_LATCH, SCLR, (1<<4));
 
