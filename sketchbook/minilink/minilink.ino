@@ -230,10 +230,7 @@ void Multiplexer::select_subsystem(ssentry_t ss)
   dbgprint(entry);
   dbgprint(m_state);
 
-  clicks =  ((entry - m_state) + MAX_SUBSYSTEMS) % MAX_SUBSYSTEMS;
-
-  if (clicks==0)
-    return;
+  clicks = ((entry - m_state) + MAX_SUBSYSTEMS) % MAX_SUBSYSTEMS;
 
   dbgprint(clicks);
 
@@ -445,7 +442,7 @@ void setup()
   pinMode(MULTIPLEXER, OUTPUT);
 
   //pinMode(DATA, OUTPUT);
-  //pinMode(LED, OUTPUT);re
+  //pinMode(LED, OUTPUT);
 
   digitalWrite(SRLATCH, HIGH);
   digitalWrite(TOPLATCH, HIGH); // goes through 4049 inverter directly onto top 74HC595 RCLK
