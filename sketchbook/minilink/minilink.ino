@@ -453,7 +453,8 @@ void setup()
 
   g_multiplexer.synchronise();
 
-  ad5318_dac_reset(false);
+  ad5318_dac_reset(false); // rfboard
+  ad5318_dac_reset(true);  // onboard
 
   init_mesfet_dcc(DCC_DRIVER_LATCH, 0, 0x200); // CH2 0x300 does make a difference
                                                    // CH1 0x300 noisier?
@@ -923,8 +924,6 @@ void loop() {
   dv=counter*10;
 
   dbgprint(dv);
-
-  ad5318_dac_reset(true);
 
   // onboard AD5318
   // ch 0 1.295V (?)
