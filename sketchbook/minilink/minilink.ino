@@ -836,44 +836,25 @@ void ad5318_dac_reset(bool onboard=false)
   g_multiplexer.restoreprev();
 }
 
-void max147_read(void)
-{
-  uint8_t tb1=0;
-  uint16_t result;
-  uint8_t chan;
-
-  latchselect(SRLATCH, MAX147LATCH);
-
-  for (chan=0; (chan<8); chan++)
-  {
-  tb1 = 0x80 + (chan << 4) + 0x0B;
-  latch(SROE, HIGH);
-  SPI.transfer(tb1);
-  result=SPI.transfer16(0);
-  result>>=3;
-
-  latch(SROE, LOW);
-
-  Serial.print("max147 chan ");
-  Serial.print(chan);
-  Serial.print(" ");
-  Serial.println(result);
-  }
-}
-
-uint16_t rssi()
-{
-  return max147_read_onboard_chan(0);
-}
-
-uint16_t max147_read_onboard_chan(uint8_t chan)
+uint16_t max147_read_chan(uint8_t chan, bool onboard=true)
 {
   uint16_t result;
   uint8_t tb1;
+  uint8_t control_nibble;
 
-  g_multiplexer.select_subsystem_save_current(SS_MAX147);
+  if (onboard)
+  {
+    g_multiplexer.select_subsystem_save_current(SS_MAX147);
+    control_nibble=0x0F;  // single ended
+  }
+  else
+  {
+    g_multiplexer.select_subsystem_save_current(SS_RFBOARD);
+    latchselect(SRLATCH, MAX147LATCH);
+    control_nibble=0x0B;  // differential
+  }
 
-  tb1 = 0x80 + (chan << 4) + 0x0F;
+  tb1 = 0x80 + (chan << 4) + control_nibble;
   latch(SROE, HIGH);
   SPI.transfer(tb1);
   result=SPI.transfer16(0);
@@ -886,6 +867,11 @@ uint16_t max147_read_onboard_chan(uint8_t chan)
   return result;
 }
 
+uint16_t rssi()
+{
+  return max147_read_chan(0);
+}
+
 void max147_read_onboard(void)
 {
   uint16_t result;
@@ -896,11 +882,27 @@ void max147_read_onboard(void)
   for (chan=0; (chan<8); chan++)
   {
 
-  result=max147_read_onboard_chan(chan);
+  result=max147_read_chan(chan);
   Serial.print("max147 chan ");
   Serial.print(chan);
   Serial.print(" ");
   Serial.println(result);
+  }
+}
+
+void max147_read(void)
+{
+  uint16_t result;
+  uint8_t chan;
+
+  for (chan=0; (chan<8); chan++)
+  {
+    result=max147_read_chan(chan, false);
+
+    Serial.print("max147 chan ");
+    Serial.print(chan);
+    Serial.print(" ");
+    Serial.println(result);
   }
 }
 
