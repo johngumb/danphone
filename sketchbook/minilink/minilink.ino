@@ -169,9 +169,6 @@ template <class _T> void Stack<_T>::push(_T val)
   m_store[++m_ptr]=val;
 }
 
-#define MAX_SUBSYSTEMS 8
-#define INVALID_SUBSYSTEM_INDEX MAX_SUBSYSTEMS
-#define LOOPBACK 0xFF
 typedef enum
 { SS_RFBOARD=1,
   SS_MAX147,
@@ -188,6 +185,11 @@ public:
   void select_subsystem_save_current(ssentry_t);
   void restoreprev();
   ssentry_t current_subsystem() const {return m_lines[m_state];};
+
+private:
+  const static unsigned int MAX_SUBSYSTEMS=8;
+  const static unsigned int INVALID_SUBSYSTEM_INDEX=MAX_SUBSYSTEMS;
+
 private:
   bool do_synchronise() const;
   uint8_t find_subsystem_idx(ssentry_t);
@@ -960,7 +962,7 @@ void loop() {
 //  Serial.print("PA Alarm ");
 //  Serial.println(v2);
 
-
+  g_multiplexer.select_subsystem(SS_RFBOARD);
   latchselect(SRLATCH, TXLATCH);
   write3rfboard(0x8D, 0x80, 0x12);
   write3rfboard(0x00, 0x01, 0xA0);
