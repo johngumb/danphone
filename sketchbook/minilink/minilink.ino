@@ -192,7 +192,7 @@ private:
 
 private:
   bool do_synchronise() const;
-  uint8_t find_subsystem_idx(ssentry_t);
+  uint8_t find_subsystem_idx(ssentry_t) const;
   ssentry_t m_lines[MAX_SUBSYSTEMS];
   uint8_t m_state=0;
   bool m_synchronised=false;
@@ -208,7 +208,7 @@ Multiplexer::Multiplexer()
   m_lines[MAX_SUBSYSTEMS-1]=SS_LOOPBACK;
 }
 
-uint8_t Multiplexer::find_subsystem_idx(ssentry_t ss)
+uint8_t Multiplexer::find_subsystem_idx(ssentry_t ss) const
 {
   for (uint8_t i=0; (i<MAX_SUBSYSTEMS); i++)
     if (m_lines[i]==ss)
