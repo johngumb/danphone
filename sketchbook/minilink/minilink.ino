@@ -956,7 +956,7 @@ void loop() {
   // update messages as we update FPGA code
   Serial.print("Rx Lock AND Tx Lock ");
   Serial.println(rxtxlockdet);
-  if (!rxtxlockdet)
+  if (rxtxlockdet)
     Serial.print("Rx Lock AND Tx Lock FAIL UNLOCKED!!");
 //  Serial.print("PA Alarm ");
 //  Serial.println(v2);
