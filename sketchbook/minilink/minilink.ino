@@ -852,9 +852,11 @@ uint16_t max147_read_chan(uint8_t chan, bool onboard=true)
   }
   else
   {
+    /* pin1 -> receiver, bottom Y2272 pin 2 */
+    /* pin3 -> receiver, top MRC3303 pin 8 */
     g_multiplexer.select_subsystem_save_current(SS_RFBOARD);
     latchselect(SRLATCH, MAX147LATCH);
-    control_nibble=0x0B;  // differential
+    control_nibble=0x0F;
   }
 
   tb1 = 0x80 + (chan << 4) + control_nibble;
@@ -921,9 +923,10 @@ void loop() {
   g_multiplexer.synchronise();
 
   counter++;
-  dv=counter*10;
+  dv=counter*50;
 
-  dbgprint(dv);
+  Serial.println(dv);
+  //init_mesfet_dcc(DCC_DRIVER_LATCH, dv, 0x300);
 
   // onboard AD5318
   // ch 0 1.295V (?)
@@ -947,6 +950,8 @@ void loop() {
   ad5318_onboard_dac_write(6, 0);
   ad5318_onboard_dac_write(7, 0);
 
+  //ad5318_onboard_dac_write(1,dv);
+
   max147_read_onboard();
 
   latch(TOPOE, LOW); // disable output
@@ -957,7 +962,7 @@ void loop() {
   Serial.print("Rx Lock AND Tx Lock ");
   Serial.println(rxtxlockdet);
   if (rxtxlockdet)
-    Serial.print("Rx Lock AND Tx Lock FAIL UNLOCKED!!");
+    Serial.println("Rx Lock AND Tx Lock FAIL UNLOCKED!!");
 //  Serial.print("PA Alarm ");
 //  Serial.println(v2);
 
@@ -986,7 +991,7 @@ void loop() {
 
   // tx input upconverter
   adf4360();
-  delay(10);
+  delay(1);
   adf4360stat();
 
   // 30 -0.1
