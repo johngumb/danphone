@@ -127,10 +127,12 @@ while true; do
                 # let requesting process know recording has stopped
                 echo ${pid} > ${pernode_fifo}
             elif [ "${first}" == "synchr" ]; then
-                pid=$(echo ${CMD} | awk '{print $NF}')
+                token=$(echo ${CMD} | awk '{print $NF}')
 
-                # let requesting process know we are synchronised
-                echo ${pid} > ${pernode_fifo}
+                # Let requesting process know we are synchronised
+                # by passing back the opaque token from the
+                # synchr request.
+                echo ${token} > ${pernode_fifo}
             else
                 execute_cmd ${expect_success} ${pernode_fifo} "${CMD}"
             fi
