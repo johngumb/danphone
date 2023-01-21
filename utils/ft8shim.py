@@ -13,6 +13,20 @@ import math
 g_valid_bands = ["12m", "10m", "6m","4m", "2m", "70cm"]
 g_transvert_offsets={"12m":116E6, "10m":116E6, "70cm": -288E6}
 
+def find_nearest_freq(requested):
+    mindiff=1000000
+    result = None
+
+    for step in [4000, 5000, 6250, 8000, 10000, 12500]:
+        n = int((requested/step))
+        af = n * step
+        err = requested - af
+        if err < mindiff:
+            mindiff = err
+            result = (af, err)
+
+    return result
+
 def radio_band(band):
     if band in ["12m", "10m", "70cm"]:
         actband = "2m"
@@ -82,13 +96,31 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             del self.server.m_radio_cmd_encoder
             self.server.m_radio_cmd_encoder = None
 
-    def procband(self, band):
+    def setsdrfreq(self, errfreq):
+        fr=int(abs(6000-errfreq))*-1 ##??
+        print(fr)
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        oscmsg = "setOsc %d" % fr
+        sock.sendto(oscmsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
+        sock.close()
+        return
+
+    def procband(self, band, digimode):
         mode = None
         if band in ["12m", "2m", "10m"]:
             if band == "12m":
-                fr = -7000
+                if digimode=="WSPR":
+                    fr = -5330
+                else:
+                    fr = -7000
             else:
-                fr = -8000
+                if digimode=="WSPR":
+                    if band in ["10m"]:
+                        fr = -5330
+                    if band == "2m":
+                        fr = -7000
+                else:
+                    fr = -8000
             mode = "LSB"
         if band in ["4m", "6m"]:
             fr = -4000
@@ -172,7 +204,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             pass
         elif req.find('FR')==0:
             (freqstr,mode,band) = req[2:].split(',')
-            self.procband(band)
+            self.procband(band, mode)
             freq = int(freqstr)
 
             if mode in ["FT8","FT4"]:
@@ -181,11 +213,19 @@ class WsjtxListener(socketserver.BaseRequestHandler):
                 else:
                     freq += 2000
 
-            if mode in ["FT8","FT4"] and band in g_valid_bands:
+            if mode == "WSPR":
+                if band in ["6m"]:
+                    freq += 2000
+                if band in ["2m"]:
+                    freq += 1000
+
+            if mode in ["FT8","FT4","WSPR"] and band in g_valid_bands:
                 # only set freq for FT8/FT4 atm
                 if band in g_transvert_offsets:
                     freq += g_transvert_offsets[band]
 
+                #(f,err)=find_nearest_freq(freq)
+                #self.setsdrfreq(err)
                 radband = radio_band(band)
                 send_dgram_msg_to_radio("setfreq %d" % freq, "/tmp/mui-ext.s.%s" % radband)
 
