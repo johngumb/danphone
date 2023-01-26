@@ -116,6 +116,8 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             if band == "10m":
                 if digimode == "FT4":
                     fr = -6000
+                elif digimode == "WSPR":
+                    fr = -5330
                 else:
                     fr = -8000
             else:
