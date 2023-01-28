@@ -51,7 +51,6 @@ DataEvent, EVT_DATA = wx.lib.newevent.NewEvent()
 ExtSocket = "/tmp/mui-ext.s."
 
 g_display_pin15 = True
-g_gstreamer = False
 
 def stop_extthread(Socket):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -127,12 +126,18 @@ g_pipe = None
 def writefreq(rig):
     global MUTED
 
-    curfreq = rig.m_rig.get_rx_freq()
-
+    # BEWARE some twisted logic here around MUTED to detect
+    # edge when moving from muted to non-muted.
     if MUTED:
+        curfreq = rig.m_rig.get_rx_freq()
+
+        if rig.m_10m_transvert:
+            curfreq -= 116E6
+
         with open(os.path.expanduser("~/lastf"),"a+") as flog:
             print >> flog, "%s %3.4F" % (time.ctime(),(curfreq/1E6))
             flog.close()
+
     return
 
 def sixmetres():
@@ -242,6 +247,9 @@ def mic_disconnect():
     jack_cmd("jack_disconnect system:capture_1 %s:to_slave_1" % g_audioserver)
     return
 
+def gstreamer():
+    return os.path.exists("/tmp/gstreamer")
+
 # TODO fix initial mute state
 # TODO radio might start with signal present.
 def mute(audioserver, expect_success=True):
@@ -249,7 +257,7 @@ def mute(audioserver, expect_success=True):
     if not MUTED:
         cmd=string.join(["jack_disconnect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
 
-        if g_gstreamer:
+        if gstreamer():
             cmd+=";jack_disconnect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
         jack_cmd(cmd, expect_success)
         MUTED = True
@@ -260,7 +268,7 @@ def unmute(audioserver):
     if MUTED:
         cmd=string.join(["jack_connect %s:from_slave_2 system:playback_%d" % (audioserver, i) for i in [1,2]],' ; ')
 
-        if g_gstreamer:
+        if gstreamer():
             cmd+=";jack_connect %s:from_slave_2 gst-launch-1.0:in_jackaudiosrc0_2" % audioserver
         jack_cmd(cmd)
         MUTED = False
@@ -294,7 +302,7 @@ class ScanTimer(wx.Timer):
             i = 0
             if True:
                 while f < 145.79:
-                    if i != 3: # avoid 146.6375 DMR
+                    if not i in [3,14]: # avoid 146.6375 DMR
                         freqs.append(f)
                         freqs.append(145.5)
                     f += 0.0125
@@ -304,7 +312,7 @@ class ScanTimer(wx.Timer):
             #
             # bold assumption we're 4 metres
             #
-            self.m_freqs = [70.45, 70.425, 70.475, 70.45, 70.4, 70.45, 70.375]
+            self.m_freqs = [70.45, 70.425, 70.475, 70.45, 70.4, 70.45, 70.375, 70.4375, 70.45, 70.4125, 70.4875, 70.3875]
 
         return
 
@@ -633,8 +641,12 @@ class MyFrame(wx.Frame):
             self.m_devid=("cli",("skate",2217))
             self.m_rig.set_ctcss_fudge(0.988)
 
+            self.m_rig.set_ref_osc_dac(0xC260, "/home/john/6mcal")
             # 50MHz reception measured at 71.4MHz LO
-            self.m_rig.set_ref_osc_dac(0xC38C, "/home/john/6mcal")
+            #self.m_rig.set_ref_osc_dac(0xC30C, "/home/john/6mcal")
+            #self.m_rig.set_ref_osc_dac(0xC2BC, "/home/john/6mcal")
+            #self.m_rig.set_ref_osc_dac(0xC26C, "/home/john/6mcal")
+            #self.m_rig.set_ref_osc_dac(0xC38C, "/home/john/6mcal")
             #self.m_rig.set_ref_osc_dac(0xC3B2, "/home/john/6mcal")
             self.m_audioserver="skate"
             socketext="6m"
@@ -869,6 +881,8 @@ class MyFrame(wx.Frame):
 
         self.m_rig.execute_rig_cmd("pin15off")
 
+        self.m_swctcss = None
+
         return
 
     def use_audio_pa(self):
@@ -969,7 +983,7 @@ class MyFrame(wx.Frame):
             (ctcss_freq, ctcss_in_hw) = ctcss_helper.get_ctcss(self.m_rig.m_tx_freq, self.m_10m_transvert)
 
             if not ctcss_in_hw and ctcss_freq:
-                self.m_swctcss = subprocess.Popen(["/home/john/ctcss", "-f %s" % ctcss_freq ])
+                self.m_swctcss = subprocess.Popen(["/home/john/ctcss", "-f %s -a %s" % (ctcss_freq, "0.3") ])
                 jack_cmd("jack_connect ctcss:output %s:to_slave_1" % self.m_rig.m_hwif.server())
                 
                 self.m_rig.enable_tx()
@@ -989,13 +1003,14 @@ class MyFrame(wx.Frame):
 
             if self.m_swctcss:
                 jack_cmd("jack_disconnect ctcss:output %s:to_slave_1; synchr %d" % (self.m_rig.m_hwif.server(), self.m_swctcss.pid))
-                # synchronise
+                # synchronise on the disconnect
                 jr = open(jack_recfifo())
                 q=jr.read().strip()
                 jr.close()
 
                 print "post synchr",q
 
+                # kill the software ctcss generation process
                 self.m_swctcss.terminate()
 
                 self.m_swctcss = None
@@ -1492,6 +1507,8 @@ def closedown():
     if os.path.exists("/tmp/noshift"):
         os.unlink("/tmp/noshift")
 
+    #os.system("killall -q wsjtx")
+
 class MyApp(wx.App):
     def OnInit(self):
 
@@ -1505,6 +1522,8 @@ if __name__=="__main__":
         os.system("lsmod | grep -q ftdi_sio && while ! rmmod ftdi_sio; do sleep 1; done")
 #        if sixmetres():
 #            os.system(g_6_fan_snmpset + "1\n")
+        if socket.gethostname()=='m4400':
+            os.system('ssh jag@dab "amixer -D hw:0 sset Master 17 on"')
         app = MyApp(clearSigInt=True)
         app.MainLoop()
         closedown()
