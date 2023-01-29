@@ -1522,7 +1522,7 @@ if __name__=="__main__":
         os.system("lsmod | grep -q ftdi_sio && while ! rmmod ftdi_sio; do sleep 1; done")
 #        if sixmetres():
 #            os.system(g_6_fan_snmpset + "1\n")
-        if socket.gethostname()=='m4400':
+        if socket.gethostname()=='m4400' and fourmetres():
             os.system('ssh jag@dab "amixer -D hw:0 sset Master 17 on"')
         app = MyApp(clearSigInt=True)
         app.MainLoop()
