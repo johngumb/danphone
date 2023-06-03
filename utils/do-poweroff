@@ -26,4 +26,5 @@ for mc in ${machines}; do
                 echo "powering off ${mc}....unreachable"
         fi
 done
+sleep 3
 sudo poweroff
