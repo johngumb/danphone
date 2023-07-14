@@ -116,41 +116,18 @@ class WsjtxListener(socketserver.BaseRequestHandler):
         sock.close()
         return
 
-    def procband(self, band, digimode):
+    def procband(self, band):
         mode = None
         if band in ["12m", "2m", "10m"]:
-            if band == "12m":
-                if digimode=="WSPR":
-                    fr = -5400
-                else:
-                    fr = -7000
-            elif band == "10m":
-                if digimode == "FT4":
-                    fr = -6000
-                elif digimode == "WSPR":
-                    fr = -5400
-                else:
-                    fr = -8000
-            else:
-                if digimode=="WSPR":
-                    if band in ["10m"]:
-                        fr = -5330
-                    if band == "2m":
-                        fr = -7000
-                else:
-                    fr = -8000
             mode = "LSB"
         if band in ["4m", "6m"]:
-            fr = -4000
             mode = "USB"
 
         self.m_rxmode = mode
 
         if mode:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-            oscmsg = "setOsc %d" % fr
             modemsg = "setMode %s" % mode
-            sock.sendto(oscmsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
             sock.sendto(modemsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
             sock.close()
 
@@ -224,27 +201,11 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             #self.procband(band)
             pass
         elif req.find('FR')==0:
-            (freqstr,mode,band) = req[2:].split(',')
-            self.procband(band, mode)
+            (freqstr,_digimode,band) = req[2:].split(',')
+            self.procband(band)
             freq = int(freqstr)
 
-            #if mode in ["FT8","FT4"]:
-            #    if band == "12m":
-            #        freq += 1000
-            #    else:
-            #        if band=="10m" and mode=="FT4":
-            #            pass
-            #        else:
-            #            freq += 2000
-
-            #if mode == "WSPR":
-            #    if band in ["6m"]:
-            #        freq += 2000
-            #    if band in ["2m"]:
-            #        freq += 1000
-
-            if mode in ["FT8","FT4","WSPR"] and band in g_valid_bands:
-                # only set freq for FT8/FT4 atm
+            if band in g_valid_bands:
                 if band in g_transvert_offsets:
                     freq += g_transvert_offsets[band]
 
