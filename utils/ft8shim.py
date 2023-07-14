@@ -18,17 +18,17 @@ def find_nearest_freq(requested):
     result = None
 
     # need to be in the middle of the passband
-    centrefreq = requested + 2000
+    centre_freq = requested + 2000
 
     #for step in [4000, 5000, 6250, 8000, 10000, 12500]:
     for step in [4000, 5000, 8000, 10000]:
-        n = int((centrefreq/step))
-        af = n * step
-        err = centrefreq - af
+        n = int((centre_freq/step))
+        actual_freq = n * step
+        err = centre_freq - actual_freq
         if abs(err) < mindiff:
             mindiff = abs(err)
             print("mindiff",mindiff)
-            result = (af, centrefreq-(requested+err))
+            result = (actual_freq, centre_freq-(requested+err))
 
     return result
 
@@ -96,10 +96,12 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             self.server.m_radio_cmd_encoder = RadioCmdEncoder()
             self.server.m_radio_cmd_encoder.prepare_for_symseq(basefreq, band, mode)
 
+
     def clear_radio_encoder(self):
         if self.server.m_radio_cmd_encoder:
             del self.server.m_radio_cmd_encoder
             self.server.m_radio_cmd_encoder = None
+
 
     def setsdrfreq(self, errfreq):
         #fr=int(abs(6000-errfreq))*-1 ##??
@@ -114,13 +116,13 @@ class WsjtxListener(socketserver.BaseRequestHandler):
         oscmsg = "setOsc %d" % fr
         sock.sendto(oscmsg.encode('ascii'),"/tmp/sdr-shell-v4-cmd")
         sock.close()
-        return
+
 
     def procband(self, band):
         mode = None
         if band in ["12m", "2m", "10m"]:
             mode = "LSB"
-        if band in ["4m", "6m"]:
+        elif band in ["4m", "6m"]:
             mode = "USB"
 
         self.m_rxmode = mode
@@ -137,7 +139,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
         else:
             print("invalid band",band)
 
-        if band in ["12m", "70cm", "10m", "2m"]:
+        if band in g_transvert_offsets:
             if band == "2m":
                 pin1state = "off"
             else:
@@ -172,6 +174,7 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             if len(basefreq_and_band)==3:
                 mode=basefreq_and_band[2].strip()
             else:
+                print("invalid basefreq_and_band", basefreq_and_band)
                 mode="FT8"
 
             self.get_radio_encoder(basefreq, band, mode)
@@ -189,7 +192,11 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             print(datetime.utcnow())
             if self.server.m_radio_cmd_encoder:
                 symlist = [int(a) for a in list(req[1:])]
+
+                # blocks until completion
                 self.server.m_radio_cmd_encoder.send_symseq(symlist)
+
+                # belt and braces: tx off
                 self.server.m_radio_cmd_encoder.cancel_tx()
             else:
                 print("ignoring",req,"not prepared")
