@@ -391,8 +391,8 @@ class TxSafetyTimer(wx.Timer):
 
         return
 
-def is_ft8(freq):
-    for f in ["50315","50320","70156","144176","144172","144076", "140916"]:
+def is_mute_freq(freq):
+    for f in ["50315","50320","70156","144176","144172","144076", "140916", "140125", "140925", "50295", "144390"]:
         if string.find(repr(freq), f) != -1:
             return True
     return False
@@ -545,8 +545,8 @@ class StatusLEDtimer(wx.Timer):
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
                     curfreq = self.target.m_rig.get_rx_freq()
-                    ft8 = is_ft8(curfreq)
-                    if not (self.target.m_stay_muted or self.target.m_transmitting or ft8):
+                    mutefreq = is_mute_freq(curfreq)
+                    if not (self.target.m_stay_muted or self.target.m_transmitting or mutefreq):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
                         start_record(self.target.m_audioserver)
@@ -582,8 +582,8 @@ class StatusLEDtimer(wx.Timer):
                 self.target.m_squelch_led.SetState(2)
                 if not self.target.m_monitor_button.GetValue():
                     curfreq = self.target.m_rig.get_rx_freq()
-                    ft8 = is_ft8(curfreq)
-                    if not (self.target.m_stay_muted or self.target.m_transmitting or ft8):
+                    mutefreq = is_mute_freq(curfreq)
+                    if not (self.target.m_stay_muted or self.target.m_transmitting or mutefreq):
                         writefreq(self.target)
                         unmute(self.target.m_audioserver)
                         start_record(self.target.m_audioserver)
@@ -633,11 +633,9 @@ class MyFrame(wx.Frame):
 
         g_rig = self.m_rig
 
-        self.m_min_freq=35.9E6
-
-        self.m_max_freq=450E6
-
         if sixmetres():
+            self.m_min_freq=35.9E6
+            self.m_max_freq=60E6
             self.m_devid=("cli",("skate",2217))
             self.m_rig.set_ctcss_fudge(0.988)
 
@@ -651,6 +649,8 @@ class MyFrame(wx.Frame):
             self.m_audioserver="skate"
             socketext="6m"
         elif twometres():
+            self.m_min_freq=138E6
+            self.m_max_freq=155E6
             self.m_devid=("cli",("rudd",2217))
             self.m_rig.set_ctcss_fudge(0.9812)
             # was BF40 27 Apr 2021
@@ -658,6 +658,8 @@ class MyFrame(wx.Frame):
             self.m_audioserver="rudd"
             socketext="2m"
         elif fourmetres():
+            self.m_min_freq=60E6
+            self.m_max_freq=85E6
             self.m_devid=("cli",("dab",2217))
             # 14.4MHz on ref osc
             #self.m_rig.set_ref_osc_dac(0xC010, "/home/john/4mcal")
@@ -689,7 +691,7 @@ class MyFrame(wx.Frame):
 
         self.m_squelch_led=ledthing.LED(self,ID_LED_SQUELCH)
 
-        self.m_steps=["Auto","4","5","6.25","8","10","12.5"]
+        self.m_steps=["Auto","4","5","6.25","8","10","12.5","20","25"]
 
         self.m_intsteps=[]
         for s in self.m_steps:
@@ -965,8 +967,8 @@ class MyFrame(wx.Frame):
             self.m_rig.enable_audio()
             self.m_transmitting = False
             curfreq = self.m_rig.get_rx_freq()
-            ft8 = is_ft8(curfreq)
-            if not (self.m_stay_muted or ft8):
+            mutefreq = is_mute_freq(curfreq)
+            if not (self.m_stay_muted or mutefreq):
                 sdrunmute()
                 unmute(self.m_audioserver)
 
@@ -1242,8 +1244,8 @@ class MyFrame(wx.Frame):
             self.m_transmitting = False
             if not self.m_monitor_button.GetValue():
                 curfreq = self.m_rig.get_rx_freq()
-                ft8 = is_ft8(curfreq)
-                if not (self.m_stay_muted or ft8):
+                mutefreq = is_mute_freq(curfreq)
+                if not (self.m_stay_muted or mutefreq):
                     unmute(self.m_audioserver)
             sdrunmute()
 
@@ -1449,7 +1451,7 @@ class MyFrame(wx.Frame):
         reqstep = None
 
         # sanity check
-        if freq < 40E6:
+        if freq < self.m_min_freq or freq > self.m_max_freq:
             print("insane frequency ",freq)
             return
 
