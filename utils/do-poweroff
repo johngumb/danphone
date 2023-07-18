@@ -5,8 +5,10 @@
 echo -n "shutdown pc y/n? "
 read -n1 shutdownpc
 
+echo
 echo -n "continue y/n? "
 read -n1 yn
+echo
 
 if [ "${yn}" != "y" ]; then
 exit 0
