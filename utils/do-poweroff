@@ -2,11 +2,11 @@
 
 #ssh root@tang "sync; sync"
 
-echo "shutdown pc y/n?"
-read shutdownpc
+echo -n "shutdown pc y/n? "
+read -n1 shutdownpc
 
-echo "continue y/n"
-read yn
+echo -n "continue y/n? "
+read -n1 yn
 
 if [ "${yn}" != "y" ]; then
 exit 0
