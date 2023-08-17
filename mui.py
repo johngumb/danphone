@@ -705,8 +705,8 @@ class MyFrame(wx.Frame):
         if sixmetres():
             self.m_step_selected = "5"
         elif twometres():
-            self.m_step_selected = "8"
-            #self.m_step_selected = "12.5"
+            #self.m_step_selected = "8"
+            self.m_step_selected = "12.5"
         else:
             self.m_step_selected = "12.5"
 
@@ -727,8 +727,8 @@ class MyFrame(wx.Frame):
             if sixmetres():
                 self.m_freq=51.53E6
             elif twometres():
-                self.m_freq=144.176E6
-                #self.m_freq=145.7375E6
+                #self.m_freq=144.176E6
+                self.m_freq=145.6750E6
             else:
                 self.m_freq=70.45E6
             f.SetDefaultValue( self.m_freq /1E6)
@@ -985,7 +985,7 @@ class MyFrame(wx.Frame):
             (ctcss_freq, ctcss_in_hw) = ctcss_helper.get_ctcss(self.m_rig.m_tx_freq, self.m_10m_transvert)
 
             if not ctcss_in_hw and ctcss_freq:
-                self.m_swctcss = subprocess.Popen(["/home/john/ctcss", "-f %s -a %s" % (ctcss_freq, "0.3") ])
+                self.m_swctcss = subprocess.Popen(["/home/john/ctcss", "-f %s" %ctcss_freq, "-a %s" % "0.05" ])
                 jack_cmd("jack_connect ctcss:output %s:to_slave_1" % self.m_rig.m_hwif.server())
                 
                 self.m_rig.enable_tx()

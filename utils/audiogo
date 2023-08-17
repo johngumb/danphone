@@ -34,3 +34,5 @@ sh cmdseq.sh start
 #jack_connect system:capture_2 ${node}:to_slave_2
 touch /tmp/wsjt-silent
 x0vncserver -passwordfile .vnc/passwd -display :0 &
+touch /tmp/inhibit_audio_pa
+touch /tmp/inhibit-recordings

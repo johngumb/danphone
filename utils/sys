@@ -7,7 +7,7 @@ if [ -z "$1" ]; then
 #   cobbler
    chub
    rudd
-   scat
+#   scat
    done
    val=1
 else
