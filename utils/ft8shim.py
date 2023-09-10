@@ -146,6 +146,9 @@ class WsjtxListener(socketserver.BaseRequestHandler):
                 pin1state = "on"
             msg = "pin1 %s" % pin1state
             send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.2m")
+        else:
+            send_dgram_msg_to_radio("pin1off", "/tmp/mui-ext.s.2m")
+
 
     def handle(self):
         self.data = self.request.recv(1024).strip()
