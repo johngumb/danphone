@@ -140,14 +140,10 @@ class WsjtxListener(socketserver.BaseRequestHandler):
             print("invalid band",band)
 
         if band in g_transvert_offsets:
-            if band == "2m":
-                pin1state = "off"
-            else:
-                pin1state = "on"
-            msg = "pin1 %s" % pin1state
-            send_dgram_msg_to_radio(msg, "/tmp/mui-ext.s.2m")
+            send_dgram_msg_to_radio("pin1 on", "/tmp/mui-ext.s.2m")
         else:
-            send_dgram_msg_to_radio("pin1off", "/tmp/mui-ext.s.2m")
+            if band == "2m":
+                send_dgram_msg_to_radio("pin1 off", "/tmp/mui-ext.s.2m")
 
 
     def handle(self):
