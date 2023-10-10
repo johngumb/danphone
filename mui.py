@@ -111,7 +111,7 @@ ID_BUTTON_PIN1=wx.NewId()
 if g_display_pin15:
     ID_BUTTON_PIN15=wx.NewId()
 
-MUTED = False
+MUTED = True
 
 g_audioserver=""
 g_rig = None
