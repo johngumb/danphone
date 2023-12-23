@@ -649,7 +649,7 @@ class MyFrame(wx.Frame):
             self.m_audioserver="skate"
             socketext="6m"
         elif twometres():
-            self.m_min_freq=138E6
+            self.m_min_freq=132E6
             self.m_max_freq=155E6
             self.m_devid=("cli",("rudd",2217))
             self.m_rig.set_ctcss_fudge(0.9812)
@@ -1222,6 +1222,8 @@ class MyFrame(wx.Frame):
         if self.m_tx_button.GetValue() and self.get_tx_lock():
             if socket.gethostname()=='m4400':
                 os.system("amixer sset 'Dock Mic Boost' 2")
+#            if socket.gethostname()=='m6700':
+#                os.system("amixer sset 'Mic Boost' 2")
             self.m_tx_rx.SetValue(True)
             if self.m_10m_transvert:
                 self.set_transvert_power()
