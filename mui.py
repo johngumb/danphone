@@ -639,7 +639,7 @@ class MyFrame(wx.Frame):
             self.m_devid=("cli",("skate",2217))
             self.m_rig.set_ctcss_fudge(0.988)
 
-            self.m_rig.set_ref_osc_dac(0xC260, "/home/john/6mcal")
+            self.m_rig.set_ref_osc_dac(0xC120, "/home/john/6mcal")
             # 50MHz reception measured at 71.4MHz LO
             #self.m_rig.set_ref_osc_dac(0xC30C, "/home/john/6mcal")
             #self.m_rig.set_ref_osc_dac(0xC2BC, "/home/john/6mcal")
