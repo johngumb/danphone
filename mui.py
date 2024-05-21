@@ -1001,7 +1001,16 @@ class MyFrame(wx.Frame):
 
                     self.m_rig.enable_tx(ctcss=ctcss_freq) # hardware does ctcss
             else:
+                #
+                # TODO assume toneburst means 23cm for now
+                #
                 if twometres() and self.m_toneburst_requested.GetValue():
+                    #
+                    # work around 23cm transverter frequency stability
+                    # TODO something better than this
+                    #
+                    self.m_rig.set_ref_osc_dac(0xD000, "/home/john/2mcal")
+                    self.m_rig.zero_ref_osc_dac()
                     print("toneburst")
                     self.m_toneburst = subprocess.Popen(["/home/john/toneburst", "-a %s" % "0.5" ])
                     jack_cmd("jack_connect toneburst:output %s:to_slave_1" % self.m_rig.m_hwif.server())
