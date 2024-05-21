@@ -1535,8 +1535,9 @@ def closedown():
     if os.path.exists(g_fifo):
         g_pipe.close()
 
-    if os.path.exists("/tmp/noshift"):
-        os.unlink("/tmp/noshift")
+    for f in ["/tmp/noshift","/tmp/shift6","/tmp/shift10"]:
+        if os.path.exists(f):
+            os.unlink("f")
 
     #os.system("killall -q wsjtx")
 
