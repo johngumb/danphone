@@ -107,6 +107,7 @@ ID_BUTTON_EXT_ALARM=wx.NewId()
 ID_BUTTON_AUDIO_DISABLE=wx.NewId()
 ID_BUTTON_TX_SAFETY=wx.NewId()
 ID_BUTTON_PIN1=wx.NewId()
+ID_CHECKBOX_TONEBURST=wx.NewId()
 
 if g_display_pin15:
     ID_BUTTON_PIN15=wx.NewId()
@@ -779,6 +780,9 @@ class MyFrame(wx.Frame):
         if g_display_pin15:
             self.m_pin15_control = wx.ToggleButton(self, ID_BUTTON_PIN15, "Pin15")
 
+        if twometres():
+            self.m_toneburst_requested = wx.CheckBox(self, ID_CHECKBOX_TONEBURST, "tb")
+
         self.status_led_timer=StatusLEDtimer(self,400)
 
         #self.__set_properties()
@@ -984,17 +988,24 @@ class MyFrame(wx.Frame):
 
             (ctcss_freq, ctcss_in_hw) = ctcss_helper.get_ctcss(self.m_rig.m_tx_freq, self.m_10m_transvert)
 
-            if not ctcss_in_hw and ctcss_freq:
-                self.m_swctcss = subprocess.Popen(["/home/john/ctcss", "-f %s" %ctcss_freq, "-a %s" % "0.05" ])
-                jack_cmd("jack_connect ctcss:output %s:to_slave_1" % self.m_rig.m_hwif.server())
-                
-                self.m_rig.enable_tx()
+            if ctcss_freq:
+                if not ctcss_in_hw:
+                    self.m_swctcss = subprocess.Popen(["/home/john/ctcss", "-f %s" %ctcss_freq, "-a %s" % "0.05" ])
+                    jack_cmd("jack_connect ctcss:output %s:to_slave_1" % self.m_rig.m_hwif.server())
 
-                print self.m_swctcss.pid
+                    self.m_rig.enable_tx()
+
+                    print self.m_swctcss.pid
+                else:
+                    self.m_swctcss = None
+
+                    self.m_rig.enable_tx(ctcss=ctcss_freq) # hardware does ctcss
             else:
-                self.m_swctcss = None
-                
-                self.m_rig.enable_tx(ctcss=ctcss_freq) # hardware does ctcss
+                if twometres() and self.m_toneburst_requested.GetValue():
+                    print("toneburst")
+                    self.m_toneburst = subprocess.Popen(["/home/john/toneburst", "-a %s" % "0.5" ])
+                    jack_cmd("jack_connect toneburst:output %s:to_slave_1" % self.m_rig.m_hwif.server())
+                self.m_rig.enable_tx()
 
             self.m_tx = True
 
@@ -1220,10 +1231,14 @@ class MyFrame(wx.Frame):
 
     def onButtonTransmitAction(self,event):
         if self.m_tx_button.GetValue() and self.get_tx_lock():
-            if socket.gethostname()=='m4400':
-                os.system("amixer sset 'Dock Mic Boost' 2")
-#            if socket.gethostname()=='m6700':
-#                os.system("amixer sset 'Mic Boost' 2")
+            #
+            # hack
+            #
+            if socket.gethostname()=='m6700':
+                if fourmetres():
+                    os.system("amixer sset 'Mic Boost' 3")
+                else:
+                    os.system("amixer sset 'Mic Boost' 2")
             self.m_tx_rx.SetValue(True)
             if self.m_10m_transvert:
                 self.set_transvert_power()
@@ -1400,6 +1415,9 @@ class MyFrame(wx.Frame):
 #        sizer_1.Add(self.m_spin_ctrl_squelch_level, 0, wx.ADJUST_MINSIZE, 0)
 
         sizer_1.Add(self.m_squelch_led, 0, wx.ADJUST_MINSIZE, 0)
+
+        if twometres():
+            sizer_1.Add(self.m_toneburst_requested, 0, wx.ADJUST_MINSIZE, 0)
 
 
         self.SetAutoLayout(True)

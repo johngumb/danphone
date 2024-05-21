@@ -32,7 +32,7 @@ for mc in ${machines}; do
                 echo "powering off ${mc}....unreachable"
         fi
 done
-sleep 3
+sleep 6
 
 if [ "${shutdownpc}" = "y" ]; then
     sudo poweroff

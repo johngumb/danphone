@@ -183,7 +183,8 @@ class WsjtxListener(socketserver.BaseRequestHandler):
 
             self.server.m_set_fb = True
             self.server.m_timeout_set = True
-            self.server.socket.settimeout(2)
+            # affected by Tx delay in wsjtx - units here are seconds
+            self.server.socket.settimeout(2.3)
 
         # message to send; must be prepared otherwise ignore
         elif req[0]=='M':

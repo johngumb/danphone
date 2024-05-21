@@ -435,6 +435,8 @@ class McMicro:
             tx_offset = -6E5
         elif os.path.exists("/tmp/shift10") and self.m_hwif.server()=="rudd":
             tx_offset = -1E5
+        elif os.path.exists("/tmp/shift6") and self.m_hwif.server()=="rudd":
+            tx_offset = -6E6
         else:
             tx_offset = 0
 
