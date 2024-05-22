@@ -1537,7 +1537,7 @@ def closedown():
 
     for f in ["/tmp/noshift","/tmp/shift6","/tmp/shift10"]:
         if os.path.exists(f):
-            os.unlink("f")
+            os.unlink(f)
 
     #os.system("killall -q wsjtx")
 
