@@ -41,9 +41,8 @@
 #define MX106_TXID 0x20
 #define MX107_TXID 0x21
 
+//PCF 8582C 256 byte eeprom
 #define EEPROM_I2CADDR 0x50
-
-typedef byte int8;
 
 const unsigned int EEOFFSET=8;          // preserve existing data, fwiw
 const unsigned int EEFREQOFFSET=128;    // drop current frequency in the middle
@@ -202,6 +201,229 @@ int read_bank(byte i2caddr, byte *data)
     return bank_length;
 }
 
+unsigned char eecsum()
+{
+  unsigned char csum=0;
+  const unsigned char *ptr=(const unsigned char *)&g_eedata;
+
+  // TODO deal with size of structure and version changing
+  // -1 to exclude the checksum itself from the summing process
+  for (unsigned int i=0;(i<sizeof(g_eedata)-1);i++)
+    csum+=ptr[i];
+
+  // might as well include expected size of structure in checksum
+  csum+=sizeof(g_eedata);
+
+  return csum;
+}
+
+bool check_eeprom_ok()
+{
+  Serial.println("checking eeprom");
+
+  // offset to avoid existing data
+  i2c_eeprom_read_buffer(EEPROM_I2CADDR, EEOFFSET, (byte *) &g_eedata, sizeof(g_eedata));
+  //Serial.println(eecsum(), HEX);
+  //Serial.println(g_eedata.m_csum, HEX);
+  //Serial.println(g_eedata.m_eeversion, HEX);
+  return ((eecsum()==g_eedata.m_csum) && (g_eedata.m_eeversion==1));
+}
+
+void report_eeprom()
+{
+  Serial.print("Model (PCB): ");
+  Serial.println(g_eedata.m_model_pcb);
+  Serial.print("Model (sticker): ");
+  Serial.println(g_eedata.m_model_sticker);
+  Serial.print("Model (sticker lm): ");
+  Serial.println(g_eedata.m_model_sticker_lm);
+  //Serial.print("EEversion: ");
+  //Serial.println(g_eedata.m_eeversion);
+  //Serial.print("Checksum: ");
+  //Serial.println(g_eedata.m_csum);
+  Serial.print("Serial number: ");
+  Serial.println(g_eedata.m_serialno);
+  Serial.print("Minimum Frequency: ");
+  Serial.print(g_eedata.m_freq_min_mhz);
+  Serial.print(" MHz (");
+  Serial.print(g_eedata.m_freq_min_mhz*4);
+  Serial.println(" MHz)");
+  Serial.print("Maximum Frequency: ");
+  Serial.print(g_eedata.m_freq_max_mhz);
+  Serial.print(" MHz (");
+  Serial.print(g_eedata.m_freq_max_mhz*4);
+  Serial.println(" MHz)");
+  Serial.print("VCXO Centre Frequency: ");
+  Serial.print(g_eedata.m_vcxo_freq_khz);
+  Serial.println(" kHz");
+  Serial.print("Calibration: ");
+  Serial.println(g_eedata.m_calibration);
+  Serial.print("Fast synth type: ");
+  switch(g_eedata.m_fast_synth_type)
+  {
+    case Zarlink_SP8855E: Serial.println("Zarlink SP8855E"); break;
+    case Qualcomm_Q3236: Serial.println("Qualcomm Q3236"); break;
+    default: Serial.println("unknown"); break;
+  }
+  if (g_eedata.m_ignore_vcxo_out_of_range)
+    Serial.println("Ignore VCXO out of range hack set");
+}
+
+bool setup_eeprom()
+{
+  const unsigned char *eeptr=(const unsigned char *)&g_eedata;
+  String yn;
+
+  Serial.println("Setting up eeprom...");
+
+  Serial.println("Are you sure (Y/n)?");
+  read_string(yn);
+
+  if (!yn.equals("Y"))
+    return false;
+
+  memset(&g_eedata, 0, sizeof(g_eedata));
+  g_eedata.m_eedatsize=sizeof(g_eedata);
+  g_eedata.m_eeversion=1;
+
+#if 0
+/* Unit "3CC08670ABAA 03" (PCB) "(14) 3CC10676ABAA 04 GBX434" (sticker)
+ * LM0043T05F4
+ * Qualcomm_Q3236 synth
+ * 13MHz slow TCXO ref.
+ * 16 MHz fast VCXO ref.
+ * min freq 1485 MHz
+ * max freq 1718 MHz
+ */
+  g_eedata.m_serialno=1;
+  g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_calibration=goledge;
+  g_eedata.m_vcxo_freq_khz=16000;
+  g_eedata.m_fast_synth_type=Qualcomm_Q3236;
+  g_eedata.m_freq_min_mhz=1485;
+  g_eedata.m_freq_max_mhz=1718;
+  strcpy(g_eedata.m_model_pcb,"3CC08670ABAA 03");
+  strcpy(g_eedata.m_model_sticker,"(14) 3CC10676ABAA 04 GBX434");
+  strcpy(g_eedata.m_model_sticker_lm,"LM0043T05F4");
+#endif
+
+#if 0
+/* Unit "3CC08697AAAA 02" (PCB) "(24) 3CC08692AAAA 04 GBX431" (sticker)
+ * LM0304T00M4
+ * Qualcomm_Q3236 synth
+ * 13MHz slow TCXO ref.
+ * 12.288 MHz fast VCXO ref. Out of range voltage warning odd.
+ * min freq 1230 MHz
+ * max freq 1400 MHz
+ */
+  // input level problem on pfd, hacked with potential divider network.
+  g_eedata.m_serialno=2;
+  g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_calibration=goledge;
+  g_eedata.m_vcxo_freq_khz=12288;
+  g_eedata.m_fast_synth_type=Qualcomm_Q3236;
+  g_eedata.m_freq_min_mhz=1230;
+  g_eedata.m_freq_max_mhz=1400;
+  strcpy(g_eedata.m_model_pcb,"3CC08697AAAA 02");
+  strcpy(g_eedata.m_model_sticker,"(24) 3CC08692AAAA 04 GBX431");
+  strcpy(g_eedata.m_model_sticker_lm,"LM0304T00M4");
+  g_eedata.m_ignore_vcxo_out_of_range=true; //hack
+#endif
+
+#if 0
+/* Unit "3CC09469AAAB03" (PCB) "(07) 3CC09359AAAB 03" (sticker)
+ * LM0210T0667
+ * SP8855E synth
+ * 13MHz slow TCXO ref.
+ * 12.288 MHz fast VCXO ref.
+ * min freq 1103 MHz
+ * max freq 1300 MHz (lock dodgy above that)
+ */
+  g_eedata.m_serialno=3;
+  g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_calibration=goledge;
+  g_eedata.m_vcxo_freq_khz=12288;
+  g_eedata.m_fast_synth_type=Zarlink_SP8855E;
+  g_eedata.m_freq_min_mhz=1103;
+  g_eedata.m_freq_max_mhz=1300;
+  strcpy(g_eedata.m_model_pcb,"3CC09469AAAB03");
+  strcpy(g_eedata.m_model_sticker,"(07) 3CC09359AAAB 03");
+  strcpy(g_eedata.m_model_sticker_lm,"LM0210T0667");
+#endif
+
+#if 0
+/* Unit "" (PCB) "(09) 3CC08692AAAB 03" (sticker)
+ * LM0217T029T
+ * SP8855E synth
+ * 13MHz slow TCXO ref.
+ * 12.288 MHz fast VCXO ref.
+ * min freq 1187 MHz
+ * max freq 1390 MHz
+ */
+  g_eedata.m_serialno=4;
+  g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_calibration=rough;
+  g_eedata.m_vcxo_freq_khz=12288;
+  g_eedata.m_fast_synth_type=Zarlink_SP8855E;
+  g_eedata.m_freq_min_mhz=1187;
+  g_eedata.m_freq_max_mhz=1390;
+  strcpy(g_eedata.m_model_pcb,"");
+  strcpy(g_eedata.m_model_sticker,"(07) 3CC09359AAAB 03");
+  strcpy(g_eedata.m_model_sticker_lm,"LM0210T0667");
+#endif
+
+#if 0
+/* Unit "" (PCB) "(05) 3CC09359ABAB 01" (sticker)
+ * LM0045T06P7
+ * SP8855E synth
+ * 13MHz slow TCXO ref.
+ * 12.288 MHz fast VCXO ref.
+ * min freq 1220 MHz
+ * max freq 1390 MHz
+ */
+  g_eedata.m_serialno=5;
+  g_eedata.m_lmx_freq_khz=13000;
+  g_eedata.m_calibration=none;
+  g_eedata.m_vcxo_freq_khz=12288;
+  g_eedata.m_fast_synth_type=Zarlink_SP8855E;
+  g_eedata.m_freq_min_mhz=1220;
+  g_eedata.m_freq_max_mhz=1439;
+  strcpy(g_eedata.m_model_pcb,"");
+  strcpy(g_eedata.m_model_sticker,"(05) 3CC09359ABAB 01");
+  strcpy(g_eedata.m_model_sticker_lm,"LM0045T06P7");
+#endif
+
+  g_eedata.m_csum=eecsum();
+
+  for (unsigned int i=0; (i<(sizeof(g_eedata))); i++)
+    i2c_eeprom_write_byte(EEPROM_I2CADDR, i+EEOFFSET, eeptr[i]);
+
+  Serial.println("Setting up eeprom...done");
+  return true;
+}
+
+int read_eeprom()
+{
+  int retval=0;
+
+  // uncomment this to setup the eeprom
+  //retval=setup_eeprom();
+
+  if (check_eeprom_ok())
+  {
+    report_eeprom();
+    retval = 1;
+  }
+  else
+  {
+    Serial.println("Checksum invalid");
+    if (retval)
+      report_eeprom();
+  }
+
+  return retval;
+}
+
 void acquit_alarm()
 {
   Wire.beginTransmission(MX105_TXID);
@@ -261,26 +483,27 @@ void sequence_A_lente(unsigned long int F, unsigned long int R)
   unsigned long int N=(F/STEP);
   unsigned long int act_F;
 
-//
-// 5 bit swallow counter (N1..N5)
-// 13 bit B counter (N6..N18)
-// 'GO Bit' N19
-//
-// F bits numbered from 1. Two control bits first. F7 if set disconnects charge pump.
-//
-// Pin 14 (Fo/LD) behaviour:
-// F3 F4 F5
-// 0  0  0  TRI STATE
-// 0  0  1  R divider output (Fr)
-// 0  1  0  N divider output: provides divided VCO freq (Fp)
-// 0  1  1  Serial data output
-// 1  0  0  Lock detect output (see LMX2326.pdf)
-// 1  0  1  n-Channel open drain lock detect output (see LMX2326.pdf)
-// 1  1  0  Active high
-// 1  1  1  Active low
-//
-//      Contenu d'initialisation du registre F du circuit MX310 - LMX2326 :
-    // Q3236 and LMX2326 lock detects are ANDed together in status
+/*
+ * 5 bit swallow counter (N1..N5)
+ * 13 bit B counter (N6..N18)
+ * 'GO Bit' N19
+ *
+ * F bits numbered from 1. Two control bits first. F7 if set disconnects charge pump.
+ *
+ * Pin 14 (Fo/LD) behaviour:
+ * F3 F4 F5
+ * 0  0  0  TRI STATE
+ * 0  0  1  R divider output (Fr)
+ * 0  1  0  N divider output: provides divided VCO freq (Fp)
+ * 0  1  1  Serial data output
+ * 1  0  0  Lock detect output (see LMX2326.pdf)
+ * 1  0  1  n-Channel open drain lock detect output (see LMX2326.pdf)
+ * 1  1  0  Active high
+ * 1  1  1  Active low
+ *
+ */
+    // Contenu d'initialisation du registre F du circuit MX310 - LMX2326 :
+    // Q3236/SP8855E and LMX2326 lock detects are ANDed together in status
     byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,1};         // function latch - original
     //byte F_data[21]  = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,1}; // original - lock nailed up
 
@@ -644,229 +867,6 @@ void report_freq(unsigned long int freq)
   Serial.print("Hz (");
   Serial.print(output_freq);
   Serial.println("kHz)");
-}
-
-unsigned char eecsum()
-{
-  unsigned char csum=0;
-  const unsigned char *ptr=(const unsigned char *)&g_eedata;
-
-  // TODO deal with size of structure and version changing
-  // -1 to exclude the checksum itself from the summing process
-  for (unsigned int i=0;(i<sizeof(g_eedata)-1);i++)
-    csum+=ptr[i];
-
-  // might as well include expected size of structure in checksum
-  csum+=sizeof(g_eedata);
-
-  return csum;
-}
-
-bool check_eeprom_ok()
-{
-  Serial.println("checking eeprom");
-
-  // offset to avoid existing data
-  i2c_eeprom_read_buffer(EEPROM_I2CADDR, EEOFFSET, (byte *) &g_eedata, sizeof(g_eedata));
-  //Serial.println(eecsum(), HEX);
-  //Serial.println(g_eedata.m_csum, HEX);
-  //Serial.println(g_eedata.m_eeversion, HEX);
-  return ((eecsum()==g_eedata.m_csum) && (g_eedata.m_eeversion==1));
-}
-
-void report_eeprom()
-{
-  Serial.print("Model (PCB): ");
-  Serial.println(g_eedata.m_model_pcb);
-  Serial.print("Model (sticker): ");
-  Serial.println(g_eedata.m_model_sticker);
-  Serial.print("Model (sticker lm): ");
-  Serial.println(g_eedata.m_model_sticker_lm);
-  //Serial.print("EEversion: ");
-  //Serial.println(g_eedata.m_eeversion);
-  //Serial.print("Checksum: ");
-  //Serial.println(g_eedata.m_csum);
-  Serial.print("Serial number: ");
-  Serial.println(g_eedata.m_serialno);
-  Serial.print("Minimum Frequency: ");
-  Serial.print(g_eedata.m_freq_min_mhz);
-  Serial.print(" MHz (");
-  Serial.print(g_eedata.m_freq_min_mhz*4);
-  Serial.println(" MHz)");
-  Serial.print("Maximum Frequency: ");
-  Serial.print(g_eedata.m_freq_max_mhz);
-  Serial.print(" MHz (");
-  Serial.print(g_eedata.m_freq_max_mhz*4);
-  Serial.println(" MHz)");
-  Serial.print("VCXO Centre Frequency: ");
-  Serial.print(g_eedata.m_vcxo_freq_khz);
-  Serial.println(" kHz");
-  Serial.print("Calibration: ");
-  Serial.println(g_eedata.m_calibration);
-  Serial.print("Fast synth type: ");
-  switch(g_eedata.m_fast_synth_type)
-  {
-    case Zarlink_SP8855E: Serial.println("Zarlink SP8855E"); break;
-    case Qualcomm_Q3236: Serial.println("Qualcomm Q3236"); break;
-    default: Serial.println("unknown"); break;
-  }
-  if (g_eedata.m_ignore_vcxo_out_of_range)
-    Serial.println("Ignore VCXO out of range hack set");
-}
-
-bool setup_eeprom()
-{
-  const unsigned char *eeptr=(const unsigned char *)&g_eedata;
-  String yn;
-
-  Serial.println("Setting up eeprom...");
-
-  Serial.println("Are you sure (Y/n)?");
-  read_string(yn);
-
-  if (!yn.equals("Y"))
-    return false;
-
-  memset(&g_eedata, 0, sizeof(g_eedata));
-  g_eedata.m_eedatsize=sizeof(g_eedata);
-  g_eedata.m_eeversion=1;
-
-#if 0
-/* Unit "3CC08670ABAA 03" (PCB) "(14) 3CC10676ABAA 04 GBX434" (sticker)
- * LM0043T05F4
- * Qualcomm_Q3236 synth
- * 13MHz slow TCXO ref.
- * 16 MHz fast VCXO ref.
- * min freq 1485 MHz
- * max freq 1718 MHz
- */
-  g_eedata.m_serialno=1;
-  g_eedata.m_lmx_freq_khz=13000;
-  g_eedata.m_calibration=goledge;
-  g_eedata.m_vcxo_freq_khz=16000;
-  g_eedata.m_fast_synth_type=Qualcomm_Q3236;
-  g_eedata.m_freq_min_mhz=1485;
-  g_eedata.m_freq_max_mhz=1718;
-  strcpy(g_eedata.m_model_pcb,"3CC08670ABAA 03");
-  strcpy(g_eedata.m_model_sticker,"(14) 3CC10676ABAA 04 GBX434");
-  strcpy(g_eedata.m_model_sticker_lm,"LM0043T05F4");
-#endif
-
-#if 0
-/* Unit "3CC08697AAAA 02" (PCB) "(24) 3CC08692AAAA 04 GBX431" (sticker)
- * LM0304T00M4
- * Qualcomm_Q3236 synth
- * 13MHz slow TCXO ref.
- * 12.288 MHz fast VCXO ref. Out of range voltage warning odd.
- * min freq 1230 MHz
- * max freq 1400 MHz
- */
-  // input level problem on pfd, hacked with potential divider network.
-  g_eedata.m_serialno=2;
-  g_eedata.m_lmx_freq_khz=13000;
-  g_eedata.m_calibration=goledge;
-  g_eedata.m_vcxo_freq_khz=12288;
-  g_eedata.m_fast_synth_type=Qualcomm_Q3236;
-  g_eedata.m_freq_min_mhz=1230;
-  g_eedata.m_freq_max_mhz=1400;
-  strcpy(g_eedata.m_model_pcb,"3CC08697AAAA 02");
-  strcpy(g_eedata.m_model_sticker,"(24) 3CC08692AAAA 04 GBX431");
-  strcpy(g_eedata.m_model_sticker_lm,"LM0304T00M4");
-  g_eedata.m_ignore_vcxo_out_of_range=true; //hack
-#endif
-
-#if 0
-/* Unit "3CC09469AAAB03" (PCB) "(07) 3CC09359AAAB 03" (sticker)
- * LM0210T0667
- * SP8855E synth
- * 13MHz slow TCXO ref.
- * 12.288 MHz fast VCXO ref.
- * min freq 1103 MHz
- * max freq 1300 MHz (lock dodgy above that)
- */
-  g_eedata.m_serialno=3;
-  g_eedata.m_lmx_freq_khz=13000;
-  g_eedata.m_calibration=goledge;
-  g_eedata.m_vcxo_freq_khz=12288;
-  g_eedata.m_fast_synth_type=Zarlink_SP8855E;
-  g_eedata.m_freq_min_mhz=1103;
-  g_eedata.m_freq_max_mhz=1300;
-  strcpy(g_eedata.m_model_pcb,"3CC09469AAAB03");
-  strcpy(g_eedata.m_model_sticker,"(07) 3CC09359AAAB 03");
-  strcpy(g_eedata.m_model_sticker_lm,"LM0210T0667");
-#endif
-
-#if 0
-/* Unit "" (PCB) "(09) 3CC08692AAAB 03" (sticker)
- * LM0217T029T
- * SP8855E synth
- * 13MHz slow TCXO ref.
- * 12.288 MHz fast VCXO ref.
- * min freq 1187 MHz
- * max freq 1390 MHz
- */
-  g_eedata.m_serialno=4;
-  g_eedata.m_lmx_freq_khz=13000;
-  g_eedata.m_calibration=rough;
-  g_eedata.m_vcxo_freq_khz=12288;
-  g_eedata.m_fast_synth_type=Zarlink_SP8855E;
-  g_eedata.m_freq_min_mhz=1187;
-  g_eedata.m_freq_max_mhz=1390;
-  strcpy(g_eedata.m_model_pcb,"");
-  strcpy(g_eedata.m_model_sticker,"(07) 3CC09359AAAB 03");
-  strcpy(g_eedata.m_model_sticker_lm,"LM0210T0667");
-#endif
-
-#if 0
-/* Unit "" (PCB) "(05) 3CC09359ABAB 01" (sticker)
- * LM0045T06P7
- * SP8855E synth
- * 13MHz slow TCXO ref.
- * 12.288 MHz fast VCXO ref.
- * min freq 1220 MHz
- * max freq 1390 MHz
- */
-  g_eedata.m_serialno=5;
-  g_eedata.m_lmx_freq_khz=13000;
-  g_eedata.m_calibration=none;
-  g_eedata.m_vcxo_freq_khz=12288;
-  g_eedata.m_fast_synth_type=Zarlink_SP8855E;
-  g_eedata.m_freq_min_mhz=1220;
-  g_eedata.m_freq_max_mhz=1439;
-  strcpy(g_eedata.m_model_pcb,"");
-  strcpy(g_eedata.m_model_sticker,"(05) 3CC09359ABAB 01");
-  strcpy(g_eedata.m_model_sticker_lm,"LM0045T06P7");
-#endif
-
-  g_eedata.m_csum=eecsum();
-
-  for (unsigned int i=0; (i<(sizeof(g_eedata))); i++)
-    i2c_eeprom_write_byte(EEPROM_I2CADDR, i+EEOFFSET, eeptr[i]);
-
-  Serial.println("Setting up eeprom...done");
-  return true;
-}
-
-int read_eeprom()
-{
-  int retval=0;
-
-  // uncomment this to setup the eeprom
-  //retval=setup_eeprom();
-
-  if (check_eeprom_ok())
-  {
-    report_eeprom();
-    retval = 1;
-  }
-  else
-  {
-    Serial.println("Checksum invalid");
-    if (retval)
-      report_eeprom();
-  }
-
-  return retval;
 }
 
 void reboot() {
